@@ -1,0 +1,986 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+
+function formatDateForInput(value) {
+  if (!value) return "";
+
+  const text = String(value).trim();
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) {
+    return text;
+  }
+
+  const dotMatch = text.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+
+  if (dotMatch) {
+    return `${dotMatch[3]}-${dotMatch[2]}-${dotMatch[1]}`;
+  }
+
+  const date = new Date(text);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function formatDateForApi(value) {
+  if (!value) return "";
+
+  const text = String(value).trim();
+
+  if (/^\d{2}\.\d{2}\.\d{4}$/.test(text)) {
+    return text;
+  }
+
+  const [year, month, day] = text.split("-");
+
+  if (!year || !month || !day) {
+    return text;
+  }
+
+  return `${day}.${month}.${year}`;
+}
+
+function normalizeNumber(value) {
+  if (value === null || value === undefined || value === "") return "0";
+
+  const n = Number(String(value).replace(",", "."));
+
+  if (!Number.isFinite(n)) {
+    return "0";
+  }
+
+  return String(n);
+}
+
+function formatNumber(value, digits = 3) {
+  const n = Number(value || 0);
+
+  if (!Number.isFinite(n)) {
+    return "";
+  }
+
+  return n.toLocaleString("ru-RU", {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits
+  });
+}
+
+function numberToInput(value) {
+  if (value === null || value === undefined || value === "") return "";
+
+  const n = Number(value);
+
+  if (!Number.isFinite(n)) {
+    return String(value);
+  }
+
+  return String(Number(n.toFixed(3))).replace(".", ",");
+}
+
+function calcPlusExpression(value) {
+  const text = String(value || "").trim();
+
+  if (!text.includes("+")) {
+    return null;
+  }
+
+  const parts = text
+    .split("+")
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  if (parts.length === 0) {
+    return null;
+  }
+
+  let sum = 0;
+
+  for (const part of parts) {
+    const n = Number(part.replace(",", "."));
+
+    if (!Number.isFinite(n)) {
+      return null;
+    }
+
+    sum += n;
+  }
+
+  return String(Number(sum.toFixed(3))).replace(".", ",");
+}
+
+function escapeXml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function findDateRow(rows, dateValue) {
+  const date = formatDateForInput(dateValue);
+
+  return rows.find((row) => formatDateForInput(row.Date) === date) || null;
+}
+
+function SearchableSelect({
+  value,
+  options,
+  disabled,
+  onChange,
+  placeholder = "Выберите..."
+}) {
+  const selected = options.find((item) => Number(item.ID) === Number(value));
+  const [text, setText] = useState(selected?.Name || "");
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const item = options.find((row) => Number(row.ID) === Number(value));
+    setText(item?.Name || "");
+  }, [value, options]);
+
+  const filtered = useMemo(() => {
+    const q = text.trim().toLowerCase();
+
+    if (!q) {
+      return options.slice(0, 40);
+    }
+
+    return options
+      .filter((item) => String(item.Name || "").toLowerCase().includes(q))
+      .slice(0, 40);
+  }, [text, options]);
+
+  return (
+    <div className="searchable-select">
+      <input
+        value={text}
+        disabled={disabled}
+        placeholder={placeholder}
+        onFocus={() => setOpen(true)}
+        onChange={(event) => {
+          setText(event.target.value);
+          setOpen(true);
+        }}
+        onBlur={() => {
+          setTimeout(() => setOpen(false), 150);
+        }}
+      />
+
+      {open && !disabled && (
+        <div className="searchable-select-list">
+          {filtered.map((item) => (
+            <button
+              key={item.ID}
+              type="button"
+              className="searchable-select-option"
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => {
+                onChange(item.ID);
+                setText(item.Name || "");
+                setOpen(false);
+              }}
+            >
+              {item.Name}
+            </button>
+          ))}
+
+          {filtered.length === 0 && (
+            <div className="searchable-select-empty">
+              Ничего не найдено
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function PereuchetPage({
+  data,
+  currentSklad,
+  fetchWithAuth,
+  onReload
+}) {
+  const skladId = Number(currentSklad || 1);
+  const [rows, setRows] = useState([]);
+  const [deletedRows, setDeletedRows] = useState([]);
+  const [headerDate, setHeaderDate] = useState("");
+  const [selectedPerId, setSelectedPerId] = useState(null);
+  const [activeMode, setActiveMode] = useState("list");
+
+  const [perRows, setPerRows] = useState([]);
+  const [perChanged, setPerChanged] = useState(false);
+  const [perLoading, setPerLoading] = useState(false);
+  const [perError, setPerError] = useState("");
+  const perInputRefs = useRef([]);
+
+  const [pfRows, setPfRows] = useState([]);
+  const [pfDeletedRows, setPfDeletedRows] = useState([]);
+  const [dishOptions, setDishOptions] = useState([]);
+  const [pfChanged, setPfChanged] = useState(false);
+  const [pfLoading, setPfLoading] = useState(false);
+  const [pfError, setPfError] = useState("");
+  const [pfIdPer, setPfIdPer] = useState(null);
+
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+
+  useEffect(() => {
+    const list = Array.isArray(data) ? data : [];
+
+    const normalized = list.map((row) => ({
+      ID: Number(row.ID || 0),
+      Date: formatDateForInput(row.Date),
+      Zakr: Boolean(row.Zakr),
+      IDSklad: Number(row.IDSklad || skladId),
+      _changed: false,
+      _deleted: false
+    }));
+
+    setRows(normalized);
+    setDeletedRows([]);
+    setActiveMode("list");
+    setPerRows([]);
+    setPerChanged(false);
+    setPerError("");
+    setPfRows([]);
+    setPfDeletedRows([]);
+    setPfChanged(false);
+    setPfError("");
+    setPfIdPer(null);
+
+    if (normalized.length > 0) {
+      setHeaderDate(formatDateForInput(normalized[0].Date));
+      setSelectedPerId(Number(normalized[0].ID || 0));
+    } else {
+      setHeaderDate(new Date().toISOString().slice(0, 10));
+      setSelectedPerId(null);
+    }
+  }, [data, skladId]);
+
+  const selectedPerRow = useMemo(() => {
+    const byId = rows.find((row) => Number(row.ID) === Number(selectedPerId));
+
+    if (byId) {
+      return byId;
+    }
+
+    return findDateRow(rows, headerDate);
+  }, [rows, selectedPerId, headerDate]);
+
+  const canOpenPf = Boolean(selectedPerRow?.ID);
+
+  const listChanged = useMemo(
+    () => rows.some((row) => row._changed || row._deleted) || deletedRows.length > 0,
+    [rows, deletedRows]
+  );
+
+  function updateListRow(id, field, value) {
+    setRows((prev) =>
+      prev.map((row) =>
+        row.ID === id
+          ? {
+              ...row,
+              [field]: value,
+              _changed: true
+            }
+          : row
+      )
+    );
+  }
+
+  function deleteListRow(row) {
+    if (!window.confirm("Вы уверены?")) {
+      return;
+    }
+
+    if (row.ID > 0) {
+      setDeletedRows((prev) => [...prev, row]);
+    }
+
+    setRows((prev) => prev.filter((item) => item.ID !== row.ID));
+
+    if (Number(selectedPerId) === Number(row.ID)) {
+      setSelectedPerId(null);
+    }
+  }
+
+  function selectPerListRow(row) {
+    setSelectedPerId(Number(row.ID || 0));
+    setHeaderDate(formatDateForInput(row.Date));
+  }
+
+  function buildPerListXml() {
+    const items = rows
+      .map(
+        (row) =>
+          `<Item ID="${row.ID}" Date="${escapeXml(formatDateForApi(row.Date))}" Zakr="${row.Zakr ? 1 : 0}" IDSklad="${skladId}" />`
+      )
+      .join("");
+
+    const deleted = deletedRows
+      .filter((row) => row.ID > 0)
+      .map((row) => `<Item ID="${row.ID}" />`)
+      .join("");
+
+    return `<PerList Sklad="${skladId}"><Items>${items}</Items><Deleted>${deleted}</Deleted></PerList>`;
+  }
+
+  function buildPfXml() {
+    const items = pfRows
+      .filter((row) => !row._deleted)
+      .map(
+        (row) =>
+          `<Item ID="${row.ID}" IdPer="${pfIdPer}" IdDish="${Number(row.IdDish || 0)}" Kolvo="${escapeXml(normalizeNumber(row.Kolvo))}" />`
+      )
+      .join("");
+
+    const deleted = pfDeletedRows
+      .filter((row) => row.ID > 0)
+      .map((row) => `<Item ID="${row.ID}" />`)
+      .join("");
+
+    return `<PerPF IdPer="${pfIdPer}" Sklad="${skladId}"><Items>${items}</Items><Deleted>${deleted}</Deleted></PerPF>`;
+  }
+
+  function buildPerXml() {
+    const items = perRows
+      .filter((row) => row._changed)
+      .map(
+        (row) =>
+          `<Item ID="${row.ID}" OnFact="${escapeXml(normalizeNumber(row.OnFactInput ?? row.OnFact))}" />`
+      )
+      .join("");
+
+    return `<Per Dat="${escapeXml(formatDateForApi(headerDate))}" Sklad="${skladId}"><Items>${items}</Items></Per>`;
+  }
+
+  async function saveAction(action, xml) {
+    const body = new URLSearchParams();
+    body.set("Action", action);
+    body.set("xml", xml);
+
+    const response = await fetchWithAuth("https://webback.bar-boss.com/wf_RefSave.php", {
+      method: "POST",
+      body
+    });
+
+    const text = await response.text();
+
+    let result;
+
+    try {
+      result = JSON.parse(text);
+    } catch {
+      throw new Error(`Сервер вернул не JSON: ${text.slice(0, 500)}`);
+    }
+
+    if (!response.ok || result.status === "error") {
+      throw new Error(result.message || result.error || "Ошибка сохранения");
+    }
+
+    return result;
+  }
+
+  async function savePerList() {
+    try {
+      setSaving(true);
+      setSaveError("");
+
+      await saveAction("SavePerList", buildPerListXml());
+      await onReload?.();
+
+      setRows((prev) => prev.map((row) => ({ ...row, _changed: false })));
+      setDeletedRows([]);
+    } catch (err) {
+      setSaveError(err.message || "Ошибка сохранения списка переучетов");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function loadJson(url, errorPrefix) {
+    const response = await fetchWithAuth(url, { method: "GET" });
+    const text = await response.text();
+
+    let result;
+
+    try {
+      result = JSON.parse(text);
+    } catch {
+      throw new Error(`${errorPrefix} вернул не JSON: ${text.slice(0, 500)}`);
+    }
+
+    if (!response.ok || result.status === "error") {
+      throw new Error(result.message || result.error || errorPrefix);
+    }
+
+    return result;
+  }
+
+  async function refreshPerList() {
+    const result = await loadJson(
+      `https://webback.bar-boss.com/wf_SpisokPer.php?Sklad=${encodeURIComponent(skladId)}`,
+      "Список переучетов"
+    );
+
+    const normalized = (Array.isArray(result) ? result : []).map((row) => ({
+      ID: Number(row.ID || 0),
+      Date: formatDateForInput(row.Date),
+      Zakr: Boolean(row.Zakr),
+      IDSklad: Number(row.IDSklad || skladId),
+      _changed: false,
+      _deleted: false
+    }));
+
+    setRows(normalized);
+    setDeletedRows([]);
+
+    const selected = normalized.find((row) => formatDateForInput(row.Date) === formatDateForInput(headerDate));
+
+    if (selected?.ID) {
+      setSelectedPerId(Number(selected.ID));
+    }
+
+    return normalized;
+  }
+
+  async function openPf() {
+    let perRow =
+      rows.find((row) => Number(row.ID) === Number(selectedPerId)) ||
+      selectedPerRow;
+
+    if (!perRow?.ID) {
+      const freshRows = await refreshPerList();
+      perRow =
+        freshRows.find((row) => Number(row.ID) === Number(selectedPerId)) ||
+        findDateRow(freshRows, headerDate);
+    }
+
+    if (!perRow?.ID) {
+      setPfError("Для выбранной даты переучет еще не найден в списке. Сначала нажмите «Вывести переучет».");
+      return;
+    }
+
+    setSelectedPerId(Number(perRow.ID));
+    setHeaderDate(formatDateForInput(perRow.Date));
+
+    try {
+      setPfLoading(true);
+      setPfError("");
+      setSaveError("");
+
+      const [pfData, dishData] = await Promise.all([
+        loadJson(
+          `https://webback.bar-boss.com/wf_SpisokPerVGot.php?IdPer=${encodeURIComponent(perRow.ID)}`,
+          "Полуфабрикаты"
+        ),
+        loadJson(
+          `https://webback.bar-boss.com/wf_DishShort.php?Sklad=${encodeURIComponent(skladId)}`,
+          "Список блюд"
+        )
+      ]);
+
+      setPfRows((Array.isArray(pfData) ? pfData : []).map((row) => ({
+        ID: Number(row.ID || 0),
+        IdDish: Number(row.IdDish || 0),
+        Kolvo: numberToInput(row.Kolvo),
+        _changed: false,
+        _deleted: false
+      })));
+
+      setDishOptions(Array.isArray(dishData) ? dishData : []);
+      setPfDeletedRows([]);
+      setPfChanged(false);
+      setPfIdPer(Number(perRow.ID));
+      setActiveMode("pf");
+    } catch (err) {
+      setPfError(err.message || "Ошибка загрузки полуфабрикатов");
+    } finally {
+      setPfLoading(false);
+    }
+  }
+
+  function updatePfRow(id, field, value) {
+    setPfRows((prev) =>
+      prev.map((row) =>
+        row.ID === id
+          ? {
+              ...row,
+              [field]: value,
+              _changed: true
+            }
+          : row
+      )
+    );
+
+    setPfChanged(true);
+  }
+
+  function addPfRow() {
+    const minId = Math.min(0, ...pfRows.map((row) => Number(row.ID || 0)));
+    const nextId = minId - 1;
+
+    setPfRows((prev) => [
+      ...prev,
+      {
+        ID: nextId,
+        IdDish: 0,
+        Kolvo: "",
+        _changed: true,
+        _deleted: false
+      }
+    ]);
+
+    setPfChanged(true);
+  }
+
+  function deletePfRow(row) {
+    if (!window.confirm("Вы уверены?")) {
+      return;
+    }
+
+    if (row.ID > 0) {
+      setPfDeletedRows((prev) => [...prev, row]);
+    }
+
+    setPfRows((prev) => prev.filter((item) => item.ID !== row.ID));
+    setPfChanged(true);
+  }
+
+  async function savePf() {
+    try {
+      setSaving(true);
+      setSaveError("");
+
+      await saveAction("SavePerPF", buildPfXml());
+
+      setPfRows((prev) => prev.map((row) => ({ ...row, _changed: false })));
+      setPfDeletedRows([]);
+      setPfChanged(false);
+    } catch (err) {
+      setSaveError(err.message || "Ошибка сохранения полуфабрикатов");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function openPer() {
+    try {
+      setPerLoading(true);
+      setPerError("");
+      setSaveError("");
+
+      const apiDate = formatDateForApi(headerDate);
+
+      const result = await loadJson(
+        `https://webback.bar-boss.com/wf_SpisokPerEdit.php?Dat=${encodeURIComponent(apiDate)}&Sklad=${encodeURIComponent(skladId)}`,
+        "Переучет"
+      );
+
+      setPerRows((Array.isArray(result) ? result : []).map((row) => ({
+        ID: Number(row.ID || 0),
+        Name: row.Name || "",
+        Edizm: row.Edizm || "",
+        Price: Number(row.Price || 0),
+        Saldo0: Number(row.Saldo0 || 0),
+        Postup: Number(row.Postup || 0),
+        Moved: Number(row.Moved || 0),
+        Realiz: Number(row.Realiz || 0),
+        Spisano: Number(row.Spisano || 0),
+        InPF: Number(row.InPF || 0),
+        OnFact: Number(row.OnFact || 0),
+        OnFactInput: numberToInput(row.OnFact),
+        _changed: false
+      })));
+
+      setPerChanged(false);
+
+      try {
+        const freshRows = await refreshPerList();
+        const selected = findDateRow(freshRows, headerDate);
+
+        if (selected?.ID) {
+          setSelectedPerId(Number(selected.ID));
+        }
+      } catch {
+        // Если список не перечитался, сам переучет всё равно оставляем открытым.
+      }
+
+      setActiveMode("per");
+    } catch (err) {
+      setPerError(err.message || "Ошибка загрузки переучета");
+    } finally {
+      setPerLoading(false);
+    }
+  }
+
+  function updatePerOnFact(index, value) {
+    setPerRows((prev) =>
+      prev.map((row, rowIndex) =>
+        rowIndex === index
+          ? {
+              ...row,
+              OnFactInput: value,
+              _changed: true
+            }
+          : row
+      )
+    );
+
+    setPerChanged(true);
+  }
+
+  function handlePerOnFactKeyDown(event, index) {
+    if (event.key !== "Enter") {
+      return;
+    }
+
+    event.preventDefault();
+
+    const value = event.currentTarget.value;
+    const result = calcPlusExpression(value);
+
+    if (result !== null) {
+      updatePerOnFact(index, result);
+    }
+
+    const nextInput = perInputRefs.current[index + 1];
+
+    if (nextInput) {
+      nextInput.focus();
+      nextInput.select();
+    }
+  }
+
+  async function savePer() {
+    try {
+      setSaving(true);
+      setSaveError("");
+
+      await saveAction("SavePer", buildPerXml());
+
+      setPerRows((prev) =>
+        prev.map((row) => ({
+          ...row,
+          OnFact: Number(normalizeNumber(row.OnFactInput)),
+          _changed: false
+        }))
+      );
+
+      setPerChanged(false);
+    } catch (err) {
+      setSaveError(err.message || "Ошибка сохранения переучета");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="per-page">
+      <div className="module-toolbar">
+        <div className="toolbar-left">
+          <label className="toolbar-field">
+            Дата переучета
+            <input
+              type="date"
+              className="toolbar-date"
+              value={headerDate}
+              onChange={(event) => setHeaderDate(event.target.value)}
+            />
+          </label>
+
+          <button
+            type="button"
+            className="primary-button"
+            onClick={openPer}
+            disabled={perLoading || saving}
+          >
+            {perLoading ? "Загрузка..." : "Вывести переучет"}
+          </button>
+
+          <button
+            type="button"
+            className="small-action-button"
+            onClick={openPf}
+            disabled={!canOpenPf || pfLoading || saving}
+            title={!canOpenPf ? "Для этой даты переучет еще не создан" : ""}
+          >
+            {pfLoading ? "Загрузка..." : "Полуфабрикаты"}
+          </button>
+        </div>
+
+        <div className="toolbar-right">
+          {listChanged && (
+            <button
+              type="button"
+              className="save-button save-button-active"
+              onClick={savePerList}
+              disabled={saving}
+            >
+              Сохранить список
+            </button>
+          )}
+        </div>
+      </div>
+
+      {saveError && <div className="login-error">{saveError}</div>}
+      {perError && <div className="login-error">{perError}</div>}
+      {pfError && <div className="login-error">{pfError}</div>}
+
+      <div className="per-layout">
+        <section className="per-list-panel">
+          <div className="per-panel-title">
+            <strong>Список переучетов</strong>
+          </div>
+
+          <div className="table-wrap per-list-wrap">
+            <table className="data-table per-list-table">
+              <thead>
+                <tr>
+                  <th>Дата</th>
+                  <th>Закр.</th>
+                  <th></th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {rows.map((row) => (
+                  <tr
+                    key={row.ID}
+                    className={[
+                      row._changed ? "changed-row" : "",
+                      selectedPerRow?.ID === row.ID ? "selected-row" : ""
+                    ].join(" ")}
+                    onClick={() => selectPerListRow(row)}
+                  >
+                    <td>
+                      <input
+                        type="date"
+                        className="table-input per-date-input"
+                        value={formatDateForInput(row.Date)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          selectPerListRow(row);
+                        }}
+                        onFocus={() => selectPerListRow(row)}
+                        onChange={(event) => {
+                          updateListRow(row.ID, "Date", event.target.value);
+                          setSelectedPerId(Number(row.ID || 0));
+                          setHeaderDate(event.target.value);
+                        }}
+                      />
+                    </td>
+                    <td className="center">
+                      <input
+                        type="checkbox"
+                        checked={row.Zakr}
+                        onClick={(event) => event.stopPropagation()}
+                        onChange={(event) =>
+                          updateListRow(row.ID, "Zakr", event.target.checked)
+                        }
+                      />
+                    </td>
+                    <td className="action-column delete-column">
+                      <button
+                        type="button"
+                        className="small-danger-button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          deleteListRow(row);
+                        }}
+                      >
+                        ×
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+
+                {rows.length === 0 && (
+                  <tr>
+                    <td colSpan="3" className="empty-cell">
+                      Переучетов нет
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        {activeMode === "pf" && (
+          <section className="per-work-panel">
+            <div className="per-panel-title">
+              <strong>Полуфабрикаты</strong>
+
+              {pfChanged && (
+                <button
+                  type="button"
+                  className="save-button save-button-active"
+                  onClick={savePf}
+                  disabled={saving}
+                >
+                  Сохранить
+                </button>
+              )}
+            </div>
+
+            <div className="page-toolbar">
+              <button
+                type="button"
+                className="small-action-button"
+                onClick={addPfRow}
+                disabled={saving}
+              >
+                + Добавить строку
+              </button>
+            </div>
+
+            <div className="table-wrap per-pf-wrap">
+              <table className="data-table per-pf-table">
+                <thead>
+                  <tr>
+                    <th>Полуфабрикат</th>
+                    <th>Кол-во</th>
+                    <th></th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {pfRows.map((row) => (
+                    <tr key={row.ID} className={row._changed ? "changed-row" : ""}>
+                      <td>
+                        <SearchableSelect
+                          value={row.IdDish}
+                          options={dishOptions}
+                          onChange={(value) => updatePfRow(row.ID, "IdDish", value)}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          className="table-input text-right"
+                          value={row.Kolvo}
+                          onChange={(event) =>
+                            updatePfRow(row.ID, "Kolvo", event.target.value)
+                          }
+                        />
+                      </td>
+                      <td className="action-column delete-column">
+                        <button
+                          type="button"
+                          className="small-danger-button"
+                          onClick={() => deletePfRow(row)}
+                        >
+                          ×
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+
+                  {pfRows.length === 0 && (
+                    <tr>
+                      <td colSpan="3" className="empty-cell">
+                        Полуфабрикаты не указаны
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+
+        {activeMode === "per" && (
+          <section className="per-work-panel">
+            <div className="per-panel-title">
+              <strong>Переучет сырья</strong>
+
+              {perChanged && (
+                <button
+                  type="button"
+                  className="save-button save-button-active"
+                  onClick={savePer}
+                  disabled={saving}
+                >
+                  Сохранить
+                </button>
+              )}
+            </div>
+
+            <div className="table-wrap per-edit-wrap">
+              <table className="data-table per-edit-table">
+                <thead>
+                  <tr>
+                    <th>Сырьё</th>
+                    <th>Ед.</th>
+                    <th>Цена</th>
+                    <th>Нач.</th>
+                    <th>Приход</th>
+                    <th>Перем.</th>
+                    <th>Реализ.</th>
+                    <th>Списано</th>
+                    <th>В ПФ</th>
+                    <th>Факт</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {perRows.map((row, index) => (
+                    <tr key={row.ID} className={row._changed ? "changed-row" : ""}>
+                      <td>{row.Name}</td>
+                      <td>{row.Edizm}</td>
+                      <td className="text-right">{formatNumber(row.Price, 2)}</td>
+                      <td className="text-right">{formatNumber(row.Saldo0)}</td>
+                      <td className="text-right">{formatNumber(row.Postup)}</td>
+                      <td className="text-right">{formatNumber(row.Moved)}</td>
+                      <td className="text-right">{formatNumber(row.Realiz)}</td>
+                      <td className="text-right">{formatNumber(row.Spisano)}</td>
+                      <td className="text-right">{formatNumber(row.InPF)}</td>
+                      <td>
+                        <input
+                          ref={(input) => {
+                            perInputRefs.current[index] = input;
+                          }}
+                          className="table-input text-right per-fact-input"
+                          value={row.OnFactInput}
+                          onChange={(event) =>
+                            updatePerOnFact(index, event.target.value)
+                          }
+                          onKeyDown={(event) =>
+                            handlePerOnFactKeyDown(event, index)
+                          }
+                        />
+                      </td>
+                    </tr>
+                  ))}
+
+                  {perRows.length === 0 && (
+                    <tr>
+                      <td colSpan="10" className="empty-cell">
+                        Данных переучета нет
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+
+        {activeMode === "list" && (
+          <section className="per-work-panel per-empty-panel">
+            <div>
+              Выберите дату и нажмите «Вывести переучет» или «Полуфабрикаты».
+            </div>
+          </section>
+        )}
+      </div>
+    </div>
+  );
+}
