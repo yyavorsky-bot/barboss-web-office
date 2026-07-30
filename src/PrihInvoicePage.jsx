@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 function formatMoney(value) {
   return Number(value || 0).toFixed(2);
@@ -148,6 +148,183 @@ if (filtered.length === 1) {
               {item.Name}
             </button>
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function normalizeSupplierSearch(value) {
+  return String(value ?? "")
+    .trim()
+    .toLocaleLowerCase("ru-RU");
+}
+
+function SupplierSearch({
+  value,
+  options,
+  placeholder,
+  disabled = false,
+  onChange
+}) {
+  const rootRef = useRef(null);
+  const supplierList = Array.isArray(options) ? options : [];
+
+  const selected = useMemo(
+    () =>
+      supplierList.find(
+        (item) => Number(item.ID) === Number(value)
+      ) ?? null,
+    [supplierList, value]
+  );
+
+  const selectedText = selected?.Name || "";
+  const [text, setText] = useState(selectedText);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    setText(selectedText);
+  }, [selectedText]);
+
+  useEffect(() => {
+    function handleDocumentMouseDown(event) {
+      if (!rootRef.current?.contains(event.target)) {
+        setOpen(false);
+        setText(selectedText);
+      }
+    }
+
+    document.addEventListener("mousedown", handleDocumentMouseDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handleDocumentMouseDown);
+    };
+  }, [selectedText]);
+
+  const query = normalizeSupplierSearch(text);
+  const selectedQuery = normalizeSupplierSearch(selectedText);
+
+  const prefix = query === selectedQuery ? "" : query;
+
+  const filtered = useMemo(
+    () =>
+      [...supplierList]
+        .filter((item) =>
+          normalizeSupplierSearch(item.Name).startsWith(prefix)
+        )
+        .sort((a, b) =>
+          String(a.Name ?? "").localeCompare(
+            String(b.Name ?? ""),
+            "ru"
+          )
+        )
+        .slice(0, 100),
+    [supplierList, prefix]
+  );
+
+  const showEmptyOption =
+    prefix === "" ||
+    normalizeSupplierSearch("Не выбран").startsWith(prefix);
+
+  function choose(item) {
+    onChange?.(Number(item?.ID || 0));
+    setText(item?.Name || "");
+    setOpen(false);
+  }
+
+  function restoreSelection() {
+    setText(selectedText);
+    setOpen(false);
+  }
+
+  function handleKeyDown(event) {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      restoreSelection();
+      return;
+    }
+
+    if (event.key !== "Enter") {
+      return;
+    }
+
+    event.preventDefault();
+
+    const exact = filtered.find(
+      (item) =>
+        normalizeSupplierSearch(item.Name) === prefix
+    );
+
+    if (exact) {
+      choose(exact);
+      return;
+    }
+
+    if (filtered.length === 1) {
+      choose(filtered[0]);
+    }
+  }
+
+  return (
+    <div
+      className="searchable-select prih-supplier-search"
+      ref={rootRef}
+    >
+      <input
+        type="text"
+        value={text}
+        placeholder={placeholder}
+        disabled={disabled}
+        autoComplete="off"
+        onFocus={(event) => {
+          if (disabled) return;
+
+          setOpen(true);
+          event.currentTarget.select();
+        }}
+        onChange={(event) => {
+          setText(event.target.value);
+          setOpen(true);
+        }}
+        onKeyDown={handleKeyDown}
+        aria-label="Поиск поставщика"
+        aria-expanded={open}
+      />
+
+      {open && !disabled && (
+        <div className="searchable-select-list">
+          {showEmptyOption && (
+            <button
+              type="button"
+              className="searchable-select-option muted"
+              onMouseDown={(event) => {
+                event.preventDefault();
+                choose(null);
+              }}
+            >
+              Не выбран
+            </button>
+          )}
+
+          {filtered.map((item) => (
+            <button
+              key={item.ID}
+              type="button"
+              className="searchable-select-option"
+              onMouseDown={(event) => {
+                event.preventDefault();
+                choose(item);
+              }}
+            >
+              {item.Name}
+            </button>
+          ))}
+
+          {!showEmptyOption && filtered.length === 0 && (
+            <div className="searchable-select-empty">
+              Поставщик не найден
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -555,10 +732,11 @@ async function handleSave() {
 
   return (
     <div className="prih-page">
-      <div className="page-toolbar">
+      <div className="form-header-panel prih-form-header">
+        <div className="page-toolbar">
         <button
           type="button"
-          className="back-to-list-button"
+          className="back-to-list-button prih-back-button"
           onClick={onBack}
         >
           ← К списку накладных
@@ -629,23 +807,19 @@ async function handleSave() {
 <label className="calc-field">
   <span>Поставщик</span>
 
-  <select
+  <SupplierSearch
     value={Number(header.Post || 0)}
-    disabled={!isNewMode && Number(header.Post || 0) === 0}
-    onChange={(e) =>
-      updateHeaderField("Post", Number(e.target.value || 0))
+    options={postList}
+    placeholder={
+      isNewMode
+        ? "Начните вводить поставщика..."
+        : "Нет поставщика"
     }
-  >
-    <option value="0">
-      {isNewMode ? "Выберите поставщика..." : "Нет поставщика"}
-    </option>
-
-    {postList.map((item) => (
-      <option key={item.ID} value={item.ID}>
-        {item.Name}
-      </option>
-    ))}
-  </select>
+    disabled={!isNewMode && Number(header.Post || 0) === 0}
+    onChange={(value) =>
+      updateHeaderField("Post", Number(value || 0))
+    }
+  />
 </label>
 
         <label className="calc-field">
@@ -707,10 +881,15 @@ async function handleSave() {
     onChange={(e) => updateHeaderField("Rem", e.target.value)}
   />
 </label>
+      </div>
 
       <div className="calc-panel-title prih-items-title">
         <span>Содержимое накладной</span>
-        <button type="button" onClick={addRow}>
+        <button
+          type="button"
+          className="prih-add-row-button"
+          onClick={addRow}
+        >
           + строка
         </button>
       </div>

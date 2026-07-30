@@ -185,13 +185,14 @@ export default function ClientsPage({
   }
 
   return (
-    <div>
-      <div className="module-toolbar">
+    <div className="clients-page">
+      <div className="module-toolbar clients-toolbar">
         <div className="toolbar-left">
 
           <label className="filter-label">
             Фильтр:
             <select
+              className="clients-filter-select"
               value={skrFilter}
               onChange={(e) => setSkrFilter(e.target.value)}
             >
@@ -212,7 +213,7 @@ export default function ClientsPage({
           {!readOnly && (
             <button
               type="button"
-              className="toolbar-save-button"
+              className="toolbar-save-button clients-add-button"
               disabled={addLoading}
               onClick={addNewCustomer}
             >
@@ -223,7 +224,7 @@ export default function ClientsPage({
           {!readOnly && (
             <button
               type="button"
-              className="toolbar-save-button"
+              className="toolbar-save-button clients-save-button"
               disabled={Object.keys(changedRows).length === 0 || saveLoading}
               onClick={saveCustomer}
             >
@@ -240,15 +241,15 @@ export default function ClientsPage({
       )}
 
       {rows.length === 0 && (
-        <p>Список клиентов пуст.</p>
+        <div className="perem-empty clients-empty">Список клиентов пуст.</div>
       )}
 
       {rows.length > 0 && filteredRows.length === 0 && (
-        <p>По выбранному фильтру клиентов нет.</p>
+        <div className="perem-empty clients-empty">По выбранному фильтру клиентов нет.</div>
       )}
 
       {filteredRows.length > 0 && (
-        <div className="table-wrap">
+        <div className="table-wrap clients-table-wrap">
             <table className="data-table clients-table">
               <thead>
               <tr>

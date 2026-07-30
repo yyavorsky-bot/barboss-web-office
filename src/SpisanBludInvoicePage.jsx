@@ -286,7 +286,7 @@ const loadedRows = Array.isArray(initialData.items)
     const ok = window.confirm("Удалить строку?");
     if (!ok) return;
 
-    setRows((prevRows) => prevRows.filter((row) => row.CodeSpi !== rowId));
+    setRows((prevRows) => prevRows.filter((row) => row.ID !== rowId));
 
     if (rowId > 0) {
       setDeletedIds((prev) => [...prev, rowId]);
@@ -407,10 +407,11 @@ ${deletedXml}
 
   return (
     <div className="prih-page">
-      <div className="page-toolbar">
+      <div className="form-header-panel prih-form-header spisan-blud-form-header">
+        <div className="page-toolbar">
         <button
           type="button"
-          className="back-to-list-button"
+          className="back-to-list-button prih-back-button"
           onClick={onBack}
         >
           ← К списку списаний блюд
@@ -436,7 +437,7 @@ ${deletedXml}
         от <strong>{header.DateP}</strong>
       </div>
 
-      <div className="prih-header-grid">
+      <div className="prih-header-grid spisan-blud-header-grid">
 
         <label className="calc-field">
           <span>Дата</span>
@@ -467,12 +468,7 @@ ${deletedXml}
           </select>
         </label>
 
-        <div className="calc-info">
-          <span>Всего кол-во:</span>
-          <strong>{formatQty(totalQty)}</strong>
-        </div>
-
-        <label className="calc-field calc-field-wide">
+         <label className="calc-field calc-field-wide">
           <span>Примечание</span>
 
           <input
@@ -481,11 +477,16 @@ ${deletedXml}
           />
         </label>
       </div>
+      </div>
 
       <div className="calc-panel-title prih-items-title">
         <span>Содержимое списания блюд</span>
 
-        <button type="button" onClick={addRow}>
+        <button
+          type="button"
+          className="prih-add-row-button"
+          onClick={addRow}
+        >
           + строка
         </button>
       </div>
@@ -509,7 +510,7 @@ ${deletedXml}
             )}
 
             {rows.map((row) => (
-              <tr key={row.CodeSpi}>
+              <tr key={row.ID}>
                 <td>
                   <SearchableSelect
                     value={row.CodeBluda}

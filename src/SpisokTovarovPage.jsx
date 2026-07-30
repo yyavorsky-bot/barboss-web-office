@@ -96,14 +96,22 @@ export default function SpisokTovarovPage({
   }
 }
   return (
-    <div>
-      <div className="module-toolbar">
+    <div className="spisok-tovarov-page">
+      <div className="module-toolbar spisok-tovarov-toolbar">
         <div className="toolbar-left">
           <label className="toolbar-check">
             <input
               type="checkbox"
               checked={Boolean(filterSkr)}
-              onChange={(e) => onChangeSkr(e.target.checked ? 1 : 0)}
+              onChange={(e) => {
+                const nextSkr = e.target.checked ? 1 : 0;
+
+                onChangeSkr?.(nextSkr);
+                onApply?.({
+                  cat: filterCat || "0",
+                  skr: nextSkr
+                });
+              }}
             />
             Скрытые
           </label>
@@ -114,7 +122,15 @@ export default function SpisokTovarovPage({
             <select
               className="toolbar-select"
               value={String(filterCat ?? "0")}
-              onChange={(e) => onChangeCat(e.target.value)}
+              onChange={(e) => {
+                const nextCategory = e.target.value;
+
+                onChangeCat?.(nextCategory);
+                onApply?.({
+                  cat: nextCategory || "0",
+                  skr: filterSkr ? 1 : 0
+                });
+              }}
             >
               <option value="0">Все</option>
 
@@ -128,22 +144,10 @@ export default function SpisokTovarovPage({
         </div>
 
         <div className="toolbar-right">
- <button
-  type="button"
-  className="toolbar-save-button"
-  onClick={() => {
-    onApply({
-      cat: filterCat || "0",
-      skr: filterSkr ? 1 : 0
-    });
-  }}
->
-  Применить
-</button>
 {!readOnly && (
   <button
     type="button"
-    className="toolbar-save-button"
+    className="toolbar-save-button spisok-tovarov-add-button"
     disabled={addLoading || saveLoading}
     onClick={addNewTovar}
   >
@@ -155,7 +159,7 @@ export default function SpisokTovarovPage({
             <>
               <button
                 type="button"
-                className="toolbar-save-button"
+                className="toolbar-save-button spisok-tovarov-save-button"
                 disabled={Object.keys(changedRows).length === 0 || saveLoading}
                 onClick={saveChanges}
               >
@@ -183,8 +187,8 @@ export default function SpisokTovarovPage({
       )}
 
       {rows.length > 0 && (
-        <div className="table-wrap">
-          <table className="data-table">
+        <div className="table-wrap spisok-tovarov-table-wrap">
+          <table className="data-table spisok-tovarov-table">
             <thead>
               <tr>
                 <th>Наименование</th>

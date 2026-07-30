@@ -115,8 +115,8 @@ export default function DiscountPage({
   }
 
   return (
-    <div>
-      <div className="module-toolbar">
+    <div className="discount-page">
+      <div className="module-toolbar discount-toolbar">
         <div className="toolbar-left">
 
 
@@ -131,7 +131,7 @@ export default function DiscountPage({
           {!readOnly && (
             <button
               type="button"
-              className="toolbar-save-button"
+              className="toolbar-save-button discount-save-button"
               disabled={Object.keys(changedRows).length === 0 || saveLoading}
               onClick={saveDiscount}
             >
@@ -148,12 +148,12 @@ export default function DiscountPage({
       )}
 
       {rows.length === 0 && (
-        <p>Список скидок пуст.</p>
+        <div className="perem-empty discount-empty">Список скидок пуст.</div>
       )}
 
       {rows.length > 0 && (
-          <div className="table-wrap table-wrap-narrow">
-            <table className="data-table compact-table">
+          <div className="table-wrap discount-table-wrap">
+            <table className="data-table compact-table discount-table">
             <thead>
               <tr>
                 <th>Название</th>

@@ -150,8 +150,8 @@ export default function FopsPage({
   }
 
   return (
-    <div>
-      <div className="module-toolbar">
+    <div className="fops-page">
+      <div className="module-toolbar fops-toolbar">
         <div className="toolbar-left">
            {Object.keys(changedRows).length > 0 && (
             <span className="changed-info">
@@ -164,7 +164,7 @@ export default function FopsPage({
           {!readOnly && (
             <button
               type="button"
-              className="toolbar-save-button"
+              className="toolbar-save-button fops-add-button"
               disabled={addLoading}
               onClick={addNewFop}
             >
@@ -175,7 +175,7 @@ export default function FopsPage({
           {!readOnly && (
             <button
               type="button"
-              className="toolbar-save-button"
+              className="toolbar-save-button fops-save-button"
               disabled={Object.keys(changedRows).length === 0 || saveLoading}
               onClick={saveFop}
             >
@@ -192,12 +192,12 @@ export default function FopsPage({
       )}
 
       {rows.length === 0 && (
-        <p>Список предприятий пуст.</p>
+        <div className="perem-empty fops-empty">Список предприятий пуст.</div>
       )}
 
       {rows.length > 0 && (
-        <div className="table-wrap table-wrap-fops">
-          <table className="data-table compact-table">
+        <div className="table-wrap table-wrap-fops fops-table-wrap">
+          <table className="data-table compact-table fops-table">
             <thead>
               <tr>
                 <th>Предприятие</th>

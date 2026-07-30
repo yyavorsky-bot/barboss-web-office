@@ -176,7 +176,6 @@ export default function GroupsPage({
 
       const xml = buildGroupsXml(changedItems);
 
-      console.log("GROUPS SAVE xml =", xml);
 
       await onSaveGroup(xml);
 
@@ -191,8 +190,8 @@ export default function GroupsPage({
   const changedCount = Object.keys(changedRows).length;
 
   return (
-    <div>
-      <div className="module-toolbar">
+    <div className="groups-page">
+      <div className="module-toolbar groups-toolbar">
         <div className="toolbar-left">
           {changedCount > 0 && (
             <span className="changed-info">
@@ -205,7 +204,7 @@ export default function GroupsPage({
           {!readOnly && (
             <button
               type="button"
-              className="toolbar-save-button"
+              className="toolbar-save-button groups-add-button"
               disabled={addLoading}
               onClick={addNewGroup}
             >
@@ -216,7 +215,7 @@ export default function GroupsPage({
           {!readOnly && (
             <button
               type="button"
-              className="toolbar-save-button"
+              className="toolbar-save-button groups-save-button"
               disabled={changedCount === 0 || saveLoading}
               onClick={saveGroups}
             >
@@ -233,11 +232,11 @@ export default function GroupsPage({
       )}
 
       {rows.length === 0 && (
-        <p>Список групп блюд пуст.</p>
+        <div className="perem-empty groups-empty">Список групп блюд пуст.</div>
       )}
 
       {rows.length > 0 && (
-        <div className="table-wrap">
+        <div className="table-wrap groups-table-wrap">
 <table className="data-table groups-table">
   <colgroup>
     <col className="col-group-name" />
@@ -340,19 +339,9 @@ export default function GroupsPage({
                   {skFields.map((field) => (
    <td key={`${row.ID}-${field}`} className="sk-cell">
     <input
+  className="groups-sk-input"
   type="number"
   step="0.01"
-  style={{
-    width: "38px",
-    minWidth: "38px",
-    maxWidth: "38px",
-    height: "22px",
-    border: "none",
-    background: "transparent",
-    textAlign: "right",
-    padding: "0 2px",
-    boxSizing: "border-box"
-  }}
   value={row[field] ?? ""}
   disabled={readOnly}
   onChange={(e) =>

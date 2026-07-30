@@ -136,8 +136,8 @@ export default function CategoriesPage({
   }
 
   return (
-    <div>
-      <div className="module-toolbar">
+    <div className="categories-page">
+      <div className="module-toolbar categories-toolbar">
         <div className="toolbar-left">
           {Object.keys(changedRows).length > 0 && (
             <span className="changed-info">
@@ -150,7 +150,7 @@ export default function CategoriesPage({
           {!readOnly && (
             <button
               type="button"
-              className="toolbar-save-button"
+              className="toolbar-save-button categories-add-button"
               disabled={addLoading}
               onClick={addNewCategory}
             >
@@ -161,7 +161,7 @@ export default function CategoriesPage({
           {!readOnly && (
             <button
               type="button"
-              className="toolbar-save-button"
+              className="toolbar-save-button categories-save-button"
               disabled={Object.keys(changedRows).length === 0 || saveLoading}
               onClick={saveCategory}
             >
@@ -178,12 +178,12 @@ export default function CategoriesPage({
       )}
 
       {rows.length === 0 && (
-        <p>Список категорий пуст.</p>
+        <div className="perem-empty categories-empty">Список категорий пуст.</div>
       )}
 
       {rows.length > 0 && (
-        <div className="table-wrap table-wrap-xnarrow">
-          <table className="data-table compact-table">
+        <div className="table-wrap table-wrap-xnarrow categories-table-wrap">
+          <table className="data-table compact-table categories-table">
             <thead>
               <tr>
                 <th>Категория</th>

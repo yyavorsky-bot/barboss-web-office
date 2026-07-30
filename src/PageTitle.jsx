@@ -29,10 +29,6 @@ export default function LoginPage({ onLogin, loading }) {
 
   return (
     <main className="login-page">
-      <div className="login-version">
-        Версия 1.1 © Юрий Яворский 2026г
-      </div>
-
       <div className="login-decoration login-decoration-one" aria-hidden="true" />
       <div className="login-decoration login-decoration-two" aria-hidden="true" />
 

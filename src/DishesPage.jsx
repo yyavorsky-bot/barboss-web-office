@@ -173,7 +173,7 @@ function buildDishesXml(sourceRows) {
   }
 
   return (
-    <div>
+    <div className="dishes-page">
       <DishesToolbar
         groups={toolbarGroups}
         filterSkr={filterSkr}
@@ -205,6 +205,7 @@ function buildDishesXml(sourceRows) {
           <table className="data-table dishes-table">
             <thead>
               <tr>
+                <th className="dishes-calc-column">Кальк.</th>
                 <th>Штрихкод</th>
                 <th>Название</th>
                 <th>Цена</th>
@@ -219,7 +220,6 @@ function buildDishesXml(sourceRows) {
                 <th>ФП</th>
                 <th>УКТЗ.</th>
                 <th>Дост.</th>
-                <th>Кальк.</th>
               </tr>
             </thead>
 
@@ -233,6 +233,19 @@ function buildDishesXml(sourceRows) {
                   ].join(" ")}
                   onClick={() => setSelectedId(dish.CodeBl)}
                 >
+                  <td className="dishes-calc-column">
+                    <button
+                      type="button"
+                      className="dishes-calc-button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenCalc?.(dish.CodeBl);
+                      }}
+                    >
+                      Кальк.
+                    </button>
+                  </td>
+
                   <td>
                     <input
                       className="table-input small-input"
@@ -395,18 +408,7 @@ function buildDishesXml(sourceRows) {
                     />
                   </td>
 
-<td>
-  <button
-    type="button"
-    className="small-action-button"
-    onClick={(e) => {
-      e.stopPropagation();
-      onOpenCalc?.(dish.CodeBl);
-    }}
-  >
-    Кальк.
-  </button>
-</td>
+
                 </tr>
               ))}
             </tbody>
@@ -455,7 +457,7 @@ function DishesToolbar({
   onSaveDishes
 }) {
   return (
-    <div className="module-toolbar">
+    <div className="module-toolbar dishes-toolbar">
       <div className="toolbar-left">
         <label className="toolbar-check">
           <input
@@ -505,7 +507,7 @@ function DishesToolbar({
         {!readOnly && (
           <button
             type="button"
-            className="toolbar-save-button"
+            className="toolbar-save-button dishes-add-button"
             disabled={addLoading}
             onClick={onAddDish}
           >
@@ -516,7 +518,7 @@ function DishesToolbar({
         {!readOnly && (
           <button
             type="button"
-            className="toolbar-save-button"
+            className="toolbar-save-button dishes-save-button"
             disabled={changedCount === 0 || saveLoading}
             onClick={onSaveDishes}
           >

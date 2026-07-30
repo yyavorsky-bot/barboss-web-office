@@ -13,6 +13,8 @@ import {
   loadCategor
 } from "./api";
 import LoginPage from "./LoginPage";
+import HomePage from "./HomePage";
+import barbossTitleIcon from "./assets/barboss-title-icon.png";
 import DishesPage from "./DishesPage";
 import PrihListPage from "./PrihListPage";
 import CardsSiryaPage from "./CardsSiryaPage";
@@ -37,7 +39,36 @@ import OrdersDayPage from "./OrdersDayPage";
 import SchetViewPage from "./SchetViewPage";
 import "./styles.css";
 
-function MenuItem({ item, level = 0, onSelect }) {
+function normalizeMenuActionKey(action) {
+  return String(action || "")
+    .trim()
+    .replace(/^https?:\/\/webback\.bar-boss\.com\//i, "")
+    .replace(/^\/+/, "")
+    .split("?")[0];
+}
+
+function menuItemContainsAction(item, selectedAction) {
+  const action = item?.action ?? item?.Action ?? "";
+  const items = item?.items ?? item?.Items ?? [];
+
+  if (
+    action &&
+    normalizeMenuActionKey(action) === normalizeMenuActionKey(selectedAction)
+  ) {
+    return true;
+  }
+
+  return Array.isArray(items)
+    ? items.some((child) => menuItemContainsAction(child, selectedAction))
+    : false;
+}
+
+function MenuItem({
+  item,
+  level = 0,
+  onSelect,
+  selectedAction
+}) {
   const [isOpen, setIsOpen] = useState(false);
 
   const name = item.name ?? item.Name ?? "";
@@ -46,6 +77,23 @@ function MenuItem({ item, level = 0, onSelect }) {
 
   const hasItems = Array.isArray(items) && items.length > 0;
   const hasAction = Boolean(action);
+
+  const isSelected =
+    hasAction &&
+    normalizeMenuActionKey(action) ===
+      normalizeMenuActionKey(selectedAction);
+
+  const containsSelected =
+    hasItems &&
+    items.some((child) =>
+      menuItemContainsAction(child, selectedAction)
+    );
+
+  useEffect(() => {
+    if (containsSelected) {
+      setIsOpen(true);
+    }
+  }, [containsSelected]);
 
   function handleClick() {
     if (hasItems) {
@@ -58,47 +106,271 @@ function MenuItem({ item, level = 0, onSelect }) {
     }
   }
 
+  const className = [
+    "menu-item",
+    hasItems ? "group" : hasAction ? "active" : "disabled",
+    isSelected ? "selected" : "",
+    containsSelected ? "contains-selected" : ""
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
-    <div>
+    <div className="menu-node">
       <button
-        className={
-          hasItems
-            ? "menu-item group"
-            : hasAction
-              ? "menu-item active"
-              : "menu-item disabled"
-        }
-        style={{ paddingLeft: 12 + level * 18 }}
+        type="button"
+        className={className}
+        style={{ paddingLeft: 14 + level * 17 }}
         disabled={!hasAction && !hasItems}
         onClick={handleClick}
+        aria-expanded={hasItems ? isOpen : undefined}
+        title={name}
       >
-        {hasItems && (
-          <span className="menu-arrow">
-            {isOpen ? "▾" : "▸"}
-          </span>
-        )}
+        <span
+          className={`menu-arrow ${
+            !hasItems ? "empty" : ""
+          }`}
+          aria-hidden="true"
+        >
+          {hasItems ? (isOpen ? "▾" : "▸") : ""}
+        </span>
 
-        {!hasItems && (
-          <span className="menu-arrow empty">
-            {" "}
-          </span>
-        )}
-
-        <span>{name}</span>
+        <span className="menu-item-label">{name}</span>
       </button>
 
-      {hasItems && isOpen &&
-        items.map((child, index) => (
-          <MenuItem
-            key={`${child.name ?? child.Name}-${index}`}
-            item={child}
-            level={level + 1}
-            onSelect={onSelect}
-          />
-        ))}
+      {hasItems && isOpen && (
+        <div className="menu-children">
+          {items.map((child, index) => (
+            <MenuItem
+              key={`${child.name ?? child.Name}-${index}`}
+              item={child}
+              level={level + 1}
+              onSelect={onSelect}
+              selectedAction={selectedAction}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
+
+
+const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
+
+function parseBooleanFlag(value) {
+  if (value === true || value === 1) {
+    return true;
+  }
+
+  const normalized = String(value ?? "").trim().toLowerCase();
+  return normalized === "true" || normalized === "1" || normalized === "yes";
+}
+
+function createLocalDate(year, month, day) {
+  const date = new Date(year, month - 1, day);
+
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+function parseLicenseDate(value) {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return createLocalDate(
+      value.getFullYear(),
+      value.getMonth() + 1,
+      value.getDate()
+    );
+  }
+
+  if (typeof value === "number" && Number.isFinite(value)) {
+    const milliseconds = Math.abs(value) < 1_000_000_000_000
+      ? value * 1000
+      : value;
+
+    const date = new Date(milliseconds);
+
+    if (!Number.isNaN(date.getTime())) {
+      return createLocalDate(
+        date.getFullYear(),
+        date.getMonth() + 1,
+        date.getDate()
+      );
+    }
+  }
+
+  const textValue = String(value ?? "").trim();
+
+  if (!textValue) {
+    return null;
+  }
+
+  let match = textValue.match(/^(\d{4})-(\d{2})-(\d{2})/);
+
+  if (match) {
+    return createLocalDate(
+      Number(match[1]),
+      Number(match[2]),
+      Number(match[3])
+    );
+  }
+
+  match = textValue.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})/);
+
+  if (match) {
+    return createLocalDate(
+      Number(match[3]),
+      Number(match[2]),
+      Number(match[1])
+    );
+  }
+
+  const fallbackDate = new Date(textValue);
+
+  if (Number.isNaN(fallbackDate.getTime())) {
+    return null;
+  }
+
+  return createLocalDate(
+    fallbackDate.getFullYear(),
+    fallbackDate.getMonth() + 1,
+    fallbackDate.getDate()
+  );
+}
+
+function getLocalToday() {
+  const now = new Date();
+
+  return createLocalDate(
+    now.getFullYear(),
+    now.getMonth() + 1,
+    now.getDate()
+  );
+}
+
+function getLicenseStatus(licenseInfo) {
+  if (!licenseInfo || typeof licenseInfo !== "object") {
+    return {
+      validUntil: "",
+      validUntilDate: null,
+      daysLeft: null,
+      isExpired: false,
+      shouldWarn: false
+    };
+  }
+
+  const validUntil =
+    licenseInfo.validUntil ??
+    licenseInfo.ValidUntil ??
+    licenseInfo.dateEnd ??
+    licenseInfo.DateEnd ??
+    licenseInfo.endDate ??
+    "";
+
+  const validUntilDate = parseLicenseDate(validUntil);
+  const today = getLocalToday();
+
+  let daysLeft = null;
+
+  if (validUntilDate && today) {
+    const validUntilDay = Date.UTC(
+      validUntilDate.getFullYear(),
+      validUntilDate.getMonth(),
+      validUntilDate.getDate()
+    );
+
+    const todayDay = Date.UTC(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate()
+    );
+
+    daysLeft = Math.round(
+      (validUntilDay - todayDay) / MILLISECONDS_PER_DAY
+    );
+  } else {
+    const rawServerDaysLeft = licenseInfo.daysLeft;
+
+    if (
+      rawServerDaysLeft !== null &&
+      rawServerDaysLeft !== undefined &&
+      String(rawServerDaysLeft).trim() !== ""
+    ) {
+      const serverDaysLeft = Number(rawServerDaysLeft);
+
+      if (Number.isFinite(serverDaysLeft)) {
+        daysLeft = Math.trunc(serverDaysLeft);
+      }
+    }
+  }
+
+  const isExpired =
+    parseBooleanFlag(licenseInfo.isExpired) ||
+    (daysLeft !== null && daysLeft < 0);
+
+  return {
+    validUntil: String(validUntil || ""),
+    validUntilDate,
+    daysLeft,
+    isExpired,
+    shouldWarn:
+      !isExpired &&
+      daysLeft !== null &&
+      daysLeft >= 0 &&
+      daysLeft < 3
+  };
+}
+
+function formatLicenseDate(date, fallback = "") {
+  if (!date) {
+    return String(fallback || "");
+  }
+
+  return new Intl.DateTimeFormat("ru-RU").format(date);
+}
+
+function buildLicenseExpiredMessage(status) {
+  const dateText = formatLicenseDate(
+    status.validUntilDate,
+    status.validUntil
+  );
+
+  return dateText
+    ? `Срок действия лицензии закончился ${dateText}. Вход в BarBo$$ Web Office невозможен.`
+    : "Срок действия лицензии закончился. Вход в BarBo$$ Web Office невозможен.";
+}
+
+function buildLicenseWarningMessage(status) {
+  const dateText = formatLicenseDate(
+    status.validUntilDate,
+    status.validUntil
+  );
+
+  if (status.daysLeft === 0) {
+    return dateText
+      ? `Внимание! Срок действия лицензии заканчивается сегодня, ${dateText}.`
+      : "Внимание! Срок действия лицензии заканчивается сегодня.";
+  }
+
+  if (status.daysLeft === 1) {
+    return dateText
+      ? `Внимание! Срок действия лицензии заканчивается завтра, ${dateText}.`
+      : "Внимание! До окончания лицензии остался 1 день.";
+  }
+
+  return dateText
+    ? `Внимание! До окончания лицензии осталось ${status.daysLeft} дня. Лицензия действует до ${dateText}.`
+    : `Внимание! До окончания лицензии осталось ${status.daysLeft} дня.`;
+}
+
 export default function App() {
   const [accessToken, setAccessToken] = useState("");
   const [user, setUser] = useState(null);
@@ -141,6 +413,8 @@ export default function App() {
   const [spisanInitialData, setSpisanInitialData] = useState(null);
   const [spisanBludInitialData, setSpisanBludInitialData] = useState(null);
   const today = new Date().toISOString().slice(0, 10);
+  const [reportDateFrom, setReportDateFrom] = useState(today);
+  const [reportDateTo, setReportDateTo] = useState(today);
   const [kassaDate, setKassaDate] = useState(today);
   const [currentValut, setCurrentValut] = useState(1);
   const [ordersDate, setOrdersDate] = useState(new Date().toISOString().slice(0, 10));
@@ -1646,54 +1920,67 @@ async function addDish({ sklad, group }) {
   }
 }
   async function handleLogin(formData) {
-  setLoading(true);
+    setLoading(true);
 
-  try {
-    const loginData = await loginRequest(formData);
+    try {
+      const loginData = await loginRequest(formData);
+      const loginLicenseStatus = getLicenseStatus(loginData.license);
 
-    setAccessToken(loginData.accessToken);
-    setUser(loginData.user);
-    setTenant(loginData.tenant);
-    setLicense(loginData.license);
+      if (loginLicenseStatus.isExpired) {
+        handleLogout();
+        window.alert(buildLicenseExpiredMessage(loginLicenseStatus));
+        return;
+      }
 
-    const menuData = await menuRequest(loginData.accessToken);
-    setMenu(menuData);
+      setAccessToken(loginData.accessToken);
+      setUser(loginData.user);
+      setTenant(loginData.tenant);
+      setLicense(loginData.license);
 
-    const skladsData = await loadPodrazd(loginData.accessToken);
-    setSklads(skladsData);
+      const menuData = await menuRequest(loginData.accessToken);
+      setMenu(menuData);
 
-    if (Array.isArray(skladsData) && skladsData.length > 0) {
-  const firstSklad = skladsData[0];
-  const firstCode = firstSklad.ID ;
+      const skladsData = await loadPodrazd(loginData.accessToken);
+      setSklads(skladsData);
 
-  setCurrentSklad(String(firstCode));
-}
-  const orgData = await loadOrganizations(loginData.accessToken);
-setOrganizations(orgData);
+      if (Array.isArray(skladsData) && skladsData.length > 0) {
+        const firstSklad = skladsData[0];
+        const firstCode = firstSklad.ID;
 
-if (!loginData.tenant?.multiOrg) {
-  setCurrentOrg("1");
-} else if (Array.isArray(orgData) && orgData.length > 0) {
-  setCurrentOrg(String(orgData[0].ID));
-} else {
-  setCurrentOrg("0");
-}
-const [groupsData, cehData, fopData, typDishData] = await Promise.all([
-  loadGroups(loginData.accessToken),
-  loadCeh(loginData.accessToken),
-  loadFop(loginData.accessToken),
-  loadTypDish(loginData.accessToken)
-]);
+        setCurrentSklad(String(firstCode));
+      }
 
-setDishGroups(groupsData);
-setCehList(cehData);
-setFopList(fopData);
-setTypDishList(typDishData);
+      const orgData = await loadOrganizations(loginData.accessToken);
+      setOrganizations(orgData);
 
-} finally {
-    setLoading(false);
+      if (!loginData.tenant?.multiOrg) {
+        setCurrentOrg("1");
+      } else if (Array.isArray(orgData) && orgData.length > 0) {
+        setCurrentOrg(String(orgData[0].ID));
+      } else {
+        setCurrentOrg("0");
+      }
+
+      const [groupsData, cehData, fopData, typDishData] =
+        await Promise.all([
+          loadGroups(loginData.accessToken),
+          loadCeh(loginData.accessToken),
+          loadFop(loginData.accessToken),
+          loadTypDish(loginData.accessToken)
+        ]);
+
+      setDishGroups(groupsData);
+      setCehList(cehData);
+      setFopList(fopData);
+      setTypDishList(typDishData);
+
+      if (loginLicenseStatus.shouldWarn) {
+        window.alert(buildLicenseWarningMessage(loginLicenseStatus));
+      }
+    } finally {
+      setLoading(false);
+    }
   }
-}
 
   function handleLogout() {
   setAccessToken("");
@@ -1733,8 +2020,36 @@ setTypDishList(typDishData);
   
   setSpisokTovarovCat("0");
   setSpisokTovarovSkr(0);
+  }
 
-}
+  useEffect(() => {
+    if (!accessToken || !license) {
+      return undefined;
+    }
+
+    function checkLicenseExpiration() {
+      const currentLicenseStatus = getLicenseStatus(license);
+
+      if (!currentLicenseStatus.isExpired) {
+        return;
+      }
+
+      window.alert(buildLicenseExpiredMessage(currentLicenseStatus));
+      handleLogout();
+    }
+
+    checkLicenseExpiration();
+
+    const intervalId = window.setInterval(
+      checkLicenseExpiration,
+      60 * 1000
+    );
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [accessToken, license]);
+
 async function saveDishes(xml) {
 
   const response = await fetchWithAuth("https://webback.bar-boss.com/wf_DishesSave.php", {
@@ -1761,89 +2076,211 @@ async function saveDishes(xml) {
 
   return data;
 }
+
+  function openHome() {
+    setSelectedAction("");
+    setWorkTitle("");
+    setWorkData(null);
+    setWorkLoading(false);
+    setWorkError("");
+
+    setDishCalcId(null);
+    setPrihInvoiceId(null);
+    setPrihInitialData(null);
+    setSpisanInitialData(null);
+    setSpisanBludInitialData(null);
+    setViewOrderId(null);
+    setViewSourceOrder(null);
+  }
+
+  const currentOrganizationName =
+    organizations.find((org) => String(org.ID) === String(currentOrg))?.Name || "";
+
+  const currentSkladName =
+    sklads.find((sklad) =>
+      String(sklad.Code ?? sklad.ID) === String(currentSklad)
+    )?.Name ??
+    sklads.find((sklad) =>
+      String(sklad.Code ?? sklad.ID) === String(currentSklad)
+    )?.NameSkl ??
+    "";
+
+  const licenseStatus = useMemo(
+    () => getLicenseStatus(license),
+    [license]
+  );
+
+  const displayedLicense = license
+    ? {
+        ...license,
+        validUntil:
+          formatLicenseDate(
+            licenseStatus.validUntilDate,
+            licenseStatus.validUntil
+          ) || license.validUntil,
+        daysLeft: licenseStatus.daysLeft,
+        isExpired: licenseStatus.isExpired,
+        warn: licenseStatus.shouldWarn
+      }
+    : null;
+
   if (!accessToken) {
     return <LoginPage onLogin={handleLogin} loading={loading} />;
   }
 
   return (
     <div className="app-shell">
-      <header className="top-bar">
-        <div className="top-left">
-          <strong>BarBo$$ Web Office</strong>
-        </div>
+<header className="top-bar">
+  <div className="top-left">
+    <button
+      type="button"
+      className="brand-home-button"
+      onClick={openHome}
+      title="На главную"
+    >
+      <img src={barbossTitleIcon} alt="" />
+      <span>BarBo$$ Web Office</span>
+    </button>
 
-        <div className="top-right">
- {tenant?.multiOrg && organizations.length > 0 && (
-  <select
-    value={currentOrg}
-  onChange={(e) => {
+    <div className="top-period" aria-label="Период отчётов">
+      <label className="top-field top-date-field">
+        <span>С</span>
+        <input
+          type="date"
+          value={reportDateFrom}
+          onChange={(e) => {
+            const nextDate = e.target.value;
+            setReportDateFrom(nextDate);
 
-  setCurrentOrg(e.target.value);
-}}
-  title="Организация"
-  >
-{organizations.map((org) => {
-  const code = org.ID;
-  const name = org.Name;
+            if (reportDateTo && nextDate > reportDateTo) {
+              setReportDateTo(nextDate);
+            }
+          }}
+          title="Начальная дата периода"
+        />
+      </label>
 
-  return (
-    <option key={code} value={String(code)}>
-      {name}
-    </option>
-  );
-})}
-  </select>
-)}
-{sklads.length > 0 && (
-  <select
-    value={currentSklad}
-    onChange={(e) => setCurrentSklad(e.target.value)}
-    title="Склад / подразделение"
-  >
-    {sklads.map((sklad) => {
-      const code = sklad.Code ?? sklad.ID;
-      const name = sklad.Name ?? sklad.NameSkl;
-      const org  = sklad.Org  ?? sklad.Org;
+      <label className="top-field top-date-field">
+        <span>По</span>
+        <input
+          type="date"
+          value={reportDateTo}
+          min={reportDateFrom || undefined}
+          onChange={(e) => setReportDateTo(e.target.value)}
+          title="Конечная дата периода"
+        />
+      </label>
+    </div>
+  </div>
 
-      return (
-        <option key={code} value={code}>
-          {name}
-        </option>
-      );
-    })}
-  </select>
-)}
-          <select defaultValue="RU">
-            <option value="RU">RU</option>
-            <option value="UA">UA</option>
-            <option value="EN">EN</option>
-          </select>
+  <div className="top-right">
+    {tenant?.multiOrg && organizations.length > 0 && (
+      <label className="top-field top-select-field">
+        <span>Орг:</span>
+        <select
+          value={currentOrg}
+          onChange={(e) => {
+            setCurrentOrg(e.target.value);
+          }}
+          title="Организация"
+        >
+          {organizations.map((org) => {
+            const code = org.ID;
+            const name = org.Name;
 
-          {license && (
-            <span className={license.warn ? "license-warn" : "license-ok"}>
-              Лицензия до {license.validUntil}
-            </span>
-          )}
+            return (
+              <option key={code} value={String(code)}>
+                {name}
+              </option>
+            );
+          })}
+        </select>
+      </label>
+    )}
 
-          <span>{user?.id}</span>
+    {sklads.length > 0 && (
+      <label className="top-field top-select-field">
+        <span>Склад:</span>
+        <select
+          value={currentSklad}
+          onChange={(e) => setCurrentSklad(e.target.value)}
+          title="Склад / подразделение"
+        >
+          {sklads.map((sklad) => {
+            const code = sklad.Code ?? sklad.ID;
+            const name = sklad.Name ?? sklad.NameSkl;
 
-          <button onClick={handleLogout}>Выход</button>
-        </div>
-      </header>
+            return (
+              <option key={code} value={code}>
+                {name}
+              </option>
+            );
+          })}
+        </select>
+      </label>
+    )}
 
+    <select className="top-language-select" defaultValue="RU" title="Язык">
+      <option value="RU">RU</option>
+      <option value="UA">UA</option>
+      <option value="EN">EN</option>
+    </select>
+
+    {displayedLicense && (
+      <span
+        className={
+          displayedLicense.warn ? "license-warn" : "license-ok"
+        }
+      >
+
+      </span>
+    )}
+
+    <span className="top-user">{user?.id}</span>
+
+    <button className="top-logout-button" onClick={handleLogout}>
+      Выход
+    </button>
+  </div>
+</header>
       <div className="app-body">
-        <aside className="side-menu">
-          {menu.map((item, index) => (
-            <MenuItem
-              key={`${item.name}-${index}`}
-              item={item}
-              onSelect={openAction}
-            />
-          ))}
-        </aside>
+<aside className="side-menu">
+  <div className="side-menu-heading">
+    <span className="side-menu-heading-mark" aria-hidden="true" />
+    <span>Меню</span>
+  </div>
+
+  <nav className="side-menu-scroll" aria-label="Главное меню">
+    {menu.map((item, index) => (
+      <MenuItem
+        key={`${item.name ?? item.Name}-${index}`}
+        item={item}
+        onSelect={openAction}
+        selectedAction={selectedAction}
+      />
+    ))}
+  </nav>
+</aside>
 
 <main className="work-area">
-  <h2>{workTitle || "Рабочая область"}</h2>
+  {selectedAction &&
+    selectedAction !== "spisan-tov-invoice-card" &&
+    selectedAction !== "spisan-blud-invoice-card" &&
+    selectedAction !== "dish-calc" &&
+    selectedAction !== "wf_SpisokZakazov.php" &&
+    selectedAction !== "wf_SchetView.php" && (
+      <h2>{workTitle || "Рабочая область"}</h2>
+    )}
+  {!selectedAction && !workLoading && !workError && (
+<HomePage
+  menu={menu}
+  onOpen={openAction}
+  multiOrg={Boolean(tenant?.multiOrg)}
+  organizationName={currentOrganizationName}
+  skladName={currentSkladName}
+  license={license}
+/>
+  )}
 
   {workLoading && <p>Загрузка...</p>}
 
@@ -1924,7 +2361,7 @@ async function saveDishes(xml) {
     <div className="page-toolbar">
       <button
         type="button"
-        className="back-to-list-button"
+       className="back-to-list-button prih-back-button"
         onClick={() => {
           setSelectedAction("wf_Dishes.php");
           setWorkTitle("Список блюд");
@@ -1951,7 +2388,18 @@ async function saveDishes(xml) {
       filterPost={prihPost}
       date1={prihDate1}
       date2={prihDate2}
-      onChangePost={setPrihPost}
+onChangePost={async (nextPost) => {
+    const postValue = String(nextPost ?? "%");
+
+    setPrihPost(postValue);
+
+    await loadPrihList({
+      sklad: currentSklad,
+      post: postValue,
+      d1: prihDate1 || 0,
+      d2: prihDate2 || 0
+    });
+  }}
       onChangeDate1={setPrihDate1}
       onChangeDate2={setPrihDate2}
       onOpenInvoice={openPrihInvoice}
@@ -2033,18 +2481,18 @@ async function saveDishes(xml) {
     />
 )}
   {!workLoading && !workError && workData && selectedAction === "wf_CardsSirya.php" && (
-    <CardsSiryaPage
-      data={workData}
-      categories={siryaCategories}
-      filterCat={siryaCat}
-      onChangeCat={setSiryaCat}
-      onApply={async () => {
-        await loadCardsSirya({
-          sklad: currentSklad,
-          cat: siryaCat || "0"
-        });
-     }}
-    /> 
+  <CardsSiryaPage
+    data={workData}
+    categories={siryaCategories}
+    filterCat={siryaCat}
+    onChangeCat={setSiryaCat}
+    onApply={async (selectedCategory) => {
+      await loadCardsSirya({
+        sklad: currentSklad,
+        cat: selectedCategory || "0"
+      });
+    }}
+  />
   )}
 
 {!workLoading && !workError && workData && selectedAction === "wf_SpisanTovList.php" && (
@@ -2209,6 +2657,7 @@ async function saveDishes(xml) {
   selectedAction !== "wf_Clients.php" &&
   selectedAction !== "prih-invoice-card" &&
   selectedAction !== "prih-invoice" &&
+  selectedAction !== "wf_SchetView.php" &&
   selectedAction !== "wf_SpisokPer.php" &&
   normalizeMenuAction(selectedAction) !== "wf_SpisokPer.php" &&
   selectedAction !== "wf_Kassa.php" &&
@@ -2225,8 +2674,8 @@ async function saveDishes(xml) {
     </pre>
   )}
 
-  {!workLoading && !workError && !workData && (
-    <p>Выберите пункт меню слева.</p>
+  {!workLoading && !workError && !workData && selectedAction && (
+    <p>Для выбранного раздела пока нет данных.</p>
   )}
 </main>
      </div>

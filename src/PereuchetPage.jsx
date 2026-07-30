@@ -312,7 +312,15 @@ export default function PereuchetPage({
   }
 
   function selectPerListRow(row) {
-    setSelectedPerId(Number(row.ID || 0));
+    const nextPerId = Number(row.ID || 0);
+
+    // При выборе другого переучета закрываем открытую правую панель.
+    // Повторный клик по уже выбранной строке ничего не скрывает.
+    if (Number(selectedPerId) !== nextPerId) {
+      setActiveMode("list");
+    }
+
+    setSelectedPerId(nextPerId);
     setHeaderDate(formatDateForInput(row.Date));
   }
 
@@ -684,7 +692,7 @@ export default function PereuchetPage({
 
   return (
     <div className="per-page">
-      <div className="module-toolbar">
+      <div className="module-toolbar pereuchet-toolbar">
         <div className="toolbar-left">
           <label className="toolbar-field">
             Дата переучета
@@ -698,7 +706,7 @@ export default function PereuchetPage({
 
           <button
             type="button"
-            className="primary-button"
+            className="primary-button pereuchet-open-button"
             onClick={openPer}
             disabled={perLoading || saving}
           >
@@ -707,7 +715,7 @@ export default function PereuchetPage({
 
           <button
             type="button"
-            className="small-action-button"
+            className="small-action-button pereuchet-pf-button"
             onClick={openPf}
             disabled={!canOpenPf || pfLoading || saving}
             title={!canOpenPf ? "Для этой даты переучет еще не создан" : ""}
@@ -720,7 +728,7 @@ export default function PereuchetPage({
           {listChanged && (
             <button
               type="button"
-              className="save-button save-button-active"
+              className="save-button save-button-active pereuchet-save-button"
               onClick={savePerList}
               disabled={saving}
             >
@@ -735,8 +743,8 @@ export default function PereuchetPage({
       {pfError && <div className="login-error">{pfError}</div>}
 
       <div className="per-layout">
-        <section className="per-list-panel">
-          <div className="per-panel-title">
+        <section className="per-list-panel pereuchet-list-panel">
+          <div className="per-panel-title pereuchet-panel-title">
             <strong>Список переучетов</strong>
           </div>
 
@@ -815,14 +823,14 @@ export default function PereuchetPage({
         </section>
 
         {activeMode === "pf" && (
-          <section className="per-work-panel">
-            <div className="per-panel-title">
+          <section className="per-work-panel pereuchet-work-panel">
+            <div className="per-panel-title pereuchet-panel-title">
               <strong>Полуфабрикаты</strong>
 
               {pfChanged && (
                 <button
                   type="button"
-                  className="save-button save-button-active"
+                  className="save-button save-button-active pereuchet-save-button"
                   onClick={savePf}
                   disabled={saving}
                 >
@@ -834,7 +842,7 @@ export default function PereuchetPage({
             <div className="page-toolbar">
               <button
                 type="button"
-                className="small-action-button"
+                className="small-action-button pereuchet-add-row-button"
                 onClick={addPfRow}
                 disabled={saving}
               >
@@ -897,14 +905,14 @@ export default function PereuchetPage({
         )}
 
         {activeMode === "per" && (
-          <section className="per-work-panel">
-            <div className="per-panel-title">
+          <section className="per-work-panel pereuchet-work-panel">
+            <div className="per-panel-title pereuchet-panel-title">
               <strong>Переучет сырья</strong>
 
               {perChanged && (
                 <button
                   type="button"
-                  className="save-button save-button-active"
+                  className="save-button save-button-active pereuchet-save-button"
                   onClick={savePer}
                   disabled={saving}
                 >

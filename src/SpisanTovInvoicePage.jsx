@@ -420,10 +420,11 @@ ${deletedXml}
 
   return (
     <div className="prih-page">
-      <div className="page-toolbar">
+      <div className="form-header-panel prih-form-header spisan-tov-form-header">
+        <div className="page-toolbar">
         <button
           type="button"
-          className="back-to-list-button"
+          className="back-to-list-button prih-back-button"
           onClick={onBack}
         >
           ← К списку списаний
@@ -444,7 +445,7 @@ ${deletedXml}
         <strong>{header.DatP}</strong>
       </div>
 
-      <div className="prih-header-grid">
+      <div className="prih-header-grid spisan-tov-header-grid">
         <label className="calc-field">
           <span>Номер</span>
           <input
@@ -495,11 +496,16 @@ ${deletedXml}
           <strong>{formatMoney(totalSumm)}</strong>
         </div>
       </div>
+      </div>
 
       <div className="calc-panel-title prih-items-title">
         <span>Содержимое списания</span>
 
-        <button type="button" onClick={addRow}>
+        <button
+          type="button"
+          className="prih-add-row-button"
+          onClick={addRow}
+        >
           + строка
         </button>
       </div>

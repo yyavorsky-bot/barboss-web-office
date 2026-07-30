@@ -576,31 +576,37 @@ async function saveChanges() {
 }
   return (
     <div className="kassa-page">
-      <div className="kassa-toolbar">
+      <div className="kassa-toolbar kassa-main-toolbar">
         <div className="kassa-date-panel">
-          <button type="button" onClick={() => shiftDate(-1)}>
+          <button type="button" className="kassa-date-nav-button" onClick={() => shiftDate(-1)}>
             ←
           </button>
 
           <input
             type="date"
+            className="kassa-main-date-input"
             value={kassaDate || ""}
             onChange={(event) => onDateChange?.(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+                event.preventDefault();
+              }
+            }}
             disabled={hasChanges}
             title={hasChanges ? "Сначала сохраните или обновите данные" : ""}
           />
 
-          <button type="button" onClick={() => shiftDate(1)} disabled={hasChanges}>
+          <button type="button" className="kassa-date-nav-button" onClick={() => shiftDate(1)} disabled={hasChanges}>
             →
           </button>
 
-          <button type="button" onClick={() => onReload?.()} disabled={saving}>
+          <button type="button" className="kassa-refresh-button" onClick={() => onReload?.()} disabled={saving}>
             Обновить
           </button>
 
           <button
             type="button"
-            className={`save-button ${hasChanges ? "save-button-active" : ""}`}
+            className={`save-button kassa-save-button ${hasChanges ? "save-button-active" : ""}`}
             onClick={saveChanges}
             disabled={!canEdit || !hasChanges || saving}
           >
@@ -611,7 +617,7 @@ async function saveChanges() {
         <div className="kassa-valut-panel">
           <button
             type="button"
-            className="small-action-button receive-revenue-button"
+            className="small-action-button receive-revenue-button kassa-revenue-button"
             onClick={receiveRevenue}
             disabled={hasChanges || saving || receivingRevenue}
             title={hasChanges ? "Сначала сохраните или обновите данные" : ""}
@@ -645,31 +651,31 @@ async function saveChanges() {
 
       {saveError && <div className="error-box">{saveError}</div>}
 
-      <div className="kassa-summary">
+      <div className="kassa-summary kassa-summary-panel">
         <div>
-          <span>Сальдо начальное</span>
+          <span>Сальдо начальное:</span>
           <strong>{formatMoney(sald0)}</strong>
         </div>
 
         <div>
-          <span>Приход</span>
+          <span>Приход:</span>
           <strong>{formatMoney(prihSum)}</strong>
         </div>
 
         <div>
-          <span>Расход</span>
+          <span>Расход:</span>
           <strong>{formatMoney(rashodSum)}</strong>
         </div>
 
         <div>
-          <span>Сальдо конечное</span>
+          <span>Сальдо конечное:</span>
           <strong>{formatMoney(saldEnd)}</strong>
         </div>
       </div>
 
       {invoiceSupplier && (
-        <div className="invoice-panel">
-          <div className="invoice-panel-header">
+        <div className="invoice-panel kassa-invoice-panel">
+          <div className="invoice-panel-header kassa-invoice-header">
             <div>
               <strong>Неоплаченные накладные</strong>
               <span>{invoiceSupplier.Name}</span>
@@ -677,7 +683,7 @@ async function saveChanges() {
 
             <button
               type="button"
-              className="small-action-button"
+              className="small-action-button prih-back-button"
               onClick={closeSupplierInvoices}
             >
               Вернуться к кассе
@@ -730,12 +736,12 @@ async function saveChanges() {
         </div>
       )}
 
-      <div className="kassa-columns">
-        <section className="kassa-panel">
-          <div className="perem-panel-title">
+      <div className="kassa-columns kassa-main-columns">
+        <section className="kassa-panel kassa-operation-panel">
+          <div className="perem-panel-title kassa-panel-title">
             <span>Приход в кассу</span>
 
-            <button type="button" disabled={!canEdit} onClick={addPrihRow}>
+            <button type="button" className="kassa-add-button" disabled={!canEdit} onClick={addPrihRow}>
               + Добавить
             </button>
           </div>
@@ -846,6 +852,7 @@ async function saveChanges() {
                     <td className="action-column">
                       <button
                         type="button"
+                        className="small-danger-button"
                         disabled={!canEdit}
                         onClick={(event) => {
                           event.stopPropagation();
@@ -870,11 +877,11 @@ async function saveChanges() {
           </div>
         </section>
 
-        <section className="kassa-panel">
-          <div className="perem-panel-title">
+        <section className="kassa-panel kassa-operation-panel">
+          <div className="perem-panel-title kassa-panel-title">
             <span>Расход из кассы</span>
 
-            <button type="button" disabled={!canEdit} onClick={addRashodRow}>
+            <button type="button" className="kassa-add-button" disabled={!canEdit} onClick={addRashodRow}>
               + Добавить
             </button>
           </div>
@@ -992,7 +999,7 @@ async function saveChanges() {
                     <td className="action-column">
                       <button
                         type="button"
-                        className="small-action-button"
+                        className="small-action-button kassa-invoice-button"
                         disabled={Number(row.KodPost || 0) === 0 || invoiceLoading}
                         onClick={(event) => {
                           event.stopPropagation();
@@ -1005,6 +1012,7 @@ async function saveChanges() {
                     <td className="action-column">
                       <button
                         type="button"
+                        className="small-danger-button"
                         disabled={!canEdit}
                         onClick={(event) => {
                           event.stopPropagation();

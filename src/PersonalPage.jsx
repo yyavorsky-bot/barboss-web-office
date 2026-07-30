@@ -192,13 +192,14 @@ async function savePersonal() {
   }
 
   return (
-    <div>
-      <div className="module-toolbar">
+    <div className="personal-page">
+      <div className="module-toolbar personal-toolbar">
         <div className="toolbar-left">
  
           <label className="filter-label">
             Фильтр : 
             <select
+              className="personal-filter-select"
               value={skrFilter}
               onChange={(e) => setSkrFilter(e.target.value)}
             >
@@ -213,7 +214,7 @@ async function savePersonal() {
           {!readOnly && (
             <button
               type="button"
-              className="toolbar-save-button"
+              className="toolbar-save-button personal-add-button"
               disabled={addLoading}
               onClick={addNewPersonal}
             >
@@ -224,7 +225,7 @@ async function savePersonal() {
 {!readOnly && (
   <button
     type="button"
-    className="toolbar-save-button"
+    className="toolbar-save-button personal-save-button"
     disabled={Object.keys(changedRows).length === 0}
     onClick={savePersonal}
   >
@@ -246,15 +247,15 @@ async function savePersonal() {
       )}
 
       {rows.length === 0 && (
-        <p>Список персонала пуст.</p>
+        <div className="perem-empty personal-empty">Список персонала пуст.</div>
       )}
 
       {rows.length > 0 && filteredRows.length === 0 && (
-        <p>По выбранному фильтру сотрудников нет.</p>
+        <div className="perem-empty personal-empty">По выбранному фильтру сотрудников нет.</div>
       )}
 
       {filteredRows.length > 0 && (
-        <div className="table-wrap">
+        <div className="table-wrap personal-table-wrap">
             <table className="data-table personal-table">
               <thead>
               <tr>

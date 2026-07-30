@@ -58,25 +58,29 @@ export default function SpisanBludListPage({
     ? selectedNakl.items
     : [];
 
-  if (rows.length === 0) {
-    return <p>Накладные списания блюд не найдены.</p>;
-  }
-
   return (
   <div className="perem-page">
     <div className="perem-layout">
       <div className="perem-left">
-<div className="perem-panel-title">
+<div className="perem-panel-title perem-list-header">
   <span>Накладные списания блюд</span>
 
   <button
     type="button"
+    className="perem-new-button"
     onClick={() => onNew?.()}
   >
     + Новое списание
   </button>
 </div>
 
+        {rows.length === 0 && (
+          <div className="perem-empty">
+            Накладные списания блюд не найдены.
+          </div>
+        )}
+
+        {rows.length > 0 && (
         <div className="table-wrap perem-list-wrap">
           <table className="data-table spisan-blud-list-table">
             <thead>
@@ -96,9 +100,10 @@ export default function SpisanBludListPage({
                 >
                   <td>{formatDateTime(row.DateP)}</td>
                   <td>{row.NazvSpisania}</td>
-   <td className="action-column">
+   <td className="action-column center">
   <button
     type="button"
+    className="perem-open-button"
     onClick={(event) => {
       event.stopPropagation();
       onOpen?.(row);
@@ -113,6 +118,7 @@ export default function SpisanBludListPage({
             </tbody>
           </table>
         </div>
+        )}
       </div>
 
       <div className="perem-right">

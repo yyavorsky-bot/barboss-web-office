@@ -32,7 +32,11 @@ function formatQty(value) {
   return numberValue.toFixed(2);
 }
 
-export default function SpisanTovListPage({ data, onOpen, onNew }) {
+export default function SpisanTovListPage({
+  data,
+  onOpen,
+  onNew
+}) {
   const [selectedId, setSelectedId] = useState(null);
 
   const rows = Array.isArray(data) ? data : [];
@@ -58,120 +62,125 @@ export default function SpisanTovListPage({ data, onOpen, onNew }) {
     ? selectedNakl.items
     : [];
 
-  if (rows.length === 0) {
-    return (
-      <div>
-        <div className="perem-panel-title">
-          <span>Накладные списания сырья</span>
+  function openRow(row) {
+    if (!row) return;
 
-          <button type="button" onClick={() => onNew?.()}>
-            + Новое списание
-          </button>
-        </div>
-
-        <p>Накладные списания сырья не найдены.</p>
-      </div>
-    );
+    setSelectedId(row.ID);
+    onOpen?.(row);
   }
 
   return (
-    <div className="perem-page">
-      <div className="perem-layout">
-        <div className="perem-left">
-          <div className="perem-panel-title">
-            <span>Накладные списания сырья</span>
+  <div className="perem-page">
+    <div className="perem-layout">
+      <div className="perem-left">
+        <div className="perem-panel-title perem-list-header">
+          <span>Накладные списания сырья</span>
 
-            <button type="button" onClick={() => onNew?.()}>
+          {onNew && (
+            <button
+              type="button"
+              className="perem-new-button"
+              onClick={onNew}
+            >
               + Новое списание
             </button>
-          </div>
-
-          <div className="table-wrap perem-list-wrap">
-            <table className="data-table perem-list-table">
-              <thead>
-                <tr>
-                  <th>Дата</th>
-                  <th>№</th>
-                  <th>Статья затрат</th>
-                  <th>Сумма</th>
-                  <th></th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {rows.map((row) => (
-                  <tr
-                    key={row.ID}
-                    className={row.ID === selectedNakl?.ID ? "selected-row" : ""}
-                    onClick={() => setSelectedId(row.ID)}
-                  >
-                    <td>{formatDate(row.DatP)}</td>
-                    <td>{row.Nakl}</td>
-                    <td>{row.Name}</td>
-                    <td className="text-right">{formatMoney(row.Summ)}</td>
-
-                    <td>
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          onOpen?.(row);
-                        }}
-                      >
-                        Открыть
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          )}
         </div>
 
-        <div className="perem-right">
-          <div className="perem-panel-title">
-            Содержимое накладной № {selectedNakl?.Nakl ?? ""}
+        {rows.length === 0 && (
+          <div className="perem-empty">
+            Накладные списания сырья не найдены.
           </div>
+        )}
 
-          <div className="perem-info">
-            <span>Дата: {formatDate(selectedNakl?.DatP)}</span>
-            <span>Статья затрат: {selectedNakl?.Name ?? ""}</span>
-            <span>Сумма: {formatMoney(selectedNakl?.Summ)}</span>
-          </div>
+        {rows.length > 0 && (
+        <div className="table-wrap perem-list-wrap">
+          <table className="data-table perem-list-table">
+            <thead>
+              <tr>
+                <th>Дата</th>
+                <th>№</th>
+                <th>Статья затрат</th>
+                <th>Сумма</th>
+                <th>Просмотр</th>
+              </tr>
+            </thead>
 
-          <div className="table-wrap perem-items-wrap">
-            <table className="data-table perem-items-table">
-              <thead>
-                <tr>
-                  <th>Наименование</th>
-                  <th>Кол-во</th>
-                  <th>Цена</th>
-                  <th>Сумма</th>
+            <tbody>
+              {rows.map((row) => (
+                <tr
+                  key={row.ID}
+                  className={row.ID === selectedNakl?.ID ? "selected-row" : ""}
+                  onClick={() => setSelectedId(row.ID)}
+                >
+                  <td>{formatDate(row.DatP)}</td>
+                  <td>{row.Nakl}</td>
+                  <td>{row.Name}</td>
+                  <td className="text-right">{formatMoney(row.Summ)}</td>
+                  <td className="center">
+                    <button
+                      type="button"
+                      className="perem-open-button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        openRow(row);
+                      }}
+                    >
+                      Открыть
+                    </button>
+                  </td>
                 </tr>
-              </thead>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        )}
+      </div>
 
-              <tbody>
-                {items.length === 0 && (
-                  <tr>
-                    <td colSpan="4">
-                      Содержимое накладной пустое.
-                    </td>
-                  </tr>
-                )}
+      <div className="perem-right">
+        <div className="perem-panel-title">
+          Содержимое накладной № {selectedNakl?.Nakl ?? ""}
+        </div>
 
-                {items.map((item, index) => (
-                  <tr key={`${selectedNakl?.ID}-${index}`}>
-                    <td>{item.Name}</td>
-                    <td className="text-right">{formatQty(item.Kolvo)}</td>
-                    <td className="text-right">{formatMoney(item.Price)}</td>
-                    <td className="text-right">{formatMoney(item.Summ)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <div className="perem-info">
+          <span>Дата: {formatDate(selectedNakl?.DatP)}</span>
+          <span>Статья затрат: {selectedNakl?.Name ?? ""}</span>
+          <span>Сумма: {formatMoney(selectedNakl?.Summ)}</span>
+        </div>
+
+        <div className="table-wrap perem-items-wrap">
+          <table className="data-table perem-items-table">
+            <thead>
+              <tr>
+                <th>Наименование</th>
+                <th>Кол-во</th>
+                <th>Цена</th>
+                <th>Сумма</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {items.length === 0 && (
+                <tr>
+                  <td colSpan="4">
+                    Содержимое накладной пустое.
+                  </td>
+                </tr>
+              )}
+
+              {items.map((item, index) => (
+                <tr key={`${selectedNakl?.ID}-${index}`}>
+                  <td>{item.Name}</td>
+                  <td className="text-right">{formatQty(item.Kolvo)}</td>
+                  <td className="text-right">{formatMoney(item.Price)}</td>
+                  <td className="text-right">{formatMoney(item.Summ)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
-  );
+  </div>
+);
 }

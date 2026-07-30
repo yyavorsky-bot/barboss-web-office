@@ -189,13 +189,14 @@ setChangedRows({});    } catch (err) {
   }
 
   return (
-    <div>
-      <div className="module-toolbar">
+    <div className="suppliers-page">
+      <div className="module-toolbar suppliers-toolbar">
         <div className="toolbar-left">
 
           <label className="filter-label">
             Фильтр:
             <select
+              className="suppliers-filter-select"
               value={skrFilter}
               onChange={(e) => setSkrFilter(e.target.value)}
             >
@@ -216,7 +217,7 @@ setChangedRows({});    } catch (err) {
           {!readOnly && (
             <button
               type="button"
-              className="toolbar-save-button"
+              className="toolbar-save-button suppliers-add-button"
               disabled={addLoading}
               onClick={addNewSupplier}
             >
@@ -227,7 +228,7 @@ setChangedRows({});    } catch (err) {
           {!readOnly && (
             <button
               type="button"
-              className="toolbar-save-button"
+              className="toolbar-save-button suppliers-save-button"
               disabled={Object.keys(changedRows).length === 0 || saveLoading}
               onClick={saveSupplier}
             >
@@ -244,16 +245,16 @@ setChangedRows({});    } catch (err) {
       )}
 
       {rows.length === 0 && (
-        <p>Список поставщиков пуст.</p>
+        <div className="perem-empty suppliers-empty">Список поставщиков пуст.</div>
       )}
 
       {rows.length > 0 && filteredRows.length === 0 && (
-        <p>По выбранному фильтру поставщиков нет.</p>
+        <div className="perem-empty suppliers-empty">По выбранному фильтру поставщиков нет.</div>
       )}
 
       {filteredRows.length > 0 && (
-        <div className="table-wrap table-wrap-suppliers">
-          <table className="data-table compact-table">
+        <div className="table-wrap table-wrap-suppliers suppliers-table-wrap">
+          <table className="data-table compact-table suppliers-table">
             <thead>
               <tr>
                 <th>Поставщик</th>

@@ -480,7 +480,7 @@ export default function SchetViewPage({ codeR, sourceOrder, waiterOptions = [], 
   if (error) {
     return (
       <div className="schet-view-page">
-        <button type="button" className="back-to-list-button" onClick={onBack}>← К списку заказов</button>
+        <button type="button" className="back-to-list-button prih-back-button schet-back-button" onClick={onBack}>← К списку заказов</button>
         <div className="form-error">{error}</div>
       </div>
     );
@@ -489,7 +489,7 @@ export default function SchetViewPage({ codeR, sourceOrder, waiterOptions = [], 
   if (!header) {
     return (
       <div className="schet-view-page">
-        <button type="button" className="back-to-list-button" onClick={onBack}>← К списку заказов</button>
+        <button type="button" className="back-to-list-button prih-back-button schet-back-button" onClick={onBack}>← К списку заказов</button>
         <div className="empty-cell">Счет не выбран</div>
       </div>
     );
@@ -499,8 +499,8 @@ export default function SchetViewPage({ codeR, sourceOrder, waiterOptions = [], 
 
   return (
     <div className="schet-view-page">
-      <div className="schet-view-topbar">
-        <button type="button" className="back-to-list-button" onClick={onBack}>← К списку заказов</button>
+      <div className="schet-view-topbar form-header-panel schet-view-form-header">
+        <button type="button" className="back-to-list-button prih-back-button schet-back-button" onClick={onBack}>← К списку заказов</button>
         <div className="schet-view-title">
           <strong>Просмотр заказа №{header.Number}</strong>
           <span>ID {header.ID}</span>
@@ -510,14 +510,14 @@ export default function SchetViewPage({ codeR, sourceOrder, waiterOptions = [], 
             </span>
           )}
         </div>
-        <button type="button" className={`save-button ${canSaveZakaz ? "save-button-active" : ""}`} disabled={!canSaveZakaz || saving} onClick={saveZakaz}>Сохранить</button>
+        <button type="button" className={`save-button schet-view-save-button ${canSaveZakaz ? "save-button-active" : ""}`} disabled={!canSaveZakaz || saving} onClick={saveZakaz}>Сохранить</button>
       </div>
 
       {paymentLocked && <div className="readonly-notice">Счет с безналичными формами оплаты! Коррекция возможна только после изменения формы на наличную!</div>}
       {loadingLists && <div className="schet-hint">Загрузка справочников...</div>}
       {saveError && <div className="form-error">{saveError}</div>}
 
-      <section className="schet-header-card">
+      <section className="schet-header-card schet-main-card">
         <div className="schet-header-grid">
           <label className="schet-field"><span>Официант:</span><select value={header.IdOf} disabled={paymentLocked} onChange={(event) => updateHeader("IdOf", Number(event.target.value))}><option value="0">Не выбран</option>{selectedWaiterOptions.map((item) => <option key={item.ID} value={item.ID}>{item.Name || item.NameOf}</option>)}</select></label>
           <label className="schet-field"><span>Номер счета:</span><input value={header.Number} disabled /></label>
@@ -542,21 +542,21 @@ export default function SchetViewPage({ codeR, sourceOrder, waiterOptions = [], 
           {header.Dost && <label className="schet-field schet-field-wide"><span>Адрес доставки:</span><input value={header.Addrr} disabled /></label>}
         </div>
         <div className="schet-panel-buttons">
-          <button type="button" className="small-action-button schet-panel-button" onClick={loadAdvances}>Авансы/оплаты</button>
-          <button type="button" className="small-action-button schet-panel-button" onClick={loadAdvanceChange}>Изменение формы оплаты</button>
+          <button type="button" className="small-action-button schet-panel-button schet-gold-button" onClick={loadAdvances}>Авансы/оплаты</button>
+          <button type="button" className="small-action-button schet-panel-button schet-gold-button" onClick={loadAdvanceChange}>Изменение формы оплаты</button>
         </div>
       </section>
 
       {activePanel === "advances" && (
-        <section className="schet-subpanel"><div className="schet-subpanel-title"><strong>Авансы/оплаты</strong><button type="button" className="small-action-button" onClick={() => setActivePanel("")}>Скрыть</button></div>{advanceError && <div className="form-error">{advanceError}</div>}<div className="table-wrap schet-adv-wrap"><table className="data-table schet-adv-table"><thead><tr><th>Дата</th><th>Тип</th><th>Сумма</th><th>Аванс</th><th>Обсл.</th></tr></thead><tbody>{advances.map((row, index) => <tr key={index}><td>{formatDateTime(row.DateAdv)}</td><td>{row.Typ || ""}</td><td className="text-right">{formatNumber(row.SumAdv)}</td><td className="center"><input type="checkbox" checked={Boolean(row.Adv)} readOnly /></td><td className="center"><input type="checkbox" checked={Boolean(row.Obsl)} readOnly /></td></tr>)}{advances.length === 0 && <tr><td colSpan="5" className="empty-cell">Нет записей</td></tr>}</tbody></table></div></section>
+        <section className="schet-subpanel schet-styled-subpanel"><div className="schet-subpanel-title perem-panel-title schet-styled-title"><strong>Авансы/оплаты</strong><button type="button" className="small-action-button schet-hide-button" onClick={() => setActivePanel("")}>Скрыть</button></div>{advanceError && <div className="form-error">{advanceError}</div>}<div className="table-wrap schet-adv-wrap"><table className="data-table schet-adv-table"><thead><tr><th>Дата</th><th>Тип</th><th>Сумма</th><th>Аванс</th><th>Обсл.</th></tr></thead><tbody>{advances.map((row, index) => <tr key={index}><td>{formatDateTime(row.DateAdv)}</td><td>{row.Typ || ""}</td><td className="text-right">{formatNumber(row.SumAdv)}</td><td className="center"><input type="checkbox" checked={Boolean(row.Adv)} readOnly /></td><td className="center"><input type="checkbox" checked={Boolean(row.Obsl)} readOnly /></td></tr>)}{advances.length === 0 && <tr><td colSpan="5" className="empty-cell">Нет записей</td></tr>}</tbody></table></div></section>
       )}
 
       {activePanel === "advanceChange" && (
-        <section className="schet-subpanel"><div className="schet-subpanel-title"><strong>Изменение формы оплаты</strong><button type="button" className="small-action-button" onClick={() => setActivePanel("")}>Скрыть</button></div>{advanceError && <div className="form-error">{advanceError}</div>}<div className="table-wrap schet-pay-wrap"><table className="data-table schet-pay-table"><thead><tr><th>Форма</th><th>Сейчас</th><th>Новая сумма</th></tr></thead><tbody><tr><td>Total</td><td className="text-right">{formatNumber(advanceChange?.Total)}</td><td></td></tr>{["Cash", "SumKred", "SumBon", "Expirenza"].map((field) => <tr key={field}><td>{field}</td><td className="text-right">{formatNumber(advanceChange?.[field])}</td><td><input className="table-input text-right" value={advanceInputs[field]} onChange={(event) => updateAdvanceInput(field, event.target.value)} /></td></tr>)}</tbody></table></div><div className="schet-pay-actions"><span>Введено: {formatNumber(parseNumber(advanceInputs.Cash) + parseNumber(advanceInputs.SumKred) + parseNumber(advanceInputs.SumBon) + parseNumber(advanceInputs.Expirenza))}</span><button type="button" className="primary-button" disabled={saving} onClick={saveAdvanceChange}>Сохранить форму оплаты</button></div></section>
+        <section className="schet-subpanel schet-styled-subpanel"><div className="schet-subpanel-title perem-panel-title schet-styled-title"><strong>Изменение формы оплаты</strong><button type="button" className="small-action-button schet-hide-button" onClick={() => setActivePanel("")}>Скрыть</button></div>{advanceError && <div className="form-error">{advanceError}</div>}<div className="table-wrap schet-pay-wrap"><table className="data-table schet-pay-table"><thead><tr><th>Форма</th><th>Сейчас</th><th>Новая сумма</th></tr></thead><tbody><tr><td>Total</td><td className="text-right">{formatNumber(advanceChange?.Total)}</td><td></td></tr>{["Cash", "SumKred", "SumBon", "Expirenza"].map((field) => <tr key={field}><td>{field}</td><td className="text-right">{formatNumber(advanceChange?.[field])}</td><td><input className="table-input text-right" value={advanceInputs[field]} onChange={(event) => updateAdvanceInput(field, event.target.value)} /></td></tr>)}</tbody></table></div><div className="schet-pay-actions"><span>Введено: {formatNumber(parseNumber(advanceInputs.Cash) + parseNumber(advanceInputs.SumKred) + parseNumber(advanceInputs.SumBon) + parseNumber(advanceInputs.Expirenza))}</span><button type="button" className="primary-button schet-payment-save-button" disabled={saving} onClick={saveAdvanceChange}>Сохранить форму оплаты</button></div></section>
       )}
 
-      <section className="schet-body-section">
-        <div className="schet-body-title"><strong>Проданные блюда</strong><span>Сумма: {formatNumber(bodyTotals.summ)}</span><span>Сумма с учетом скидки: {formatNumber(bodyTotals.summSkid)}</span><span>Сумма себестоимости: {formatNumber(bodyTotals.seb)}</span></div>
+      <section className="schet-body-section schet-body-panel">
+        <div className="schet-body-title perem-panel-title schet-styled-title"><strong>Проданные блюда</strong><span>Сумма: {formatNumber(bodyTotals.summ)}</span><span>Сумма с учетом скидки: {formatNumber(bodyTotals.summSkid)}</span><span>Сумма себестоимости: {formatNumber(bodyTotals.seb)}</span></div>
         <div className="table-wrap schet-body-wrap"><table className="data-table schet-body-table"><thead><tr><th>Блюдо</th><th>Склад</th><th>Кол-во</th><th>Цена</th><th>Сумма</th><th>Скидка</th><th>Бел.</th><th>Анн.</th><th>Перебр.</th><th>HapH</th><th>Время</th><th>Себ.</th><th>Сум. себ.</th><th>Адм. возв.</th></tr></thead><tbody>{bodyRows.map((row) => <tr key={row.ID} className={row._changed ? "changed-row" : ""}><td className={row.Modif ? "schet-modif-cell" : ""}><SearchableSelect value={row.IdTov} options={dishes} disabled={paymentLocked || row.Modif} onChange={(value) => updateBodyRow(row.ID, "IdTov", Number(value))} onSelectComplete={() => focusQty(row.ID)} /></td><td>{row.Sklad}</td><td><input ref={(input) => { if (input) qtyRefs.current[row.ID] = input; }} className="table-input text-right" value={row.Kolvo} disabled={paymentLocked} onChange={(event) => updateBodyRow(row.ID, "Kolvo", event.target.value)} /></td><td><input className="table-input text-right" value={row.Price} disabled={paymentLocked} onChange={(event) => updateBodyRow(row.ID, "Price", event.target.value)} /></td><td className="text-right">{formatNumber(row.Summ)}</td><td><input className="table-input text-right" value={row.Discount} disabled={paymentLocked} onChange={(event) => updateBodyRow(row.ID, "Discount", event.target.value)} /></td><td className="center"><input type="checkbox" checked={row.Bel} disabled={paymentLocked} onChange={(event) => updateBodyRow(row.ID, "Bel", event.target.checked)} /></td><td className="center"><input type="checkbox" checked={row.Anul} disabled={paymentLocked} onChange={(event) => updateBodyRow(row.ID, "Anul", event.target.checked)} /></td><td className="center"><input type="checkbox" checked={row.Perebr} readOnly /></td><td className="center"><input type="checkbox" checked={row.HapH} readOnly /></td><td>{formatDateTime(row.DatBeg)}</td><td className="text-right">{formatNumber(row.Seb)}</td><td className="text-right">{formatNumber(row.SummSeb)}</td><td>{row.AdmVozv}</td></tr>)}{bodyRows.length === 0 && <tr><td colSpan="14" className="empty-cell">Нет строк счета</td></tr>}</tbody></table></div>
       </section>
     </div>

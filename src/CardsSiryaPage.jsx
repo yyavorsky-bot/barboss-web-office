@@ -13,8 +13,8 @@ export default function CardsSiryaPage({
   const [selectedId, setSelectedId] = useState(null);
 
   return (
-    <div>
-      <div className="module-toolbar">
+    <div className="cards-sirya-page">
+      <div className="module-toolbar cards-sirya-toolbar">
         <div className="toolbar-left">
           <label className="toolbar-field">
             <span>Категория</span>
@@ -22,7 +22,12 @@ export default function CardsSiryaPage({
             <select
               className="toolbar-select"
               value={String(filterCat ?? "0")}
-              onChange={(e) => onChangeCat(e.target.value)}
+              onChange={(e) => {
+                const nextCategory = e.target.value;
+
+                onChangeCat?.(nextCategory);
+                onApply?.(nextCategory);
+              }}
             >
               <option value="0">Все</option>
 
@@ -35,15 +40,6 @@ export default function CardsSiryaPage({
           </label>
         </div>
 
-        <div className="toolbar-right">
-          <button
-            type="button"
-            className="toolbar-save-button"
-            onClick={onApply}
-          >
-            Применить
-          </button>
-        </div>
       </div>
 
       {rows.length === 0 && (

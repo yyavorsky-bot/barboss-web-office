@@ -16,65 +16,25 @@ select {
 }
 
 .login-page {
-  min-height: 100vh;
-  display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
-}
-
-.login-card {
-  width: 360px;
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
 }
 
 .login-title {
-  font-size: 22px;
-  font-weight: bold;
   text-align: center;
   margin-bottom: 24px;
 }
 
 .login-card label {
-  display: block;
   margin-bottom: 14px;
-  font-size: 14px;
 }
 
 .login-card input {
-  width: 100%;
   margin-top: 6px;
-  padding: 10px 12px;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
 }
 
 .login-card button {
-  width: 100%;
-  margin-top: 12px;
   padding: 11px 12px;
-  border: 0;
-  border-radius: 8px;
-  background: #111827;
-  color: white;
-  cursor: pointer;
-}
-
-.login-card button:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
-
-.login-error {
-  margin-top: 10px;
-  padding: 10px;
-  background: #fee2e2;
-  color: #991b1b;
-  border-radius: 8px;
-  font-size: 14px;
 }
 
 .app-shell {
@@ -84,14 +44,7 @@ select {
 }
 
 .top-bar {
-  height: 54px;
-  background: #111827;
   color: white;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 18px;
-  gap: 16px;
 }
 
 .top-left,
@@ -99,15 +52,6 @@ select {
   display: flex;
   align-items: center;
   gap: 14px;
-}
-
-.top-right select,
-.top-right button {
-  padding: 5px 8px;
-  border-radius: 6px;
-  border: 1px solid #4b5563;
-  background: #1f2937;
-  color: white;
 }
 
 .top-right button {
@@ -130,16 +74,11 @@ select {
 }
 
 .side-menu {
-  width: 260px;
-  background: white;
-  border-right: 1px solid #e5e7eb;
-  padding: 8px 0;
   overflow-y: auto;
 }
 
 .menu-item {
   width: 100%;
-  display: block;
   border: 0;
   background: transparent;
   text-align: left;
@@ -174,6 +113,7 @@ select {
   overflow: auto;
   min-width: 0;
 }
+
 .json-view {
   background: #111827;
   color: #e0e4eb;
@@ -183,6 +123,7 @@ select {
   max-height: calc(100vh - 190px);
   font-size: 13px;
 }
+
 .table-wrap {
   width: 100%;
   overflow: auto;
@@ -200,7 +141,6 @@ select {
 
 .data-table th {
   height: 25px;
-  text-align: left;
   vertical-align: top;
   position: sticky;
   top: 0;
@@ -222,15 +162,17 @@ select {
   text-align: left;
   vertical-align: top;
   border-bottom: 1px solid #dcdfe2;
-  padding: 7px px;
   white-space: nowrap;
 }
+
 .data-table .num {
   text-align: right;
 }
+
 .data-table tr:hover td {
   background: #f9fafb;
 }
+
 .table-select {
   width: 100%;
   min-width: 120px;
@@ -245,6 +187,7 @@ select {
 .table-select:focus {
   outline: 1px solid #94a3b8;
 }
+
 .module-toolbar {
   display: flex;
   align-items: center;
@@ -308,9 +251,11 @@ select {
   color: #92400e;
   white-space: nowrap;
 }
+
 .data-table .center {
   text-align: center;
 }
+
 .menu-item {
   display: flex;
   align-items: center;
@@ -328,6 +273,7 @@ select {
 .menu-arrow.empty {
   visibility: hidden;
 }
+
 .table-input {
   width: 100%;
   border: none;
@@ -350,10 +296,12 @@ select {
 .dish-name-input {
   min-width: 300px;
 }
+
 .data-table input.table-input-num {
-   width: 82px;
- text-align: right;
+  width: 82px;
+  text-align: right;
 }
+
 .dish-edves-input {
   width: 42px;
   min-width: 0;
@@ -363,11 +311,13 @@ select {
   width: 70px;
   min-width: 0;
 }
+
 .dish-ves-input {
   width: 52px;
   min-width: 0;
   text-align: right;
 }
+
 .data-table tbody tr.changed-row td {
   background: #fff7ed !important;
 }
@@ -375,6 +325,7 @@ select {
 .data-table tbody tr.changed-row:hover td {
   background: #ffedd5 !important;
 }
+
 .toolbar-date {
   height: 24px;
   border: 1px solid #cbd5e1;
@@ -386,6 +337,7 @@ select {
 .center {
   text-align: center;
 }
+
 .data-table tbody tr.selected-row td {
   background: #dbeafe !important;
 }
@@ -397,6 +349,7 @@ select {
 .data-table tbody tr {
   cursor: pointer;
 }
+
 .table-wrap-narrow {
   max-width: 640px;
   margin-left: auto;
@@ -426,14 +379,17 @@ select {
 .compact-table td:nth-child(4) {
   width: 100px;
 }
+
 .text-right {
   text-align: right;
 }
+
 .compact-table th:nth-child(2),
 .compact-table td:nth-child(2) {
   width: 120px;
   text-align: right;
 }
+
 .table-wrap-xnarrow {
   max-width: 420px;
   margin-left: auto;
@@ -464,6 +420,7 @@ select {
   width: 120px;
   text-align: center;
 }
+
 .table-wrap-suppliers {
   max-width: 860px;
   margin-left: auto;
@@ -498,9 +455,6 @@ select {
 .table-wrap-suppliers td:nth-child(6) {
   width: 80px;
   text-align: center;
-}
-.groups-table {
-  table-layout: auto;
 }
 
 .groups-table th {
@@ -562,54 +516,10 @@ select {
   background-color: #dff5df !important;
   color: #1f5f2b !important;
 }
-.groups-table {
-  width: max-content !important;
-  table-layout: fixed !important;
-}
 
-.groups-table .sk-head,
-.groups-table .sk-cell {
-  width: 50px !important;
-  min-width: 50px !important;
-  max-width: 50px !important;
-  padding-left: 2px !important;
-  padding-right: 2px !important;
-}
-
-.groups-table .sk-input {
-  width: 42px !important;
-  min-width: 42px !important;
-  max-width: 42px !important;
-  padding-left: 2px !important;
-  padding-right: 2px !important;
-  text-align: right !important;
-}
-
-.groups-table .discount-head-cell {
-  width: 46px !important;
-  min-width: 46px !important;
-  max-width: 46px !important;
-  overflow: hidden;
-}
 .groups-table {
   width: auto !important;
   table-layout: fixed !important;
-}
-
-.groups-table .col-group-name {
-  width: 220px;
-}
-
-.groups-table .col-group-ind {
-  width: 70px;
-}
-
-.groups-table .col-group-parent {
-  width: 190px;
-}
-
-.groups-table .col-sk {
-  width: 46px;
 }
 
 .groups-table th,
@@ -653,16 +563,10 @@ select {
 }
 
 .groups-table .discount-head-name {
-  font-size: 9px !important;
-  line-height: 1.05 !important;
   white-space: normal !important;
   word-break: break-word !important;
 }
 
-.groups-table .discount-head-value {
-  font-size: 9px !important;
-  line-height: 1.05 !important;
-}
 .groups-table .sk-cell {
   text-align: center !important;
   padding-left: 1px !important;
@@ -693,6 +597,7 @@ select {
   color: inherit;
   background: transparent;
 }
+
 .groups-table .discount-head-name {
   font-size: 11px !important;
   line-height: 1.08 !important;
@@ -702,9 +607,9 @@ select {
 .groups-table .discount-head-value {
   font-size: 12px !important;
   line-height: 1.08 !important;
-  font-weight: 500;
   opacity: 0.85;
 }
+
 .perem-layout {
   display: grid;
   grid-template-columns: minmax(420px, 0.9fr) minmax(520px, 1.1fr);
@@ -719,21 +624,11 @@ select {
 
 .perem-panel-title {
   height: 30px;
-  display: flex;
-  align-items: center;
-  font-weight: 600;
-  font-size: 15px;
-  color: #111827;
   justify-content: space-between;
-  gap: 16px;
 }
+
 .perem-info {
   min-height: 28px;
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  font-size: 13px;
-  color: #374151;
 }
 
 .perem-list-wrap,
@@ -769,12 +664,14 @@ select {
 .perem-items-table td:nth-child(4) {
   width: 95px;
 }
+
 .perem-list-table td:nth-child(4),
 .perem-items-table td:nth-child(2),
 .perem-items-table td:nth-child(3),
 .perem-items-table td:nth-child(4) {
   text-align: right !important;
 }
+
 .spisan-blud-list-table th:nth-child(1),
 .spisan-blud-list-table td:nth-child(1) {
   width: 150px;
@@ -795,20 +692,24 @@ select {
 .spisan-blud-items-table td:nth-child(3) {
   width: 130px;
 }
+
 .personal-table th:nth-child(1),
 .personal-table td:nth-child(1) {
   width: 260px !important;
   min-width: 260px !important;
 }
+
 .clients-table th:nth-child(1),
 .clients-table td:nth-child(1) {
   width: 260px !important;
   min-width: 260px !important;
 }
+
 .raw-cards-page {
   padding-left: 10%;
   padding-right: 10%;
 }
+
 .perem-page {
   padding-left: 10%;
   padding-right: 10%;
@@ -820,6 +721,7 @@ select {
     padding-right: 24px;
   }
 }
+
 .dish-calc-page {
   padding-left: 4%;
   padding-right: 4%;
@@ -863,33 +765,50 @@ select {
   gap: 12px;
 }
 
-.calc-panel {
-  min-width: 0;
-}
+/* Кнопка добавления строки */
 
-.calc-panel-title {
-  height: 34px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-weight: 600;
-  font-size: 15px;
-  color: #111827;
-}
-
-.calc-panel-title button {
-  height: 28px;
-  padding: 0 10px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  background: #ffffff;
+.calc-panel-title .prih-add-row-button {
+  height: 32px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 9px;
+  background: linear-gradient(
+    135deg,
+    #c2a76a 0%,
+    #9a8146 100%
+  );
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
   cursor: pointer;
+  box-shadow: 0 5px 12px rgba(92, 72, 30, 0.16);
+  transition: transform 120ms ease,
+    box-shadow 120ms ease,
+    filter 120ms ease;
+}
+
+.calc-panel-title .prih-add-row-button:hover {
+  background: linear-gradient(
+    135deg,
+    #c9ae70 0%,
+    #a1884d 100%
+  );
+  color: #ffffff;
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+  box-shadow: 0 8px 16px rgba(92, 72, 30, 0.21);
+}
+
+.calc-panel-title .prih-add-row-button:active {
+  transform: translateY(0);
+  box-shadow: 0 3px 8px rgba(92, 72, 30, 0.15);
 }
 
 .calc-table-wrap {
   max-height: none;
   overflow: visible;
 }
+
 .dish-calc-page {
   overflow: visible;
 }
@@ -989,6 +908,7 @@ select {
     grid-template-columns: 1fr;
   }
 }
+
 .small-action-button {
   height: 26px;
   padding: 0 8px;
@@ -1003,6 +923,7 @@ select {
 .small-action-button:hover {
   background: #f3f4f6;
 }
+
 .calc-field input,
 .calc-field select {
   height: 32px;
@@ -1024,26 +945,12 @@ select {
   font-size: 18px;
   color: #111827;
 }
-.searchable-select {
-  position: relative;
-  width: 100%;
-}
-
-.searchable-select input {
-  width: 100%;
-}
 
 .searchable-select-list {
-  position: absolute;
-  left: 0;
-  right: 0;
   top: calc(100% + 2px);
-  z-index: 50;
-  max-height: 260px;
   overflow-y: auto;
   border: 1px solid #d1d5db;
   border-radius: 6px;
-  background: #ffffff;
   box-shadow: 0 8px 18px rgba(15, 23, 42, 0.18);
 }
 
@@ -1073,6 +980,7 @@ select {
   font-size: 13px;
   color: #6b7280;
 }
+
 .back-to-list-button {
   height: 34px;
   padding: 0 14px;
@@ -1088,9 +996,8 @@ select {
 .back-to-list-button:hover {
   background: #f3f4f6;
 }
+
 .prih-page {
-  padding-left: 15%;
-  padding-right: 15%;
   overflow: visible;
 }
 
@@ -1179,6 +1086,7 @@ select {
     grid-template-columns: repeat(2, minmax(180px, 1fr));
   }
 }
+
 .prih-rem-field {
   grid-column: span 3;
 }
@@ -1194,13 +1102,16 @@ select {
   font-size: 13px;
   font-family: inherit;
 }
+
 .prih-page {
   padding-left: 10%;
   padding-right: 10%;
 }
+
 .calc-field-wide {
   grid-column: 1 / -1;
 }
+
 .action-column {
   width: 90px;
   min-width: 90px;
@@ -1208,9 +1119,11 @@ select {
   text-align: center;
   white-space: nowrap;
 }
+
 .action-column button {
   padding: 1px 10px;
 }
+
 .delete-column {
   width: 42px !important;
   min-width: 42px !important;
@@ -1218,141 +1131,6 @@ select {
 }
 
 .delete-column button {
-  width: 24px;
-  min-width: 24px;
-  padding: 1px 0;
-}
-.kassa-page {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.kassa-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 8px 0;
-}
-
-.kassa-date-panel,
-.kassa-valut-panel {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.kassa-date-panel input,
-.kassa-valut-panel select {
-  height: 32px;
-}
-
-.readonly-notice {
-  padding: 8px 12px;
-  border: 1px solid #d8c27a;
-  border-radius: 6px;
-  background: #fff8d8;
-  color: #665200;
-}
-
-.kassa-summary {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(140px, 1fr));
-  gap: 10px;
-}
-
-.kassa-summary > div {
-  padding: 10px 12px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  background: #fafafa;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.kassa-summary span {
-  font-size: 12px;
-  opacity: 0.75;
-}
-
-.kassa-summary strong {
-  font-size: 18px;
-}
-
-.kassa-page {
-  height: calc(100vh - 120px);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.kassa-toolbar,
-.readonly-notice,
-.kassa-summary {
-  flex: 0 0 auto;
-}
-
-.kassa-columns {
-  flex: 1 1 auto;
-  min-height: 0;
-
-  display: grid;
-  grid-template-columns: minmax(320px, 0.9fr) minmax(0, 1.1fr);
-  gap: 14px;
-  align-items: stretch;
-}
-
-.kassa-panel {
-  min-width: 0;
-  min-height: 0;
-  overflow: hidden;
-
-  display: flex;
-  flex-direction: column;
-}
-
-.kassa-panel .perem-panel-title {
-  flex: 0 0 auto;
-}
-
-.kassa-table-wrap {
-  flex: 1 1 auto;
-  min-height: 0;
-  width: 100%;
-  max-width: 100%;
-
-  overflow: auto;
-}
-
-.kassa-table {
-  width: 100%;
-  min-width: 520px;
-}
-
-.kassa-panel:nth-child(2) .kassa-table {
-  min-width: 760px;
-}
-.kassa-panel:nth-child(2) .kassa-table th:nth-child(6),
-.kassa-panel:nth-child(2) .kassa-table td:nth-child(6) {
-  width: 72px;
-  min-width: 72px;
-  max-width: 72px;
-}
-
-.kassa-panel:nth-child(1) .kassa-table th:last-child,
-.kassa-panel:nth-child(1) .kassa-table td:last-child,
-.kassa-panel:nth-child(2) .kassa-table th:last-child,
-.kassa-panel:nth-child(2) .kassa-table td:last-child {
-  width: 42px;
-  min-width: 42px;
-  max-width: 42px;
-  text-align: center;
-}
-
-.kassa-panel:nth-child(1) .kassa-table td:last-child button,
-.kassa-panel:nth-child(2) .kassa-table td:last-child button {
   width: 24px;
   min-width: 24px;
   padding: 1px 0;
@@ -1382,6 +1160,7 @@ select {
   background: #1d4ed8;
   border-color: #1d4ed8;
 }
+
 .receive-revenue-button {
   height: 36px;
   min-width: 140px;
@@ -1404,6 +1183,7 @@ select {
 .receive-revenue-button:disabled {
   opacity: 0.55;
 }
+
 .invoice-panel {
   border: 1px solid #d1d5db;
   border-radius: 8px;
@@ -1480,17 +1260,16 @@ select {
   background: #fde68a !important;
 }
 
-
 .kassa-date-input {
   min-width: 116px;
   height: 24px;
   padding: 0 2px;
   font-size: 13px;
 }
+
 .per-page {
   padding-left: 0;
   padding-right: 0;
-  min-width: 0;
   height: calc(100vh - 128px);
   overflow: hidden;
   display: flex;
@@ -1597,8 +1376,8 @@ select {
   width: 55px;
 }
 
-.per-edit-table th:nth-child(n+3),
-.per-edit-table td:nth-child(n+3) {
+.per-edit-table th:nth-child(n/**/+3),
+.per-edit-table td:nth-child(n/**/+3) {
   width: 92px;
 }
 
@@ -1609,8 +1388,6 @@ select {
 .per-empty-panel {
   min-height: 160px;
   border: 1px dashed #cbd5e1;
-  border-radius: 8px;
-  background: #f8fafc;
   color: #64748b;
   display: flex;
   align-items: center;
@@ -1628,7 +1405,6 @@ select {
   }
 }
 
-
 .per-list-table {
   table-layout: fixed;
   width: auto;
@@ -1639,7 +1415,6 @@ select {
   padding-left: 4px;
   padding-right: 4px;
 }
-
 
 .per-page > .module-toolbar {
   flex: 0 0 auto;
@@ -1667,14 +1442,10 @@ select {
 .per-pf-table td:first-child {
   overflow: visible;
 }
+
 .orders-day-page {
   padding-left: 0;
   padding-right: 0;
-  min-width: 0;
-  height: calc(100vh - 116px);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
 }
 
 .orders-day-toolbar {
@@ -1689,14 +1460,6 @@ select {
   color: #374151;
 }
 
-.orders-day-layout {
-  flex: 1 1 auto;
-  min-height: 0;
-  display: grid;
-  grid-template-rows: minmax(0, 1fr) 205px;
-  gap: 12px;
-}
-
 .orders-day-list-panel,
 .orders-day-items-panel {
   min-width: 0;
@@ -1707,10 +1470,7 @@ select {
 
 .orders-day-list-wrap,
 .orders-day-items-wrap {
-  flex: 1 1 auto;
-  min-height: 0;
   max-height: none;
-  overflow: auto;
 }
 
 .orders-day-table {
@@ -1778,6 +1538,7 @@ select {
 }
 
 /* Numeric alignment in orders list */
+
 .orders-day-table th:nth-child(3),
 .orders-day-table td:nth-child(3),
 .orders-day-table th:nth-child(6),
@@ -1804,6 +1565,7 @@ select {
 }
 
 /* Footer has colSpan=5, so align all amount cells to the right */
+
 .orders-day-table tfoot td {
   text-align: right !important;
 }
@@ -1813,6 +1575,7 @@ select {
 }
 
 /* Numeric columns in order items preview */
+
 .orders-day-items-table th:nth-child(3),
 .orders-day-items-table td:nth-child(3),
 .orders-day-items-table th:nth-child(4),
@@ -1821,229 +1584,9 @@ select {
 .orders-day-items-table td:nth-child(5) {
   text-align: right !important;
 }
-.schet-view-page {
-  padding-left: 0;
-  padding-right: 0;
-  min-width: 0;
-  height: calc(100vh - 116px);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.schet-view-topbar {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 10px;
-  border: 1px solid #d1d5db;
-  background: #f9fafb;
-  border-radius: 4px;
-}
-
-.schet-view-title {
-  flex: 1 1 auto;
-  min-width: 0;
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-}
-
-.schet-view-title strong { font-size: 16px; color: #111827; }
-.schet-view-title span { font-size: 13px; color: #64748b; }
-.schet-hint { flex: 0 0 auto; font-size: 13px; color: #64748b; }
-
-.form-error {
-  flex: 0 0 auto;
-  padding: 8px 10px;
-  border: 1px solid #fecaca;
-  border-radius: 6px;
-  background: #fee2e2;
-  color: #991b1b;
-  font-size: 13px;
-}
-
-.schet-header-card,
-.schet-subpanel {
-  flex: 0 0 auto;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  background: #ffffff;
-  padding: 10px;
-}
-
-.schet-header-grid {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(130px, 1fr));
-  gap: 8px 10px;
-  align-items: end;
-}
-
-.schet-header-grid .calc-field input,
-.schet-header-grid .calc-field select { height: 28px; }
-
-.schet-panel-buttons,
-.schet-pay-actions {
-  margin-top: 10px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.schet-subpanel-title {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 8px;
-}
-
-.schet-adv-wrap { max-height: 170px; }
-.schet-adv-table { min-width: 520px; }
-.schet-adv-table th:nth-child(3), .schet-adv-table td:nth-child(3) { width: 110px; text-align: right !important; }
-.schet-adv-table th:nth-child(4), .schet-adv-table td:nth-child(4), .schet-adv-table th:nth-child(5), .schet-adv-table td:nth-child(5) { width: 70px; text-align: center; }
-
-.schet-pay-wrap { max-height: none; max-width: 520px; }
-.schet-pay-table { min-width: 420px; }
-.schet-pay-table th:nth-child(2), .schet-pay-table td:nth-child(2), .schet-pay-table th:nth-child(3), .schet-pay-table td:nth-child(3) { width: 130px; text-align: right !important; }
-
-.schet-body-section {
-  flex: 1 1 auto;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.schet-body-title {
-  flex: 0 0 auto;
-  min-height: 30px;
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  font-size: 14px;
-  color: #374151;
-}
-.schet-body-title strong { color: #111827; }
-
-.schet-body-wrap {
-  flex: 1 1 auto;
-  min-height: 0;
-  max-height: none;
-  overflow: auto;
-}
-
-.schet-body-table { min-width: 1420px; }
-.schet-body-table th:nth-child(1), .schet-body-table td:nth-child(1) { min-width: 300px; }
-.schet-body-table th:nth-child(2), .schet-body-table td:nth-child(2) { width: 90px; }
-.schet-body-table th:nth-child(3), .schet-body-table td:nth-child(3),
-.schet-body-table th:nth-child(4), .schet-body-table td:nth-child(4),
-.schet-body-table th:nth-child(5), .schet-body-table td:nth-child(5),
-.schet-body-table th:nth-child(6), .schet-body-table td:nth-child(6),
-.schet-body-table th:nth-child(12), .schet-body-table td:nth-child(12),
-.schet-body-table th:nth-child(13), .schet-body-table td:nth-child(13) { width: 86px; text-align: right !important; }
-.schet-body-table th:nth-child(7), .schet-body-table td:nth-child(7),
-.schet-body-table th:nth-child(8), .schet-body-table td:nth-child(8),
-.schet-body-table th:nth-child(9), .schet-body-table td:nth-child(9),
-.schet-body-table th:nth-child(10), .schet-body-table td:nth-child(10) { width: 62px; text-align: center; }
-.schet-body-table th:nth-child(11), .schet-body-table td:nth-child(11) { width: 130px; }
-.schet-body-table th:nth-child(14), .schet-body-table td:nth-child(14) { width: 120px; }
-
-.schet-modif-cell,
-.schet-modif-cell input { font-style: italic; }
-
-@media (max-width: 1400px) {
-  .schet-header-grid { grid-template-columns: repeat(4, minmax(130px, 1fr)); }
-}
-
-@media (max-width: 1100px) {
-  .schet-header-grid { grid-template-columns: repeat(2, minmax(160px, 1fr)); }
-  .schet-body-title { flex-wrap: wrap; }
-}
-
-
-/* Schet view compact horizontal header */
-.schet-header-card {
-  padding: 8px 10px;
-}
-
-.schet-header-grid {
-  grid-template-columns: repeat(4, minmax(260px, 1fr));
-  gap: 6px 12px;
-  align-items: center;
-}
-
-.schet-field {
-  min-width: 0;
-  min-height: 28px;
-  display: grid;
-  grid-template-columns: 108px minmax(0, 1fr);
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: #374151;
-}
-
-.schet-field > span {
-  text-align: right;
-  color: #4b5563;
-  white-space: nowrap;
-}
-
-.schet-field input,
-.schet-field select {
-  min-width: 0;
-  width: 100%;
-  height: 26px;
-  box-sizing: border-box;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  padding: 2px 6px;
-  font-size: 13px;
-}
-
-.schet-field .searchable-select {
-  min-width: 0;
-}
-
-.schet-field-wide {
-  grid-column: span 2;
-}
-
-.schet-header-grid .checkbox-field {
-  min-height: 28px;
-  align-items: center;
-  margin: 0;
-  padding-left: 8px;
-}
-
-.schet-panel-buttons {
-  margin-top: 8px;
-}
-
-@media (max-width: 1500px) {
-  .schet-header-grid {
-    grid-template-columns: repeat(3, minmax(260px, 1fr));
-  }
-
-  .schet-field-wide {
-    grid-column: span 2;
-  }
-}
-
-@media (max-width: 1150px) {
-  .schet-header-grid {
-    grid-template-columns: repeat(2, minmax(260px, 1fr));
-  }
-
-  .schet-field-wide {
-    grid-column: 1 / -1;
-  }
-}
-
 
 /* Pereuchet numeric alignment fix */
+
 .data-table td.text-right,
 .data-table th.text-right {
   text-align: right !important;
@@ -2067,13 +1610,10 @@ select {
   text-align: right !important;
 }
 
-
 /* Schet view: save warning and larger payment buttons */
+
 .schet-save-warning {
   margin-left: 12px;
-  color: #a04b4b;
-  font-size: 13px;
-  font-weight: 600;
   white-space: nowrap;
 }
 
@@ -2101,9 +1641,5750 @@ select {
     white-space: normal;
   }
 }
+
 .schet-view-title .schet-save-warning {
   color: #b91c1c !important;
   font-size: 13px;
   font-weight: 700;
   white-space: nowrap;
+}
+
+/*
+ * =========================================================
+ * BarBo$$ Web Office — первый UI-polish для логина
+ * Добавить В КОНЕЦ текущего App.css или styles.css.
+ * =========================================================
+ */
+
+.login-page {
+  position: relative;
+  isolation: isolate;
+  min-height: 100vh;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  padding: 48px 32px 96px;
+  background: radial-gradient(circle at 12% 12%, rgba(219, 188, 82, 0.16), transparent 32%),
+    radial-gradient(circle at 88% 24%, rgba(105, 132, 91, 0.15), transparent 34%),
+    linear-gradient(135deg, #f7f6f0 0%, #eef1eb 52%, #e7ebe4 100%);
+}
+
+.login-page *,
+.login-page *::before,
+.login-page *::after {
+  box-sizing: border-box;
+}
+
+.login-shell {
+  position: relative;
+  z-index: 2;
+  width: min(1040px, 100%);
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(340px, 420px);
+  gap: clamp(44px, 7vw, 96px);
+  align-items: center;
+}
+
+.login-intro {
+  max-width: 520px;
+  padding: 24px 0;
+  color: #2d332b;
+}
+
+.login-eyebrow {
+  margin-bottom: 12px;
+  color: #7a6b28;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+}
+
+.login-intro h1 {
+  margin: 0;
+  font-size: clamp(44px, 6vw, 76px);
+  line-height: 0.98;
+  letter-spacing: -0.045em;
+  color: #343c32;
+}
+
+.login-intro p {
+  max-width: 460px;
+  margin: 22px 0 0;
+  color: #667064;
+  font-size: clamp(17px, 2vw, 20px);
+  line-height: 1.55;
+}
+
+.login-feature-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 30px;
+}
+
+.login-feature-list span {
+  padding: 8px 13px;
+  border: 1px solid rgba(85, 98, 80, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.44);
+  color: #596155;
+  font-size: 13px;
+  font-weight: 650;
+  backdrop-filter: blur(8px);
+}
+
+.login-card {
+  width: 100%;
+  margin: 0;
+  padding: 32px;
+  border: 1px solid rgba(76, 87, 72, 0.13);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 24px 70px rgba(45, 55, 42, 0.13),
+    0 3px 10px rgba(45, 55, 42, 0.06);
+  backdrop-filter: blur(18px);
+}
+
+.login-card-heading {
+  margin-bottom: 24px;
+}
+
+.login-title {
+  color: #30372e;
+  font-size: 25px;
+  font-weight: 750;
+  line-height: 1.2;
+}
+
+.login-subtitle {
+  margin-top: 7px;
+  color: #7a8277;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.login-card label {
+  display: grid;
+  gap: 7px;
+  margin-top: 17px;
+  color: #4e574b;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.login-card input {
+  width: 100%;
+  min-height: 45px;
+  padding: 10px 13px;
+  border: 1px solid #cfd5cc;
+  border-radius: 10px;
+  outline: none;
+  background: rgba(255, 255, 255, 0.92);
+  color: #292f27;
+  font: inherit;
+  font-weight: 500;
+  transition: border-color 150ms ease,
+    box-shadow 150ms ease,
+    background-color 150ms ease;
+}
+
+.login-card input:hover {
+  border-color: #adb7a9;
+}
+
+.login-card input:focus {
+  border-color: #808d6c;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(128, 141, 108, 0.14);
+}
+
+.login-card input:disabled {
+  cursor: not-allowed;
+  opacity: 0.68;
+}
+
+.login-card button {
+  width: 100%;
+  min-height: 47px;
+  margin-top: 23px;
+  border: 0;
+  border-radius: 11px;
+  background: linear-gradient(135deg, #69785d, #4e5e49);
+  color: #ffffff;
+  font: inherit;
+  font-weight: 750;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(71, 87, 65, 0.22);
+  transition: transform 140ms ease,
+    box-shadow 140ms ease,
+    opacity 140ms ease;
+}
+
+.login-card button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 11px 26px rgba(71, 87, 65, 0.28);
+}
+
+.login-card button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.login-card button:disabled {
+  cursor: wait;
+  opacity: 0.68;
+  box-shadow: none;
+}
+
+.login-error {
+  margin-top: 16px;
+  padding: 10px 12px;
+  border: 1px solid rgba(172, 70, 62, 0.22);
+  border-radius: 9px;
+  background: rgba(190, 72, 63, 0.08);
+  color: #9e3f38;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.login-corner-logo {
+  position: fixed;
+  z-index: 1;
+  right: clamp(16px, 2.6vw, 40px);
+  bottom: clamp(14px, 2.2vw, 30px);
+  width: clamp(190px, 24vw, 360px);
+  height: auto;
+  opacity: 0.66;
+  pointer-events: none;
+  user-select: none;
+  filter: contrast(1.18)
+    saturate(1.1)
+    drop-shadow(0 10px 24px rgba(49, 55, 45, 0.18));
+}
+
+.login-decoration {
+  position: fixed;
+  z-index: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(1px);
+}
+
+.login-decoration-one {
+  top: -190px;
+  right: 17%;
+  width: 430px;
+  height: 430px;
+  border: 1px solid rgba(112, 127, 101, 0.11);
+}
+
+.login-decoration-two {
+  left: -150px;
+  bottom: -230px;
+  width: 520px;
+  height: 520px;
+  border: 1px solid rgba(171, 146, 56, 0.10);
+}
+
+/* Унифицированный заголовок рабочих страниц */
+
+.page-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-width: 0;
+}
+
+.page-title-caption {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 11px;
+}
+
+.page-title-icon {
+  flex: 0 0 auto;
+  width: 42px;
+  height: auto;
+  opacity: 0.88;
+  filter: drop-shadow(0 2px 3px rgba(45, 50, 40, 0.12));
+}
+
+.page-title-caption h1 {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: #343b32;
+  font-size: 24px;
+  font-weight: 750;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.page-title-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+@media (max-width: 760px) {
+  .login-page {
+    place-items: start center;
+    padding: 28px 18px 120px;
+  }
+
+  .login-shell {
+    grid-template-columns: 1fr;
+    gap: 22px;
+  }
+
+  .login-intro {
+    padding: 4px 4px 0;
+    text-align: center;
+  }
+
+  .login-intro h1 {
+    font-size: clamp(42px, 13vw, 60px);
+  }
+
+  .login-intro p {
+    margin-right: auto;
+    margin-left: auto;
+    font-size: 16px;
+  }
+
+  .login-feature-list {
+    justify-content: center;
+    margin-top: 20px;
+  }
+
+  .login-card {
+    padding: 25px 22px;
+    border-radius: 18px;
+  }
+
+  .login-corner-logo {
+    width: 190px;
+    opacity: 0.16;
+  }
+
+  .page-title-icon {
+    width: 36px;
+  }
+
+  .page-title-caption h1 {
+    font-size: 20px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-card input,
+    .login-card button {
+    transition: none;
+  }
+}
+
+/*
+ * =========================================================
+ * BarBo$$ Web Office — стартовая страница после входа
+ * Добавить в конец src/styles.css
+ * =========================================================
+ */
+
+.brand-home-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.brand-home-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.brand-home-button:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.75);
+  outline-offset: 2px;
+}
+
+.brand-home-button img {
+  display: block;
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  filter: contrast(1.12)
+    saturate(1.08)
+    drop-shadow(0 2px 3px rgba(0, 0, 0, 0.16));
+}
+
+.home-dashboard {
+  width: 100%;
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 1px 0 10px;
+}
+
+.home-hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(100px, 200px);
+  min-height: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(78, 94, 73, 0.16);
+  border-radius: 22px;
+  background: radial-gradient(circle at 78% 16%, rgba(185, 159, 94, 0.18), transparent 35%),
+    linear-gradient(135deg, #f8faf6 0%, #eef3eb 58%, #e4ebe0 100%);
+  box-shadow: 0 18px 15px rgba(48, 61, 45, 0.09);
+}
+
+.home-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.68), transparent 55%),
+    repeating-linear-gradient(
+      135deg,
+      rgba(78, 94, 73, 0.025) 0,
+      rgba(78, 94, 73, 0.025) 1px,
+      transparent 1px,
+      transparent 12px
+    );
+}
+
+.home-hero-content {
+  position: relative;
+  z-index: 2;
+  align-self: center;
+  padding: clamp(12px, 4vw, 2px);
+}
+
+.home-eyebrow {
+  margin-bottom: 10px;
+  color: #8b7748;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+}
+
+.home-hero h1 {
+  margin: 0;
+  color: #2e3c2b;
+  font-size: clamp(28px, 3vw, 46px);
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+}
+
+.home-hero p {
+  max-width: 650px;
+  margin: 16px 0 0;
+  color: #647061;
+  font-size: 16px;
+  line-height: 1.2;
+}
+
+.home-context {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-top: 8px;
+}
+
+.home-context-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 175px;
+  padding: 10px 20px;
+  border: 1px solid rgba(78, 94, 73, 0.13);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.66);
+  backdrop-filter: blur(4px);
+}
+
+.home-context-item span {
+  color: #7b8578;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.home-context-item strong {
+  overflow: hidden;
+  color: #394736;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-context-item.warning {
+  border-color: rgba(207, 135, 106, 0.507);
+  background: rgba(207, 135, 106, 0.507);
+}
+
+.home-context-item.warning strong {
+  color: #99671e;
+}
+
+.home-hero-logo {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 12px 22px 12px 0;
+}
+
+.home-hero-logo img {
+  display: block;
+  width: min(100%, 350px);
+  max-height: 225px;
+  object-fit: contain;
+  opacity: 0.74;
+  filter: contrast(1.14)
+    saturate(1.08)
+    drop-shadow(0 16px 24px rgba(52, 63, 48, 0.16));
+}
+
+.home-sections {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.home-section-card {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid rgba(78, 94, 73, 0.14);
+  border-radius: 17px;
+  background: #ffffff;
+  box-shadow: 0 10px 26px rgba(48, 61, 45, 0.06);
+}
+
+.home-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 17px 18px 13px;
+  border-bottom: 1px solid rgba(78, 94, 73, 0.09);
+}
+
+.home-section-heading h2 {
+  margin: 0;
+  color: #344231;
+  font-size: 16px;
+  line-height: 1.25;
+}
+
+.home-section-heading > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: #edf2ea;
+  color: #63715f;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.home-action-list {
+  display: flex;
+  flex-direction: column;
+  padding: 7px;
+}
+
+.home-action-button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  width: 100%;
+  padding: 11px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #4b5848;
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 120ms ease,
+    color 120ms ease,
+    transform 120ms ease;
+}
+
+.home-action-button:hover {
+  background: #f0f4ee;
+  color: #2f402c;
+  transform: translateX(2px);
+}
+
+.home-action-button:focus-visible {
+  outline: 2px solid #8b9d83;
+  outline-offset: -1px;
+}
+
+.home-action-arrow {
+  flex: 0 0 auto;
+  color: #9a8552;
+  font-size: 17px;
+}
+
+.home-more-note {
+  padding: 0 18px 15px;
+  color: #8a9387;
+  font-size: 12px;
+}
+
+@media (max-width: 900px) {
+  .home-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .home-hero-logo {
+    position: absolute;
+    right: -30px;
+    bottom: -18px;
+    width: 270px;
+    padding: 0;
+    opacity: 0.32;
+  }
+
+  .home-hero-content {
+    padding-right: 130px;
+  }
+}
+
+@media (max-width: 620px) {
+  .brand-home-button span {
+    display: none;
+  }
+
+  .home-dashboard {
+    padding-bottom: 18px;
+  }
+
+  .home-hero {
+    min-height: 0;
+    border-radius: 16px;
+  }
+
+  .home-hero-content {
+    padding: 26px 22px 120px;
+  }
+
+  .home-hero-logo {
+    right: 10px;
+    bottom: 2px;
+    width: 210px;
+    opacity: 0.36;
+  }
+
+  .home-context {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .home-context-item {
+    min-width: 0;
+  }
+
+  .home-sections {
+    grid-template-columns: 1fr;
+  }
+}
+
+/*
+ * =========================================================
+ * BarBo$$ Web Office — полировка левого меню
+ * Добавить в САМЫЙ КОНЕЦ src/styles.css
+ * =========================================================
+ */
+
+.side-menu {
+  position: relative;
+  display: flex;
+  flex: 0 0 264px;
+  flex-direction: column;
+  width: 264px;
+  min-width: 264px;
+  min-height: 0;
+  padding: 12px 10px 14px;
+  color: #f5f7f3;
+  background: radial-gradient(
+      circle at 10% 0%,
+      rgba(196, 174, 112, 0.14),
+      transparent 30%
+    ),
+    linear-gradient(180deg, #4d6449 0%, #3e523e 100%);
+  border-right: 1px solid rgba(29, 41, 28, 0.35);
+  box-shadow: 10px 0 28px rgba(35, 47, 33, 0.08),
+    inset -1px 0 rgba(255, 255, 255, 0.035);
+}
+
+.side-menu-heading {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 42px;
+  margin: 0 4px 10px;
+  padding: 0 10px 10px;
+  color: rgba(255, 255, 255, 0.72);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.side-menu-heading-mark {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #cfb970;
+  box-shadow: 0 0 0 4px rgba(207, 185, 112, 0.12);
+}
+
+.side-menu-scroll {
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 1px 2px 10px;
+  scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+  scrollbar-width: thin;
+}
+
+.side-menu-scroll::-webkit-scrollbar {
+  width: 7px;
+}
+
+.side-menu-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.side-menu-scroll::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
+  background-clip: padding-box;
+}
+
+.side-menu .menu-node {
+  position: relative;
+}
+
+.side-menu .menu-children {
+  position: relative;
+  margin: 2px 0 5px;
+}
+
+.side-menu .menu-children::before {
+  content: "";
+  position: absolute;
+  top: 3px;
+  bottom: 5px;
+  left: 21px;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.side-menu .menu-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  min-height: 39px;
+  margin: 2px 0;
+  padding-top: 8px;
+  padding-right: 11px;
+  padding-bottom: 8px;
+  color: rgba(244, 247, 242, 0.82);
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.25;
+  text-align: left;
+  cursor: pointer;
+  transition: color 120ms ease,
+    background-color 120ms ease,
+    box-shadow 120ms ease,
+    transform 120ms ease;
+}
+
+.side-menu .menu-item:hover:not(:disabled) {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.075);
+  transform: translateX(2px);
+}
+
+.side-menu .menu-item:focus-visible {
+  outline: 2px solid rgba(219, 201, 145, 0.8);
+  outline-offset: 1px;
+}
+
+.side-menu .menu-item.group {
+  margin-top: 5px;
+  color: rgba(255, 255, 255, 0.94);
+  background: rgba(255, 255, 255, 0.035);
+  font-weight: 750;
+}
+
+.side-menu .menu-item.group:hover {
+  background: rgba(255, 255, 255, 0.075);
+}
+
+.side-menu .menu-item.group.contains-selected {
+  color: #ffffff;
+  background: rgba(207, 185, 112, 0.08);
+}
+
+.side-menu .menu-item.active::after {
+  content: "";
+  position: absolute;
+  right: 10px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(207, 185, 112, 0.56);
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity 120ms ease,
+    transform 120ms ease;
+}
+
+.side-menu .menu-item.active:hover::after,
+.side-menu .menu-item.active.selected::after {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.side-menu .menu-item.selected {
+  color: #ffffff;
+  background: linear-gradient(
+      90deg,
+      rgba(207, 185, 112, 0.23),
+      rgba(207, 185, 112, 0.08)
+    );
+  box-shadow: inset 3px 0 #cfb970,
+    0 5px 14px rgba(18, 27, 18, 0.12);
+  font-weight: 700;
+}
+
+.side-menu .menu-item.disabled {
+  color: rgba(255, 255, 255, 0.32);
+  cursor: default;
+}
+
+.side-menu .menu-arrow {
+  display: inline-flex;
+  flex: 0 0 16px;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  color: rgba(219, 201, 145, 0.86);
+  font-size: 12px;
+  line-height: 1;
+  transition: transform 120ms ease;
+}
+
+.side-menu .menu-arrow.empty::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(207, 185, 112, 0.42);
+}
+
+.side-menu .menu-item.selected .menu-arrow.empty::before {
+  background: #dbc991;
+  box-shadow: 0 0 0 3px rgba(219, 201, 145, 0.1);
+}
+
+.side-menu .menu-item-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .side-menu {
+    flex-basis: 225px;
+    width: 225px;
+    min-width: 225px;
+  }
+}
+
+@media (max-width: 700px) {
+  .app-body {
+    flex-direction: column;
+  }
+
+  .side-menu {
+    position: static;
+    flex: none;
+    width: 100%;
+    min-width: 0;
+    max-height: 42vh;
+    border-right: 0;
+    border-bottom: 1px solid rgba(29, 41, 28, 0.35);
+    box-shadow: 0 8px 22px rgba(35, 47, 33, 0.08);
+  }
+}
+
+/*
+ * =========================================================
+ * BarBo$$ Web Office — верхняя панель и период отчётов
+ * Добавить в САМЫЙ КОНЕЦ src/styles.css
+ * =========================================================
+ */
+
+.top-period {
+  margin-right: 2px;
+  padding-right: 12px;
+  border-right: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.top-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.top-field > span {
+  flex: 0 0 auto;
+}
+
+.top-bar .top-field input,
+.top-bar .top-field select,
+.top-bar .top-language-select {
+  height: 36px;
+  margin: 0;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 9px;
+  outline: none;
+  background: rgba(255, 255, 255, 0.94);
+  color: #3a5236;
+  font: inherit;
+  font-size: 13px;
+  box-shadow: 0 3px 10px rgba(25, 35, 24, 0.08);
+  transition: border-color 120ms ease,
+    box-shadow 120ms ease,
+    background-color 120ms ease;
+}
+
+.top-bar .top-field input:hover,
+.top-bar .top-field select:hover,
+.top-bar .top-language-select:hover {
+  background: #ffffff;
+  border-color: rgba(207, 185, 112, 0.72);
+}
+
+.top-bar .top-field input:focus,
+.top-bar .top-field select:focus,
+.top-bar .top-language-select:focus {
+  background: #ffffff;
+  border-color: #cfb970;
+  box-shadow: 0 0 0 3px rgba(207, 185, 112, 0.17),
+    0 3px 10px rgba(25, 35, 24, 0.08);
+}
+
+.top-date-field input {
+  width: 139px;
+  min-width: 139px;
+  color-scheme: light;
+}
+
+.top-date-field input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.72;
+}
+
+.top-select-field select {
+  max-width: 190px;
+  min-width: 110px;
+}
+
+.top-language-select {
+  width: 62px;
+  min-width: 62px;
+  padding-right: 5px;
+}
+
+.top-user {
+  max-width: 130px;
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 13px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.top-logout-button {
+  min-height: 36px;
+  margin: 0;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 120ms ease,
+    border-color 120ms ease;
+}
+
+.top-logout-button:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.14);
+}
+
+@media (max-width: 1280px) {
+  .top-bar {
+    align-items: flex-start;
+  }
+
+  .top-right {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 900px) {
+  .top-bar {
+    flex-wrap: wrap;
+  }
+
+  .top-left {
+    width: 100%;
+  }
+
+  .top-right {
+    width: 100%;
+  }
+}
+
+@media (max-width: 680px) {
+  .top-period {
+    flex-wrap: wrap;
+    margin-right: 0;
+    padding-right: 0;
+    border-right: 0;
+  }
+
+  .top-select-field {
+    flex: 1 1 210px;
+  }
+
+  .top-select-field select {
+    flex: 1 1 auto;
+    max-width: none;
+  }
+}
+
+/*
+ * =========================================================
+ * BarBo$$ Web Office — период слева в верхней панели
+ * Добавить в САМЫЙ КОНЕЦ src/styles.css
+ * Этот блок переопределяет предыдущие стили top-bar/top-left/top-period.
+ * =========================================================
+ */
+
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  min-height: 62px;
+  padding: 9px 16px;
+}
+
+.top-left {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: clamp(18px, 2.4vw, 38px);
+  min-width: 0;
+}
+
+.top-left .brand-home-button {
+  flex: 0 0 auto;
+}
+
+.top-period {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.top-right {
+  display: flex;
+  flex: 0 1 auto;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  min-width: 0;
+}
+
+@media (max-width: 1380px) {
+  .top-bar {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .top-left {
+    flex: 1 1 100%;
+  }
+
+  .top-right {
+    flex: 1 1 100%;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 900px) {
+  .top-left {
+    flex-wrap: wrap;
+    gap: 12px 20px;
+  }
+
+  .top-period {
+    flex-wrap: wrap;
+  }
+
+  .top-right {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 680px) {
+  .top-left {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .top-period {
+    width: 100%;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.13);
+  }
+
+  .top-date-field {
+    flex: 1 1 145px;
+  }
+
+  .top-date-field input {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 132px;
+  }
+}
+
+.top-bar {
+  background: linear-gradient(90deg, #4d6449 0%, #3e523e 100%);
+  border-bottom: 1px solid rgba(42, 57, 41, 0.45);
+  box-shadow: 0 5px 18px rgba(35, 47, 33, 0.14),
+    inset 0 -1px rgba(255, 255, 255, 0.04);
+}
+
+html body .app-shell > .top-bar {
+  background-color: #4d6449 !important;
+  background-image: linear-gradient(
+    90deg,
+    #4d6449 0%,
+    #6d8f6d 100%
+  ) !important;
+  border-bottom: 1px solid rgba(42, 57, 41, 0.45);
+  box-shadow: 0 5px 18px rgba(35, 47, 33, 0.14),
+    inset 0 -1px rgba(255, 255, 255, 0.04);
+}
+
+/*
+ * =========================================================
+ * Приходные накладные — поиск поставщика
+ * Добавить в конец src/styles.css
+ * =========================================================
+ */
+
+/*
+ * =========================================================
+ * Приходные накладные — красивые кнопки панели
+ * =========================================================
+ */
+
+.prih-apply-button,
+.prih-create-button {
+  height: 36px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 10px;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
+  transition: transform 120ms ease,
+    box-shadow 120ms ease,
+    filter 120ms ease;
+}
+
+.prih-apply-button {
+  background: linear-gradient(135deg, #6a8b61 0%, #4d6449 100%);
+}
+
+.prih-create-button {
+  background: linear-gradient(135deg, #c2a76a 0%, #9a8146 100%);
+}
+
+.prih-apply-button:hover,
+.prih-create-button:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.04);
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.16);
+}
+
+.prih-apply-button:active,
+.prih-create-button:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+}
+
+.prih-apply-button:disabled,
+.prih-create-button:disabled {
+  opacity: 0.55;
+  cursor: default;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Кнопка открытия приходной накладной */
+
+.prih-open-button {
+  height: 28px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: linear-gradient(
+    135deg,
+    #c2a76a 0%,
+    #9a8146 100%
+  );
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.12);
+  transition: transform 120ms ease,
+    box-shadow 120ms ease,
+    filter 120ms ease;
+}
+
+.prih-open-button:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+  box-shadow: 0 7px 14px rgba(15, 23, 42, 0.16);
+}
+
+.prih-open-button:active {
+  transform: translateY(0);
+  box-shadow: 0 3px 8px rgba(15, 23, 42, 0.12);
+}
+
+/* Панель фильтров списка приходных накладных */
+
+.prih-list-page .module-toolbar {
+  padding: 12px 14px;
+  border: 0;
+  border-radius: 12px;
+  background: linear-gradient(
+    135deg,
+    #dbf7f2 0%,
+    #b3e6df 100%
+  );
+  box-shadow: 0 5px 14px rgba(46, 108, 101, 0.1);
+}
+
+.prih-list-page .module-toolbar .toolbar-field > span {
+  color: #365f5b;
+  font-weight: 600;
+}
+
+/*
+ * =========================================================
+ * Единая шапка форм BarBo$$ Web Office
+ * Для следующих форм достаточно добавить класс form-header-panel.
+ * =========================================================
+ */
+
+.form-header-panel {
+  margin-bottom: 16px;
+  padding: 14px 16px 16px;
+  border: 0;
+  border-radius: 14px;
+  background: linear-gradient(
+    135deg,
+    #dbf7f2 0%,
+    #b3e6df 100%
+  );
+  box-shadow: 0 7px 18px rgba(43, 112, 103, 0.12),
+    inset 0 1px rgba(255, 255, 255, 0.55);
+}
+
+.prih-form-header .page-toolbar {
+  margin-bottom: 10px;
+}
+
+.prih-form-header .prih-title {
+  margin-bottom: 14px;
+  color: #285a55;
+}
+
+.prih-form-header .calc-field > span,
+.prih-form-header .checkbox-field > span,
+.prih-form-header .calc-info > span {
+  color: #365f5b;
+  font-weight: 600;
+}
+
+/* Поиск поставщика в приходной накладной */
+
+.prih-supplier-search {
+  width: 100%;
+  min-width: 190px;
+}
+
+.prih-supplier-search input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.prih-supplier-search input:focus {
+  border-color: #6eaaa2;
+  box-shadow: 0 0 0 2px rgba(74, 151, 141, 0.16);
+  outline: none;
+}
+
+.prih-supplier-search input:disabled {
+  background: rgba(255, 255, 255, 0.62);
+  color: #6b7280;
+  cursor: default;
+}
+
+.prih-supplier-search .searchable-select-list {
+  z-index: 120;
+  min-width: 100%;
+  width: max-content;
+  max-width: 430px;
+}
+
+.prih-supplier-search .searchable-select-option {
+  min-width: 230px;
+  white-space: nowrap;
+}
+
+/* Кнопка возврата к списку */
+
+.prih-back-button {
+  height: 36px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 10px;
+  background: linear-gradient(
+    135deg,
+    #5f8179 0%,
+    #41645d 100%
+  );
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 15px rgba(27, 74, 68, 0.17);
+  transition: transform 120ms ease,
+    box-shadow 120ms ease,
+    filter 120ms ease;
+}
+
+.prih-back-button:hover {
+  background: linear-gradient(
+    135deg,
+    #688d84 0%,
+    #496e66 100%
+  );
+  transform: translateY(-1px);
+  filter: brightness(1.02);
+  box-shadow: 0 9px 19px rgba(27, 74, 68, 0.21);
+}
+
+.prih-back-button:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 10px rgba(27, 74, 68, 0.16);
+}
+
+/* Кнопка добавления строки */
+
+.prih-add-row-button {
+  height: 32px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 9px;
+  background: linear-gradient(
+    135deg,
+    #c2a76a 0%,
+    #9a8146 100%
+  );
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 5px 12px rgba(92, 72, 30, 0.16);
+  transition: transform 120ms ease,
+    box-shadow 120ms ease,
+    filter 120ms ease;
+}
+
+.prih-add-row-button:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+  box-shadow: 0 8px 16px rgba(92, 72, 30, 0.21);
+}
+
+.prih-add-row-button:active {
+  transform: translateY(0);
+  box-shadow: 0 3px 8px rgba(92, 72, 30, 0.15);
+}
+
+@media (max-width: 760px) {
+  .form-header-panel {
+    padding: 12px;
+    border-radius: 11px;
+  }
+
+  .prih-supplier-search {
+    min-width: 0;
+  }
+}
+
+/* Разнести кнопки в шапке накладной */
+
+.prih-form-header .page-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+/* Кнопка «+ строка» снова справа */
+
+.prih-items-title {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 12px;
+}
+
+.prih-items-title .prih-add-row-button {
+  margin-left: auto;
+  flex: 0 0 auto;
+}
+
+/*
+ * =========================================================
+ * Накладные перемещения
+ * =========================================================
+ */
+
+.perem-panel-title {
+  min-height: 48px;
+  box-sizing: border-box;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(
+    135deg,
+    #dbf7f2 0%,
+    #b3e6df 100%
+  );
+  color: #285a55;
+  font-size: 15px;
+  font-weight: 700;
+  box-shadow: 0 5px 14px rgba(43, 112, 103, 0.1);
+}
+
+.perem-list-header,
+.perem-content-header {
+  margin-bottom: 10px;
+}
+
+.perem-list-header > span,
+.perem-content-header > span {
+  min-width: 0;
+}
+
+.perem-new-button {
+  height: 32px;
+  margin-left: auto;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 9px;
+  background: linear-gradient(
+    135deg,
+    #c2a76a 0%,
+    #9a8146 100%
+  );
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 5px 12px rgba(92, 72, 30, 0.16);
+  transition: transform 120ms ease,
+    box-shadow 120ms ease,
+    filter 120ms ease;
+}
+
+.perem-new-button:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+  box-shadow: 0 8px 16px rgba(92, 72, 30, 0.21);
+}
+
+.perem-new-button:active {
+  transform: translateY(0);
+  box-shadow: 0 3px 8px rgba(92, 72, 30, 0.15);
+}
+
+.perem-open-button {
+  height: 28px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: linear-gradient(
+    135deg,
+    #c2a76a 0%,
+    #9a8146 100%
+  );
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.12);
+  transition: transform 120ms ease,
+    box-shadow 120ms ease,
+    filter 120ms ease;
+}
+
+.perem-open-button:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+  box-shadow: 0 7px 14px rgba(15, 23, 42, 0.16);
+}
+
+.perem-open-button:active {
+  transform: translateY(0);
+  box-shadow: 0 3px 8px rgba(15, 23, 42, 0.12);
+}
+
+.perem-empty {
+  padding: 16px;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.perem-info {
+  margin-bottom: 10px;
+  padding: 9px 12px;
+  border-radius: 9px;
+  background: #f4fbfa;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  color: #365f5b;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.perem-list-table td.center {
+  text-align: center;
+}
+
+@media (max-width: 760px) {
+  .perem-panel-title {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .perem-new-button {
+    margin-left: 0;
+  }
+}
+
+/*
+ * =========================================================
+ * SpisanTovInvoicePage — компактная горизонтальная шапка
+ * =========================================================
+ */
+
+.spisan-tov-form-header {
+  margin-bottom: 8px;
+  padding: 9px 12px 10px;
+}
+
+.spisan-tov-form-header .page-toolbar {
+  margin-bottom: 5px;
+  gap: 14px;
+}
+
+.spisan-tov-form-header .prih-title {
+  margin: 0 0 7px;
+  line-height: 1.25;
+}
+
+.spisan-tov-header-grid {
+  display: grid;
+  grid-template-columns: minmax(170px, 0.75fr)
+    minmax(190px, 0.8fr)
+    minmax(270px, 1.25fr)
+    minmax(320px, 1.8fr)
+    auto;
+  align-items: center;
+  gap: 7px 14px;
+}
+
+.spisan-tov-header-grid .calc-field {
+  min-width: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+}
+
+.spisan-tov-header-grid .calc-field-wide {
+  grid-column: auto;
+}
+
+.spisan-tov-header-grid .calc-field > span {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.spisan-tov-header-grid .calc-field input,
+.spisan-tov-header-grid .calc-field select {
+  width: 100%;
+  min-width: 0;
+  height: 29px;
+  box-sizing: border-box;
+}
+
+.spisan-tov-header-grid .calc-info {
+  min-height: 29px;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.spisan-tov-form-header + .prih-items-title {
+  margin-top: 0;
+}
+
+@media (max-width: 1350px) {
+  .spisan-tov-header-grid {
+    grid-template-columns: minmax(170px, 1fr)
+      minmax(190px, 1fr)
+      minmax(270px, 1.4fr);
+  }
+
+  .spisan-tov-header-grid .calc-field-wide {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 900px) {
+  .spisan-tov-header-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .spisan-tov-header-grid .calc-field-wide {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 620px) {
+  .spisan-tov-header-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .spisan-tov-header-grid .calc-field-wide {
+    grid-column: auto;
+  }
+
+  .spisan-tov-header-grid .calc-field {
+    grid-template-columns: 92px minmax(0, 1fr);
+  }
+}
+
+/*
+ * =========================================================
+ * SpisanBludInvoicePage — компактная шапка
+ * =========================================================
+ */
+
+.spisan-blud-form-header {
+  margin-bottom: 8px;
+  padding: 9px 12px 10px;
+}
+
+.spisan-blud-form-header .page-toolbar {
+  margin-bottom: 5px;
+  gap: 14px;
+}
+
+.spisan-blud-form-header .prih-title {
+  margin: 0 0 7px;
+  line-height: 1.25;
+}
+
+.spisan-blud-header-grid {
+  display: grid;
+  grid-template-columns: minmax(190px, 0.85fr)
+    minmax(300px, 1.35fr)
+    auto
+    minmax(360px, 1.8fr);
+  align-items: center;
+  gap: 7px 14px;
+}
+
+/* Название поля слева, элемент ввода справа */
+
+.spisan-blud-header-grid .calc-field {
+  min-width: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+}
+
+.spisan-blud-header-grid .calc-field-wide {
+  grid-column: auto;
+}
+
+.spisan-blud-header-grid .calc-field > span {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.spisan-blud-header-grid .calc-field input,
+.spisan-blud-header-grid .calc-field select {
+  width: 100%;
+  min-width: 0;
+  height: 29px;
+  box-sizing: border-box;
+}
+
+.spisan-blud-header-grid .calc-info {
+  min-height: 29px;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.spisan-blud-form-header + .prih-items-title {
+  margin-top: 0;
+}
+
+@media (max-width: 1250px) {
+  .spisan-blud-header-grid {
+    grid-template-columns: minmax(190px, 0.9fr)
+      minmax(300px, 1.35fr)
+      auto;
+  }
+
+  .spisan-blud-header-grid .calc-field-wide {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 850px) {
+  .spisan-blud-header-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .spisan-blud-header-grid .calc-field-wide {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 620px) {
+  .spisan-blud-header-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .spisan-blud-header-grid .calc-field-wide {
+    grid-column: auto;
+  }
+
+  .spisan-blud-header-grid .calc-field {
+    grid-template-columns: 92px minmax(0, 1fr);
+  }
+}
+
+/*
+ * =========================================================
+ * Список блюд — шапка, кнопки и первая колонка «Кальк.»
+ * =========================================================
+ */
+
+/* Компактная шапка в общем стиле Web Office */
+
+.dishes-page .dishes-toolbar {
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 14px;
+  background: linear-gradient(
+    135deg,
+    #dbf7f2 0%,
+    #b3e6df 100%
+  );
+  box-shadow: 0 7px 18px rgba(43, 112, 103, 0.12),
+    inset 0 1px rgba(255, 255, 255, 0.55);
+}
+
+.dishes-toolbar .toolbar-left,
+.dishes-toolbar .toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.dishes-toolbar .toolbar-check,
+.dishes-toolbar .toolbar-field {
+  margin: 0;
+}
+
+.dishes-toolbar .toolbar-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dishes-toolbar .toolbar-field > span {
+  white-space: nowrap;
+}
+
+.dishes-toolbar .toolbar-select {
+  height: 30px;
+  min-width: 190px;
+  border: 1px solid rgba(78, 139, 130, 0.36);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.dishes-toolbar .changed-info {
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.68);
+  color: #356b65;
+  font-weight: 700;
+}
+
+/* Добавить */
+
+.dishes-toolbar .dishes-add-button {
+  height: 32px;
+  padding: 0 15px;
+  border: 0;
+  border-radius: 9px;
+  background: linear-gradient(
+    135deg,
+    #c2a76a 0%,
+    #9a8146 100%
+  );
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 5px 12px rgba(92, 72, 30, 0.16);
+  transition: transform 120ms ease,
+    box-shadow 120ms ease,
+    filter 120ms ease;
+}
+
+.dishes-toolbar .dishes-add-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+  box-shadow: 0 8px 16px rgba(92, 72, 30, 0.21);
+}
+
+/* Сохранить */
+
+.dishes-toolbar .dishes-save-button {
+  height: 32px;
+  padding: 0 15px;
+  border: 0;
+  border-radius: 9px;
+  background: linear-gradient(
+    135deg,
+    #3f9a7f 0%,
+    #26715f 100%
+  );
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 5px 12px rgba(31, 105, 87, 0.18);
+  transition: transform 120ms ease,
+    box-shadow 120ms ease,
+    filter 120ms ease;
+}
+
+.dishes-toolbar .dishes-save-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+  box-shadow: 0 8px 16px rgba(31, 105, 87, 0.23);
+}
+
+.dishes-toolbar .dishes-add-button:disabled,
+.dishes-toolbar .dishes-save-button:disabled {
+  opacity: 0.48;
+  cursor: default;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Первая и закреплённая колонка «Кальк.» */
+
+.dishes-table .dishes-calc-column {
+  position: sticky;
+  left: 0;
+  z-index: 4;
+  width: 72px;
+  min-width: 72px;
+  max-width: 72px;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.dishes-table thead .dishes-calc-column {
+  z-index: 8;
+  background: #d7f1ed;
+}
+
+.dishes-table tbody .dishes-calc-column {
+  background: #ffffff;
+}
+
+.dishes-table tbody tr.selected-row .dishes-calc-column {
+  background: inherit;
+}
+
+.dishes-table tbody tr.changed-row .dishes-calc-column {
+  background: inherit;
+}
+
+.dishes-calc-button {
+  height: 27px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 7px;
+  background: linear-gradient(
+    135deg,
+    #c2a76a 0%,
+    #9a8146 100%
+  );
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 3px 8px rgba(92, 72, 30, 0.15);
+  transition: transform 120ms ease,
+    filter 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.dishes-calc-button:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+  box-shadow: 0 6px 12px rgba(92, 72, 30, 0.2);
+}
+
+@media (max-width: 760px) {
+  .dishes-page .dishes-toolbar {
+    align-items: stretch;
+  }
+
+  .dishes-toolbar .toolbar-left,
+    .dishes-toolbar .toolbar-right {
+    width: 100%;
+  }
+
+  .dishes-toolbar .toolbar-right {
+    justify-content: flex-start;
+  }
+
+  .dishes-toolbar .toolbar-select {
+    min-width: 150px;
+  }
+}
+
+/*
+ * =========================================================
+ * Калькуляционная карта блюда
+ * =========================================================
+ */
+
+.dish-calc-form-header {
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  display: grid;
+  grid-template-columns: minmax(280px, 1.15fr) minmax(0, 3fr);
+  align-items: center;
+  gap: 12px 20px;
+  border: 0;
+  border-radius: 14px;
+  background: linear-gradient(
+    135deg,
+    #dbf7f2 0%,
+    #b3e6df 100%
+  );
+  box-shadow: 0 7px 18px rgba(43, 112, 103, 0.12),
+    inset 0 1px rgba(255, 255, 255, 0.55);
+}
+
+.dish-calc-title {
+  min-width: 0;
+  margin: 0;
+  line-height: 1.25;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.dish-calc-title > span {
+  color: #4c7772;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.dish-calc-title > strong {
+  overflow: hidden;
+  color: #285a55;
+  font-size: 17px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+}
+
+.dish-calc-header {
+  min-width: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: minmax(190px, 1fr)
+    minmax(205px, 1fr)
+    auto
+    auto;
+  align-items: center;
+  gap: 8px 14px;
+}
+
+.dish-calc-header .calc-field {
+  min-width: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+}
+
+.dish-calc-header .calc-field > span {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.dish-calc-header .calc-field input,
+.dish-calc-header .calc-field select {
+  width: 100%;
+  min-width: 0;
+  height: 30px;
+  box-sizing: border-box;
+}
+
+.dish-calc-header .calc-info {
+  min-height: 30px;
+  margin: 0;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.58);
+  white-space: nowrap;
+}
+
+/* Сохранить */
+
+.dish-calc-save-button {
+  height: 32px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 9px;
+  background: linear-gradient(
+    135deg,
+    #3f9a7f 0%,
+    #26715f 100%
+  );
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 5px 12px rgba(31, 105, 87, 0.18);
+  transition: transform 120ms ease,
+    box-shadow 120ms ease,
+    filter 120ms ease;
+}
+
+.dish-calc-save-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+  box-shadow: 0 8px 16px rgba(31, 105, 87, 0.23);
+}
+
+.dish-calc-save-button:disabled {
+  opacity: 0.48;
+  cursor: default;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Заголовки двух рабочих панелей */
+
+.dish-calc-panel-title {
+  min-height: 42px;
+  box-sizing: border-box;
+  padding: 7px 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-radius: 11px;
+  background: linear-gradient(
+    135deg,
+    #e5faf6 0%,
+    #c8eee8 100%
+  );
+  color: #315f5a;
+  font-weight: 700;
+}
+
+.dish-calc-panel-title > span {
+  min-width: 0;
+}
+
+.dish-calc-add-row-button {
+  height: 29px;
+  margin-left: auto;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: linear-gradient(
+    135deg,
+    #c2a76a 0%,
+    #9a8146 100%
+  );
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(92, 72, 30, 0.16);
+  transition: transform 120ms ease,
+    box-shadow 120ms ease,
+    filter 120ms ease;
+}
+
+.dish-calc-add-row-button:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+  box-shadow: 0 7px 14px rgba(92, 72, 30, 0.21);
+}
+
+/* Технология приготовления */
+
+.dish-calc-rem-block {
+  margin-top: 10px;
+}
+
+.dish-calc-rem-block label {
+  display: grid;
+  gap: 6px;
+}
+
+.dish-calc-rem-block label > span {
+  color: #315f5a;
+  font-weight: 700;
+}
+
+.dish-calc-rem-block textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 96px;
+  resize: vertical;
+}
+
+@media (max-width: 1250px) {
+  .dish-calc-form-header {
+    grid-template-columns: 1fr;
+  }
+
+  .dish-calc-title {
+    flex-direction: row;
+    align-items: baseline;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 900px) {
+  .dish-calc-header {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 620px) {
+  .dish-calc-header {
+    grid-template-columns: 1fr;
+  }
+
+  .dish-calc-header .calc-field {
+    grid-template-columns: 112px minmax(0, 1fr);
+  }
+
+  .dish-calc-save-button {
+    justify-self: start;
+  }
+}
+
+/*
+ * =========================================================
+ * Переучёт сырья
+ * =========================================================
+ */
+
+.per-page {
+  min-width: 0;
+}
+
+/* Верхняя панель */
+
+.per-page .pereuchet-toolbar {
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 14px;
+  background: linear-gradient(
+    135deg,
+    #dbf7f2 0%,
+    #b3e6df 100%
+  );
+  box-shadow: 0 7px 18px rgba(43, 112, 103, 0.12),
+    inset 0 1px rgba(255, 255, 255, 0.55);
+}
+
+.pereuchet-toolbar .toolbar-left,
+.pereuchet-toolbar .toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pereuchet-toolbar .toolbar-field {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #315f5a;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.pereuchet-toolbar .toolbar-date {
+  height: 31px;
+  box-sizing: border-box;
+  border: 1px solid rgba(78, 139, 130, 0.36);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+/* Вывести переучёт и Полуфабрикаты */
+
+.pereuchet-open-button,
+.pereuchet-pf-button,
+.pereuchet-add-row-button {
+  height: 32px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 9px;
+  background: linear-gradient(
+    135deg,
+    #c2a76a 0%,
+    #9a8146 100%
+  );
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 5px 12px rgba(92, 72, 30, 0.16);
+  transition: transform 120ms ease,
+    box-shadow 120ms ease,
+    filter 120ms ease;
+}
+
+.pereuchet-open-button:hover:not(:disabled),
+.pereuchet-pf-button:hover:not(:disabled),
+.pereuchet-add-row-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+  box-shadow: 0 8px 16px rgba(92, 72, 30, 0.21);
+}
+
+.pereuchet-open-button:disabled,
+.pereuchet-pf-button:disabled,
+.pereuchet-add-row-button:disabled {
+  opacity: 0.48;
+  cursor: default;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Все кнопки сохранения */
+
+.pereuchet-save-button {
+  height: 31px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 9px;
+  background: linear-gradient(
+    135deg,
+    #3f9a7f 0%,
+    #26715f 100%
+  );
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 5px 12px rgba(31, 105, 87, 0.18);
+  transition: transform 120ms ease,
+    box-shadow 120ms ease,
+    filter 120ms ease;
+}
+
+.pereuchet-save-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+  box-shadow: 0 8px 16px rgba(31, 105, 87, 0.23);
+}
+
+.pereuchet-save-button:disabled {
+  opacity: 0.48;
+  cursor: default;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Панели */
+
+.pereuchet-list-panel,
+.pereuchet-work-panel {
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgba(40, 87, 81, 0.08),
+    0 0 0 1px rgba(94, 150, 141, 0.11);
+}
+
+.pereuchet-panel-title {
+  min-height: 42px;
+  box-sizing: border-box;
+  padding: 7px 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 0;
+  border-radius: 11px 11px 0 0;
+  background: linear-gradient(
+    135deg,
+    #e5faf6 0%,
+    #c8eee8 100%
+  );
+  color: #315f5a;
+}
+
+.pereuchet-panel-title strong {
+  min-width: 0;
+}
+
+.pereuchet-panel-title .pereuchet-save-button {
+  margin-left: auto;
+}
+
+/* Кнопка добавления строки ближе к таблице */
+
+.pereuchet-work-panel > .page-toolbar {
+  margin: 0;
+  padding: 7px 10px;
+  background: #f8fcfb;
+}
+
+.pereuchet-add-row-button {
+  height: 29px;
+  padding: 0 12px;
+  font-size: 12px;
+}
+
+/* Пустой рабочий блок */
+
+.per-empty-panel {
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgba(40, 87, 81, 0.08),
+    0 0 0 1px rgba(94, 150, 141, 0.11);
+}
+
+@media (max-width: 820px) {
+  .per-page .pereuchet-toolbar {
+    align-items: stretch;
+  }
+
+  .pereuchet-toolbar .toolbar-left,
+    .pereuchet-toolbar .toolbar-right {
+    width: 100%;
+  }
+
+  .pereuchet-toolbar .toolbar-right {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 560px) {
+  .pereuchet-toolbar .toolbar-field {
+    width: 100%;
+  }
+
+  .pereuchet-toolbar .toolbar-date {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+}
+
+/*
+ * =========================================================
+ * Карточки сырья
+ * =========================================================
+ */
+
+.cards-sirya-page {
+  height: calc(100dvh - 122px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.cards-sirya-page .cards-sirya-toolbar {
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 14px;
+  background: linear-gradient(
+    135deg,
+    #dbf7f2 0%,
+    #b3e6df 100%
+  );
+  box-shadow: 0 7px 18px rgba(43, 112, 103, 0.12),
+    inset 0 1px rgba(255, 255, 255, 0.55);
+}
+
+.cards-sirya-toolbar .toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.cards-sirya-toolbar .toolbar-field {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #315f5a;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.cards-sirya-toolbar .toolbar-select {
+  height: 31px;
+  min-width: 260px;
+  box-sizing: border-box;
+  border: 1px solid rgba(78, 139, 130, 0.36);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.cards-sirya-page .raw-cards-page {
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgba(40, 87, 81, 0.08),
+    0 0 0 1px rgba(94, 150, 141, 0.11);
+}
+
+@media (max-width: 560px) {
+  .cards-sirya-toolbar .toolbar-field {
+    width: 100%;
+  }
+
+  .cards-sirya-toolbar .toolbar-select {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+}
+
+/*
+ * =========================================================
+ * Список сырья
+ * =========================================================
+ */
+
+.spisok-tovarov-page {
+  height: calc(100dvh - 122px);
+  min-height: 300px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Шапка */
+
+.spisok-tovarov-page .spisok-tovarov-toolbar {
+  flex: 0 0 auto;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 14px;
+  background: linear-gradient(
+    135deg,
+    #dbf7f2 0%,
+    #b3e6df 100%
+  );
+  box-shadow: 0 7px 18px rgba(43, 112, 103, 0.12),
+    inset 0 1px rgba(255, 255, 255, 0.55);
+}
+
+.spisok-tovarov-toolbar .toolbar-left,
+.spisok-tovarov-toolbar .toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.spisok-tovarov-toolbar .toolbar-check,
+.spisok-tovarov-toolbar .toolbar-field {
+  margin: 0;
+  color: #315f5a;
+  font-weight: 700;
+}
+
+.spisok-tovarov-toolbar .toolbar-field {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.spisok-tovarov-toolbar .toolbar-field > span {
+  white-space: nowrap;
+}
+
+.spisok-tovarov-toolbar .toolbar-select {
+  height: 31px;
+  min-width: 240px;
+  box-sizing: border-box;
+  border: 1px solid rgba(78, 139, 130, 0.36);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.spisok-tovarov-toolbar .changed-info {
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.68);
+  color: #356b65;
+  font-weight: 700;
+}
+
+/* Добавить товар */
+
+.spisok-tovarov-add-button {
+  height: 32px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 9px;
+  background: linear-gradient(
+    135deg,
+    #c2a76a 0%,
+    #9a8146 100%
+  );
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 5px 12px rgba(92, 72, 30, 0.16);
+  transition: transform 120ms ease,
+    box-shadow 120ms ease,
+    filter 120ms ease;
+}
+
+/* Сохранить изменения */
+
+.spisok-tovarov-save-button {
+  height: 32px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 9px;
+  background: linear-gradient(
+    135deg,
+    #3f9a7f 0%,
+    #26715f 100%
+  );
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 5px 12px rgba(31, 105, 87, 0.18);
+  transition: transform 120ms ease,
+    box-shadow 120ms ease,
+    filter 120ms ease;
+}
+
+.spisok-tovarov-add-button:hover:not(:disabled),
+.spisok-tovarov-save-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+
+.spisok-tovarov-add-button:disabled,
+.spisok-tovarov-save-button:disabled {
+  opacity: 0.48;
+  cursor: default;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Прокрутка только внутри таблицы */
+
+.spisok-tovarov-table-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgba(40, 87, 81, 0.08),
+    0 0 0 1px rgba(94, 150, 141, 0.11);
+}
+
+.spisok-tovarov-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+
+@supports not (height: 100dvh) {
+  .spisok-tovarov-page {
+    height: calc(100vh - 122px);
+  }
+}
+
+@media (max-width: 760px) {
+  .spisok-tovarov-page .spisok-tovarov-toolbar {
+    align-items: stretch;
+  }
+
+  .spisok-tovarov-toolbar .toolbar-left,
+    .spisok-tovarov-toolbar .toolbar-right {
+    width: 100%;
+  }
+
+  .spisok-tovarov-toolbar .toolbar-right {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 560px) {
+  .spisok-tovarov-toolbar .toolbar-field {
+    width: 100%;
+  }
+
+  .spisok-tovarov-toolbar .toolbar-select {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+}
+
+/*
+ * =========================================================
+ * Касса
+ * =========================================================
+ */
+
+.kassa-page {
+  height: calc(100dvh - 122px);
+  min-height: 420px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Верхняя панель */
+
+.kassa-main-toolbar {
+  flex: 0 0 auto;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: linear-gradient(
+    135deg,
+    #dbf7f2 0%,
+    #b3e6df 100%
+  );
+  box-shadow: 0 7px 18px rgba(43, 112, 103, 0.12),
+    inset 0 1px rgba(255, 255, 255, 0.55);
+}
+
+.kassa-date-panel,
+.kassa-valut-panel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.kassa-date-panel input,
+.kassa-valut-panel select {
+  height: 31px;
+  box-sizing: border-box;
+  border: 1px solid rgba(78, 139, 130, 0.36);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.kassa-valut-panel > span {
+  color: #315f5a;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/*
+ * Edge/Chromium: не показываем встроенный spin-контрол даты.
+ * Переключение дней остаётся на наших кнопках ← и →.
+ */
+
+.kassa-main-date-input::-webkit-inner-spin-button {
+  display: none;
+  -webkit-appearance: none;
+}
+
+.kassa-main-date-input {
+  appearance: none;
+}
+
+.kassa-date-nav-button,
+.kassa-refresh-button,
+.kassa-save-button,
+.kassa-revenue-button {
+  height: 32px;
+  padding: 0 13px;
+  border: 0;
+  border-radius: 9px;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 120ms ease,
+    filter 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.kassa-date-nav-button {
+  min-width: 34px;
+  padding: 0 9px;
+  background: linear-gradient(
+    135deg,
+    #c2a76a 0%,
+    #9a8146 100%
+  );
+  box-shadow: 0 5px 12px rgba(92, 72, 30, 0.16);
+}
+
+.kassa-refresh-button {
+  background: linear-gradient(
+    135deg,
+    #6faaa3 0%,
+    #4d817b 100%
+  );
+  box-shadow: 0 5px 12px rgba(46, 102, 95, 0.16);
+}
+
+.kassa-save-button {
+  background: linear-gradient(
+    135deg,
+    #3f9a7f 0%,
+    #26715f 100%
+  );
+  box-shadow: 0 5px 12px rgba(31, 105, 87, 0.18);
+}
+
+.kassa-revenue-button {
+  background: linear-gradient(
+    135deg,
+    #c2a76a 0%,
+    #9a8146 100%
+  );
+  box-shadow: 0 5px 12px rgba(92, 72, 30, 0.16);
+}
+
+.kassa-date-nav-button:hover:not(:disabled),
+.kassa-refresh-button:hover:not(:disabled),
+.kassa-save-button:hover:not(:disabled),
+.kassa-revenue-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+
+.kassa-date-nav-button:disabled,
+.kassa-refresh-button:disabled,
+.kassa-save-button:disabled,
+.kassa-revenue-button:disabled {
+  opacity: 0.48;
+  cursor: default;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Сводка */
+
+.kassa-summary-panel {
+  flex: 0 0 auto;
+  margin-bottom: 7px;
+  padding: 4px 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 4px 12px rgba(40, 87, 81, 0.07),
+    0 0 0 1px rgba(94, 150, 141, 0.10);
+}
+
+.kassa-summary-panel > div {
+  width: auto;
+  min-width: 0;
+  padding: 4px 8px;
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: flex-start;
+  gap: 5px;
+  border-radius: 7px;
+  background: linear-gradient(135deg, #f1fbf9 0%, #e1f4f1 100%);
+  white-space: nowrap;
+}
+
+.kassa-summary-panel span {
+  color: #557a75;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.kassa-summary-panel strong {
+  color: #285a55;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+/* Основные панели */
+
+.kassa-main-columns {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  overflow: hidden;
+}
+
+.kassa-operation-panel {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgba(40, 87, 81, 0.08),
+    0 0 0 1px rgba(94, 150, 141, 0.11);
+}
+
+.kassa-panel-title {
+  flex: 0 0 auto;
+  min-height: 42px;
+  box-sizing: border-box;
+  padding: 7px 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-radius: 11px 11px 0 0;
+  background: linear-gradient(
+    135deg,
+    #e5faf6 0%,
+    #c8eee8 100%
+  );
+  color: #315f5a;
+  font-weight: 700;
+}
+
+.kassa-panel-title > span {
+  min-width: 0;
+}
+
+.kassa-add-button {
+  height: 29px;
+  margin-left: auto;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: linear-gradient(
+    135deg,
+    #c2a76a 0%,
+    #9a8146 100%
+  );
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(92, 72, 30, 0.16);
+  transition: transform 120ms ease,
+    filter 120ms ease;
+}
+
+.kassa-add-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+
+.kassa-add-button:disabled {
+  opacity: 0.48;
+  cursor: default;
+  transform: none;
+  box-shadow: none;
+}
+
+.kassa-operation-panel .kassa-table-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+.kassa-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+
+/* Invoice */
+
+.kassa-invoice-panel {
+  flex: 0 0 auto;
+  max-height: 42%;
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgba(40, 87, 81, 0.08),
+    0 0 0 1px rgba(94, 150, 141, 0.11);
+}
+
+.kassa-invoice-header {
+  flex: 0 0 auto;
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: linear-gradient(
+    135deg,
+    #e5faf6 0%,
+    #c8eee8 100%
+  );
+}
+
+.kassa-invoice-header > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.kassa-invoice-panel .invoice-table-wrap {
+  min-height: 0;
+  overflow: auto;
+}
+
+.kassa-invoice-button {
+  height: 27px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 7px;
+  background: linear-gradient(
+    135deg,
+    #c2a76a 0%,
+    #9a8146 100%
+  );
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+@supports not (height: 100dvh) {
+  .kassa-page {
+    height: calc(100vh - 122px);
+  }
+}
+
+@media (max-width: 1100px) {
+  .kassa-main-columns {
+    grid-template-columns: 1fr;
+    overflow: auto;
+  }
+
+  .kassa-operation-panel {
+    min-height: 320px;
+  }
+}
+
+@media (max-width: 760px) {
+  .kassa-summary-panel {
+    grid-template-columns: repeat(2, minmax(135px, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .kassa-summary-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .kassa-main-toolbar {
+    align-items: stretch;
+  }
+
+  .kassa-date-panel,
+    .kassa-valut-panel {
+    width: 100%;
+  }
+}
+
+/*
+ * =========================================================
+ * Счета за день
+ * =========================================================
+ */
+
+.orders-day-page {
+  height: calc(100dvh - 90px);
+  min-height: 420px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Верхняя панель */
+
+.orders-day-page .orders-day-main-toolbar {
+  flex: 0 0 auto;
+  margin-bottom: 9px;
+  padding: 9px 11px;
+  border: 0;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: linear-gradient(
+    135deg,
+    #dbf7f2 0%,
+    #b3e6df 100%
+  );
+  box-shadow: 0 7px 18px rgba(43, 112, 103, 0.12),
+    inset 0 1px rgba(255, 255, 255, 0.55);
+}
+
+.orders-day-main-toolbar .toolbar-left,
+.orders-day-main-toolbar .toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.orders-day-main-toolbar .toolbar-field {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #315f5a;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.orders-day-date-input,
+.orders-day-filter-select {
+  height: 31px;
+  box-sizing: border-box;
+  border: 1px solid rgba(78, 139, 130, 0.36);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.orders-day-filter-select {
+  min-width: 135px;
+}
+
+/* Edge/Chromium: переключение дней выполняют наши кнопки. */
+
+.orders-day-date-input::-webkit-inner-spin-button {
+  display: none;
+  -webkit-appearance: none;
+}
+
+.orders-day-date-input {
+  appearance: none;
+}
+
+/* Кнопки */
+
+.orders-day-date-nav-button,
+.orders-day-refresh-button,
+.orders-day-view-button {
+  height: 32px;
+  padding: 0 13px;
+  border: 0;
+  border-radius: 9px;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 120ms ease,
+    filter 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.orders-day-date-nav-button {
+  min-width: 34px;
+  padding: 0 9px;
+  background: linear-gradient(
+    135deg,
+    #c2a76a 0%,
+    #9a8146 100%
+  );
+  box-shadow: 0 5px 12px rgba(92, 72, 30, 0.16);
+}
+
+.orders-day-refresh-button {
+  background: linear-gradient(
+    135deg,
+    #6faaa3 0%,
+    #4d817b 100%
+  );
+  box-shadow: 0 5px 12px rgba(46, 102, 95, 0.16);
+}
+
+.orders-day-view-button {
+  background: linear-gradient(
+    135deg,
+    #c2a76a 0%,
+    #9a8146 100%
+  );
+  box-shadow: 0 5px 12px rgba(92, 72, 30, 0.16);
+}
+
+.orders-day-date-nav-button:hover:not(:disabled),
+.orders-day-refresh-button:hover:not(:disabled),
+.orders-day-view-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+
+.orders-day-date-nav-button:disabled,
+.orders-day-refresh-button:disabled,
+.orders-day-view-button:disabled {
+  opacity: 0.48;
+  cursor: default;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Компактные итоги справа */
+
+.orders-day-summary {
+  margin-left: auto;
+}
+
+.orders-day-summary span {
+  padding: 4px 8px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.68);
+  color: #356b65;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Основная область */
+
+.orders-day-layout {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(245px, 1.35fr) minmax(175px, 0.65fr);
+  gap: 9px;
+  overflow: hidden;
+}
+
+.orders-day-panel {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgba(40, 87, 81, 0.08),
+    0 0 0 1px rgba(94, 150, 141, 0.11);
+}
+
+.orders-day-list-wrap,
+.orders-day-items-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* Закрепляем заголовки обеих таблиц */
+
+.orders-day-table thead th,
+.orders-day-items-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+}
+
+/* Итоговая строка списка остаётся снизу */
+
+.orders-day-table tfoot td {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  background: #eef8f6;
+  font-weight: 700;
+}
+
+/* Заголовок состава заказа */
+
+.orders-day-items-title {
+  flex: 0 0 auto;
+  min-height: 42px;
+  box-sizing: border-box;
+  padding: 7px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  border-radius: 11px 11px 0 0;
+  background: linear-gradient(
+    135deg,
+    #e5faf6 0%,
+    #c8eee8 100%
+  );
+  color: #315f5a;
+}
+
+.orders-day-items-title strong {
+  font-weight: 700;
+}
+
+.orders-day-items-title span {
+  color: #557a75;
+  font-size: 12px;
+}
+
+@supports not (height: 100dvh) {
+  .orders-day-page {
+    height: calc(100vh - 122px);
+  }
+}
+
+@media (max-width: 1050px) {
+  .orders-day-main-toolbar .toolbar-left,
+    .orders-day-main-toolbar .toolbar-right {
+    width: 100%;
+  }
+
+  .orders-day-summary {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 650px) {
+  .orders-day-layout {
+    overflow: auto;
+    grid-template-rows: minmax(330px, auto) minmax(260px, auto);
+  }
+
+  .orders-day-main-toolbar .toolbar-field {
+    flex: 1 1 210px;
+  }
+
+  .orders-day-filter-select {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+}
+
+/*
+ * =========================================================
+ * Просмотр заказа
+ * =========================================================
+ */
+
+.schet-view-page {
+  height: calc(100dvh - 90px);
+  min-height: 440px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: hidden;
+}
+
+/* Верхняя панель */
+
+.schet-view-form-header {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 9px 11px;
+  border: 0;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(
+    135deg,
+    #dbf7f2 0%,
+    #b3e6df 100%
+  );
+  box-shadow: 0 7px 18px rgba(43, 112, 103, 0.12),
+    inset 0 1px rgba(255, 255, 255, 0.55);
+}
+
+.schet-back-button {
+  flex: 0 0 auto;
+}
+
+.schet-view-title {
+  min-width: 0;
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+  color: #315f5a;
+}
+
+.schet-view-title strong {
+  font-size: 16px;
+}
+
+.schet-view-title > span:not(.schet-save-warning) {
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.66);
+  color: #557a75;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.schet-save-warning {
+  color: #9a5b22;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.schet-view-save-button,
+.schet-payment-save-button {
+  height: 32px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 9px;
+  background: linear-gradient(
+    135deg,
+    #3f9a7f 0%,
+    #26715f 100%
+  );
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 5px 12px rgba(31, 105, 87, 0.18);
+}
+
+.schet-view-save-button:disabled,
+.schet-payment-save-button:disabled {
+  opacity: 0.48;
+  cursor: default;
+  box-shadow: none;
+}
+
+/* Сообщения */
+
+.schet-view-page .readonly-notice,
+.schet-view-page .schet-hint,
+.schet-view-page .form-error {
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+/* Реквизиты заказа */
+
+.schet-main-card {
+  flex: 0 0 auto;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgba(40, 87, 81, 0.08),
+    0 0 0 1px rgba(94, 150, 141, 0.11);
+}
+
+.schet-header-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(205px, 1fr));
+  gap: 6px 10px;
+}
+
+.schet-field {
+  min-width: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: 102px minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+}
+
+.schet-field > span {
+  color: #557a75;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.schet-field input,
+.schet-field select,
+.schet-field .searchable-select > input {
+  width: 100%;
+  min-width: 0;
+  height: 29px;
+  box-sizing: border-box;
+  border: 1px solid #cfdedb;
+  border-radius: 6px;
+  background: #ffffff;
+}
+
+.schet-field input:disabled,
+.schet-field select:disabled {
+  color: #586966;
+  background: #f4f7f6;
+}
+
+.schet-field-wide {
+  grid-column: span 2;
+}
+
+.schet-header-grid .checkbox-field {
+  min-height: 29px;
+  margin: 0;
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #dce9e7;
+  border-radius: 6px;
+  background: #f7fbfa;
+  color: #496d68;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.schet-panel-buttons {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.schet-gold-button,
+.schet-hide-button {
+  height: 29px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: linear-gradient(
+    135deg,
+    #c2a76a 0%,
+    #9a8146 100%
+  );
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(92, 72, 30, 0.16);
+}
+
+/* Дополнительные панели */
+
+.schet-styled-subpanel {
+  flex: 0 0 auto;
+  max-height: 235px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgba(40, 87, 81, 0.08),
+    0 0 0 1px rgba(94, 150, 141, 0.11);
+}
+
+.schet-styled-title {
+  flex: 0 0 auto;
+  min-height: 40px;
+  box-sizing: border-box;
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  border-radius: 11px 11px 0 0;
+  background: linear-gradient(
+    135deg,
+    #e5faf6 0%,
+    #c8eee8 100%
+  );
+  color: #315f5a;
+}
+
+.schet-subpanel-title .schet-hide-button {
+  margin-left: auto;
+}
+
+.schet-styled-subpanel .table-wrap {
+  min-height: 0;
+  overflow: auto;
+}
+
+.schet-pay-actions {
+  flex: 0 0 auto;
+  padding: 7px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  background: #f7fbfa;
+}
+
+.schet-pay-actions > span {
+  color: #356b65;
+  font-weight: 700;
+}
+
+/* Проданные блюда */
+
+.schet-body-panel {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgba(40, 87, 81, 0.08),
+    0 0 0 1px rgba(94, 150, 141, 0.11);
+}
+
+.schet-body-title strong {
+  margin-right: auto;
+}
+
+.schet-body-title > span {
+  padding: 3px 7px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.66);
+  color: #356b65;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.schet-body-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+.schet-body-table thead th,
+.schet-adv-table thead th,
+.schet-pay-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+}
+
+@supports not (height: 100dvh) {
+  .schet-view-page {
+    height: calc(100vh - 122px);
+  }
+}
+
+@media (max-width: 1250px) {
+  .schet-header-grid {
+    grid-template-columns: repeat(3, minmax(205px, 1fr));
+  }
+}
+
+@media (max-width: 930px) {
+  .schet-view-page {
+    overflow: auto;
+  }
+
+  .schet-header-grid {
+    grid-template-columns: repeat(2, minmax(205px, 1fr));
+  }
+
+  .schet-body-panel {
+    min-height: 360px;
+  }
+}
+
+@media (max-width: 620px) {
+  .schet-view-form-header {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .schet-view-title {
+    width: 100%;
+    order: -1;
+  }
+
+  .schet-header-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .schet-field-wide {
+    grid-column: auto;
+  }
+
+  .schet-field {
+    grid-template-columns: 100px minmax(0, 1fr);
+  }
+
+  .schet-pay-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+/*
+ * =========================================================
+ * Справочник: Персонал
+ * =========================================================
+ */
+
+.personal-page {
+  height: calc(100dvh - 122px);
+  min-height: 360px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Верхняя панель */
+
+.personal-page .personal-toolbar {
+  flex: 0 0 auto;
+  margin-bottom: 9px;
+  padding: 9px 11px;
+  border: 0;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: linear-gradient(
+    135deg,
+    #dbf7f2 0%,
+    #b3e6df 100%
+  );
+  box-shadow: 0 7px 18px rgba(43, 112, 103, 0.12),
+    inset 0 1px rgba(255, 255, 255, 0.55);
+}
+
+.personal-toolbar .toolbar-left,
+.personal-toolbar .toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.personal-toolbar .filter-label {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #315f5a;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.personal-filter-select {
+  height: 31px;
+  min-width: 145px;
+  box-sizing: border-box;
+  border: 1px solid rgba(78, 139, 130, 0.36);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.personal-toolbar .changed-info {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.68);
+  color: #356b65;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Кнопки */
+
+.personal-add-button,
+.personal-save-button {
+  height: 32px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 9px;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 120ms ease,
+    filter 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.personal-add-button {
+  background: linear-gradient(
+    135deg,
+    #c2a76a 0%,
+    #9a8146 100%
+  );
+  box-shadow: 0 5px 12px rgba(92, 72, 30, 0.16);
+}
+
+.personal-save-button {
+  background: linear-gradient(
+    135deg,
+    #3f9a7f 0%,
+    #26715f 100%
+  );
+  box-shadow: 0 5px 12px rgba(31, 105, 87, 0.18);
+}
+
+.personal-add-button:hover:not(:disabled),
+.personal-save-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+
+.personal-add-button:disabled,
+.personal-save-button:disabled {
+  opacity: 0.48;
+  cursor: default;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Сообщения */
+
+.personal-page > .login-error,
+.personal-empty {
+  flex: 0 0 auto;
+}
+
+.personal-empty {
+  margin: 0;
+}
+
+/* Таблица */
+
+.personal-table-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgba(40, 87, 81, 0.08),
+    0 0 0 1px rgba(94, 150, 141, 0.11);
+}
+
+.personal-table {
+  min-width: 1460px;
+}
+
+.personal-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+}
+
+/* Имя сотрудника остаётся видимым при горизонтальной прокрутке */
+
+.personal-table th:first-child,
+.personal-table td:first-child {
+  position: sticky;
+  left: 0;
+}
+
+.personal-table th:first-child {
+  z-index: 6;
+}
+
+.personal-table td:first-child {
+  z-index: 2;
+  background: #ffffff;
+}
+
+.personal-table tr.selected-row td:first-child {
+  background: inherit;
+}
+
+.personal-table tr.changed-row td:first-child {
+  background: inherit;
+}
+
+/* Компактные колонки прав */
+
+.personal-table th:nth-child(n + 7),
+.personal-table td:nth-child(n + 7) {
+  width: 48px;
+  min-width: 48px;
+  max-width: 48px;
+  text-align: center;
+}
+
+.personal-table td:nth-child(n + 7) input[type="checkbox"] {
+  margin: 0;
+}
+
+@supports not (height: 100dvh) {
+  .personal-page {
+    height: calc(100vh - 122px);
+  }
+}
+
+@media (max-width: 700px) {
+  .personal-toolbar .toolbar-left,
+    .personal-toolbar .toolbar-right {
+    width: 100%;
+  }
+
+  .personal-toolbar .toolbar-right {
+    justify-content: flex-start;
+  }
+}
+
+/*
+ * =========================================================
+ * Справочник: Список клиентов
+ * =========================================================
+ */
+
+.clients-page {
+  height: calc(100dvh - 122px);
+  min-height: 360px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Верхняя панель */
+
+.clients-page .clients-toolbar {
+  flex: 0 0 auto;
+  margin-bottom: 9px;
+  padding: 9px 11px;
+  border: 0;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: linear-gradient(
+    135deg,
+    #dbf7f2 0%,
+    #b3e6df 100%
+  );
+  box-shadow: 0 7px 18px rgba(43, 112, 103, 0.12),
+    inset 0 1px rgba(255, 255, 255, 0.55);
+}
+
+.clients-toolbar .toolbar-left,
+.clients-toolbar .toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.clients-toolbar .filter-label {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #315f5a;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.clients-filter-select {
+  height: 31px;
+  min-width: 145px;
+  box-sizing: border-box;
+  border: 1px solid rgba(78, 139, 130, 0.36);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.clients-toolbar .changed-info {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.68);
+  color: #356b65;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Кнопки */
+
+.clients-add-button,
+.clients-save-button {
+  height: 32px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 9px;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 120ms ease,
+    filter 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.clients-add-button {
+  background: linear-gradient(
+    135deg,
+    #c2a76a 0%,
+    #9a8146 100%
+  );
+  box-shadow: 0 5px 12px rgba(92, 72, 30, 0.16);
+}
+
+.clients-save-button {
+  background: linear-gradient(
+    135deg,
+    #3f9a7f 0%,
+    #26715f 100%
+  );
+  box-shadow: 0 5px 12px rgba(31, 105, 87, 0.18);
+}
+
+.clients-add-button:hover:not(:disabled),
+.clients-save-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+
+.clients-add-button:disabled,
+.clients-save-button:disabled {
+  opacity: 0.48;
+  cursor: default;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Сообщения */
+
+.clients-page > .login-error,
+.clients-empty {
+  flex: 0 0 auto;
+}
+
+.clients-empty {
+  margin: 0;
+}
+
+/* Таблица */
+
+.clients-table-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgba(40, 87, 81, 0.08),
+    0 0 0 1px rgba(94, 150, 141, 0.11);
+}
+
+.clients-table {
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+}
+
+.clients-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+}
+
+/* Имя клиента остается видимым при горизонтальной прокрутке */
+
+.clients-table th:first-child,
+.clients-table td:first-child {
+  position: sticky;
+  left: 0;
+}
+
+.clients-table th:first-child {
+  z-index: 6;
+}
+
+.clients-table td:first-child {
+  z-index: 2;
+  background: #ffffff;
+}
+
+.clients-table tr.selected-row td:first-child,
+.clients-table tr.changed-row td:first-child {
+  background: inherit;
+}
+
+/* Компактные флаги справа */
+
+.clients-table td:nth-child(n + 11) input[type="checkbox"] {
+  margin: 0;
+}
+
+/* Компактная сетка без принудительного горизонтального скролла */
+
+.clients-table th:nth-child(1),
+.clients-table td:nth-child(1) {
+  width: 14%;
+}
+
+.clients-table th:nth-child(2),
+.clients-table td:nth-child(2) {
+  width: 7%;
+}
+
+.clients-table th:nth-child(3),
+.clients-table td:nth-child(3) {
+  width: 9%;
+}
+
+.clients-table th:nth-child(4),
+.clients-table td:nth-child(4) {
+  width: 9%;
+}
+
+.clients-table th:nth-child(5),
+.clients-table td:nth-child(5) {
+  width: 7%;
+}
+
+.clients-table th:nth-child(6),
+.clients-table td:nth-child(6),
+.clients-table th:nth-child(7),
+.clients-table td:nth-child(7) {
+  width: 6%;
+}
+
+.clients-table th:nth-child(8),
+.clients-table td:nth-child(8) {
+  width: 9%;
+}
+
+.clients-table th:nth-child(9),
+.clients-table td:nth-child(9) {
+  width: 10%;
+}
+
+.clients-table th:nth-child(10),
+.clients-table td:nth-child(10) {
+  width: 11%;
+}
+
+.clients-table th:nth-child(n + 11),
+.clients-table td:nth-child(n + 11) {
+  width: 3.5%;
+  min-width: 0;
+  max-width: none;
+  padding-left: 3px;
+  padding-right: 3px;
+  text-align: center;
+}
+
+.clients-table .table-input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+@supports not (height: 100dvh) {
+  .clients-page {
+    height: calc(100vh - 122px);
+  }
+}
+
+@media (max-width: 700px) {
+  .clients-toolbar .toolbar-left,
+    .clients-toolbar .toolbar-right {
+    width: 100%;
+  }
+
+  .clients-toolbar .toolbar-right {
+    justify-content: flex-start;
+  }
+}
+
+/*
+ * =========================================================
+ * Справочник: Список поставщиков
+ * =========================================================
+ */
+
+.suppliers-page {
+  height: calc(100dvh - 122px);
+  min-height: 360px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Верхняя панель */
+
+.suppliers-page .suppliers-toolbar {
+  flex: 0 0 auto;
+  margin-bottom: 9px;
+  padding: 9px 11px;
+  border: 0;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: linear-gradient(
+    135deg,
+    #dbf7f2 0%,
+    #b3e6df 100%
+  );
+  box-shadow: 0 7px 18px rgba(43, 112, 103, 0.12),
+    inset 0 1px rgba(255, 255, 255, 0.55);
+}
+
+.suppliers-toolbar .toolbar-left,
+.suppliers-toolbar .toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.suppliers-toolbar .filter-label {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #315f5a;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.suppliers-filter-select {
+  height: 31px;
+  min-width: 145px;
+  box-sizing: border-box;
+  border: 1px solid rgba(78, 139, 130, 0.36);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.suppliers-toolbar .changed-info {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.68);
+  color: #356b65;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Кнопки */
+
+.suppliers-add-button,
+.suppliers-save-button {
+  height: 32px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 9px;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 120ms ease,
+    filter 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.suppliers-add-button {
+  background: linear-gradient(
+    135deg,
+    #c2a76a 0%,
+    #9a8146 100%
+  );
+  box-shadow: 0 5px 12px rgba(92, 72, 30, 0.16);
+}
+
+.suppliers-save-button {
+  background: linear-gradient(
+    135deg,
+    #3f9a7f 0%,
+    #26715f 100%
+  );
+  box-shadow: 0 5px 12px rgba(31, 105, 87, 0.18);
+}
+
+.suppliers-add-button:hover:not(:disabled),
+.suppliers-save-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+
+.suppliers-add-button:disabled,
+.suppliers-save-button:disabled {
+  opacity: 0.48;
+  cursor: default;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Сообщения */
+
+.suppliers-page > .login-error,
+.suppliers-empty {
+  flex: 0 0 auto;
+}
+
+.suppliers-empty {
+  margin: 0;
+}
+
+/* Таблица */
+
+.suppliers-table-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgba(40, 87, 81, 0.08),
+    0 0 0 1px rgba(94, 150, 141, 0.11);
+}
+
+.suppliers-table {
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+}
+
+.suppliers-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+}
+
+/* Распределение ширины шести колонок */
+
+.suppliers-table th:nth-child(1),
+.suppliers-table td:nth-child(1) {
+  width: 34%;
+}
+
+.suppliers-table th:nth-child(2),
+.suppliers-table td:nth-child(2) {
+  width: 22%;
+}
+
+.suppliers-table th:nth-child(3),
+.suppliers-table td:nth-child(3),
+.suppliers-table th:nth-child(4),
+.suppliers-table td:nth-child(4) {
+  width: 16%;
+}
+
+.suppliers-table th:nth-child(5),
+.suppliers-table td:nth-child(5),
+.suppliers-table th:nth-child(6),
+.suppliers-table td:nth-child(6) {
+  width: 6%;
+  text-align: center;
+}
+
+.suppliers-table .table-input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.suppliers-table td:nth-child(5) input[type="checkbox"],
+.suppliers-table td:nth-child(6) input[type="checkbox"] {
+  margin: 0;
+}
+
+@supports not (height: 100dvh) {
+  .suppliers-page {
+    height: calc(100vh - 122px);
+  }
+}
+
+@media (max-width: 700px) {
+  .suppliers-toolbar .toolbar-left,
+    .suppliers-toolbar .toolbar-right {
+    width: 100%;
+  }
+
+  .suppliers-toolbar .toolbar-right {
+    justify-content: flex-start;
+  }
+
+  .suppliers-table th:nth-child(1),
+    .suppliers-table td:nth-child(1) {
+    width: 30%;
+  }
+
+  .suppliers-table th:nth-child(2),
+    .suppliers-table td:nth-child(2) {
+    width: 20%;
+  }
+
+  .suppliers-table th:nth-child(3),
+    .suppliers-table td:nth-child(3),
+    .suppliers-table th:nth-child(4),
+    .suppliers-table td:nth-child(4) {
+    width: 18%;
+  }
+
+  .suppliers-table th:nth-child(5),
+    .suppliers-table td:nth-child(5),
+    .suppliers-table th:nth-child(6),
+    .suppliers-table td:nth-child(6) {
+    width: 7%;
+  }
+}
+
+/*
+ * =========================================================
+ * Справочник: Группы блюд
+ * =========================================================
+ */
+
+.groups-page {
+  --groups-name-width: 220px;
+  --groups-index-width: 88px;
+  --groups-parent-width: 190px;
+  --groups-sk-width: 52px;
+  height: calc(100dvh - 122px);
+  min-height: 380px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Верхняя панель */
+
+.groups-page .groups-toolbar {
+  flex: 0 0 auto;
+  margin-bottom: 9px;
+  padding: 9px 11px;
+  border: 0;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: linear-gradient(
+    135deg,
+    #dbf7f2 0%,
+    #b3e6df 100%
+  );
+  box-shadow: 0 7px 18px rgba(43, 112, 103, 0.12),
+    inset 0 1px rgba(255, 255, 255, 0.55);
+}
+
+.groups-toolbar .toolbar-left,
+.groups-toolbar .toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.groups-toolbar .changed-info {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.68);
+  color: #356b65;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Кнопки */
+
+.groups-add-button,
+.groups-save-button {
+  height: 32px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 9px;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 120ms ease,
+    filter 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.groups-add-button {
+  background: linear-gradient(
+    135deg,
+    #c2a76a 0%,
+    #9a8146 100%
+  );
+  box-shadow: 0 5px 12px rgba(92, 72, 30, 0.16);
+}
+
+.groups-save-button {
+  background: linear-gradient(
+    135deg,
+    #3f9a7f 0%,
+    #26715f 100%
+  );
+  box-shadow: 0 5px 12px rgba(31, 105, 87, 0.18);
+}
+
+.groups-add-button:hover:not(:disabled),
+.groups-save-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+
+.groups-add-button:disabled,
+.groups-save-button:disabled {
+  opacity: 0.48;
+  cursor: default;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Сообщения */
+
+.groups-page > .login-error,
+.groups-empty {
+  flex: 0 0 auto;
+}
+
+.groups-empty {
+  margin: 0;
+}
+
+/* Таблица */
+
+.groups-table-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgba(40, 87, 81, 0.08),
+    0 0 0 1px rgba(94, 150, 141, 0.11);
+}
+
+.groups-table {
+  width: max-content;
+  min-width: 100%;
+  table-layout: fixed;
+}
+
+.groups-table .col-group-name {
+  width: var(--groups-name-width);
+}
+
+.groups-table .col-group-ind {
+  width: var(--groups-index-width);
+}
+
+.groups-table .col-group-parent {
+  width: var(--groups-parent-width);
+}
+
+.groups-table .col-sk {
+  width: var(--groups-sk-width);
+}
+
+/* Закреплённый заголовок */
+
+.groups-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  vertical-align: middle;
+}
+
+/* Первые три колонки остаются видимыми */
+
+.groups-table th:nth-child(1),
+.groups-table td:nth-child(1) {
+  position: sticky;
+  left: 0;
+}
+
+.groups-table th:nth-child(2),
+.groups-table td:nth-child(2) {
+  position: sticky;
+  left: var(--groups-name-width);
+}
+
+.groups-table th:nth-child(3),
+.groups-table td:nth-child(3) {
+  position: sticky;
+  left: calc(var(--groups-name-width) + var(--groups-index-width));
+}
+
+.groups-table th:nth-child(-n + 3) {
+  z-index: 9;
+}
+
+.groups-table td:nth-child(-n + 3) {
+  z-index: 3;
+  background: #ffffff;
+}
+
+.groups-table th:nth-child(3),
+.groups-table td:nth-child(3) {
+  box-shadow: 5px 0 8px rgba(53, 100, 94, 0.08);
+}
+
+.groups-table tr.selected-row td:nth-child(-n + 3),
+.groups-table tr.changed-row td:nth-child(-n + 3) {
+  background: inherit;
+}
+
+/* Поля основных колонок */
+
+.groups-table .group-name-input,
+.groups-table .index-input,
+.groups-table .group-parent-select {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.groups-table td:nth-child(2) {
+  text-align: right;
+}
+
+/* Колонки скидок */
+
+.groups-table .sk-head,
+.groups-table .sk-cell {
+  padding-left: 3px;
+  padding-right: 3px;
+  text-align: center;
+}
+
+.groups-table .discount-head-cell {
+  min-height: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.groups-table .discount-head-name {
+  max-width: 48px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 10px;
+  line-height: 1.05;
+  white-space: nowrap;
+}
+
+.groups-table .discount-head-value {
+  padding: 1px 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.68);
+  color: #356b65;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.groups-table .discount-bonus-head .discount-head-value {
+  background: #f5e9bd;
+  color: #7a6225;
+}
+
+.groups-sk-input {
+  width: 100%;
+  min-width: 0;
+  height: 24px;
+  box-sizing: border-box;
+  padding: 0 2px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  text-align: right;
+  font-size: 12px;
+}
+
+.groups-sk-input:focus {
+  border-radius: 4px;
+  background: #f0faf8;
+  box-shadow: inset 0 0 0 1px #76b9ae;
+}
+
+.groups-sk-input:disabled {
+  color: #6f7d7b;
+}
+
+/* В узкой рабочей области уменьшаем закреплённые колонки */
+
+@media (max-width: 1100px) {
+  .groups-page {
+    --groups-name-width: 180px;
+    --groups-index-width: 78px;
+    --groups-parent-width: 160px;
+    --groups-sk-width: 48px;
+  }
+}
+
+@supports not (height: 100dvh) {
+  .groups-page {
+    height: calc(100vh - 122px);
+  }
+}
+
+@media (max-width: 700px) {
+  .groups-toolbar .toolbar-left,
+    .groups-toolbar .toolbar-right {
+    width: 100%;
+  }
+
+  .groups-toolbar .toolbar-right {
+    justify-content: flex-start;
+  }
+}
+
+/*
+ * =========================================================
+ * Справочник: Категории сырья
+ * =========================================================
+ */
+
+.categories-page {
+  height: calc(100dvh - 122px);
+  min-height: 340px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Верхняя панель */
+
+.categories-page .categories-toolbar {
+  flex: 0 0 auto;
+  margin-bottom: 9px;
+  padding: 9px 11px;
+  border: 0;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: linear-gradient(
+    135deg,
+    #dbf7f2 0%,
+    #b3e6df 100%
+  );
+  box-shadow: 0 7px 18px rgba(43, 112, 103, 0.12),
+    inset 0 1px rgba(255, 255, 255, 0.55);
+}
+
+.categories-toolbar .toolbar-left,
+.categories-toolbar .toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.categories-toolbar .changed-info {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.68);
+  color: #356b65;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Кнопки */
+
+.categories-add-button,
+.categories-save-button {
+  height: 32px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 9px;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 120ms ease,
+    filter 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.categories-add-button {
+  background: linear-gradient(
+    135deg,
+    #c2a76a 0%,
+    #9a8146 100%
+  );
+  box-shadow: 0 5px 12px rgba(92, 72, 30, 0.16);
+}
+
+.categories-save-button {
+  background: linear-gradient(
+    135deg,
+    #3f9a7f 0%,
+    #26715f 100%
+  );
+  box-shadow: 0 5px 12px rgba(31, 105, 87, 0.18);
+}
+
+.categories-add-button:hover:not(:disabled),
+.categories-save-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+
+.categories-add-button:disabled,
+.categories-save-button:disabled {
+  opacity: 0.48;
+  cursor: default;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Сообщения */
+
+.categories-page > .login-error,
+.categories-empty {
+  flex: 0 0 auto;
+}
+
+.categories-empty {
+  width: min(720px, 100%);
+  margin: 0;
+}
+
+/* Компактная таблица */
+
+.categories-table-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: min(720px, 100%);
+  overflow: auto;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgba(40, 87, 81, 0.08),
+    0 0 0 1px rgba(94, 150, 141, 0.11);
+}
+
+.categories-table {
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+}
+
+.categories-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+}
+
+.categories-table .table-input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+@supports not (height: 100dvh) {
+  .categories-page {
+    height: calc(100vh - 122px);
+  }
+}
+
+@media (max-width: 700px) {
+  .categories-toolbar .toolbar-left,
+    .categories-toolbar .toolbar-right {
+    width: 100%;
+  }
+
+  .categories-toolbar .toolbar-right {
+    justify-content: flex-start;
+  }
+}
+
+/*
+ * =========================================================
+ * Справочник: Список предприятий
+ * =========================================================
+ */
+
+.fops-page {
+  width: 100%;
+  max-width: 100%;
+  height: calc(100dvh - 122px);
+  min-height: 340px;
+  min-width: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Верхняя панель */
+
+.fops-page .fops-toolbar {
+  flex: 0 0 auto;
+  margin-bottom: 9px;
+  padding: 9px 11px;
+  border: 0;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: linear-gradient(
+    135deg,
+    #dbf7f2 0%,
+    #b3e6df 100%
+  );
+  box-shadow: 0 7px 18px rgba(43, 112, 103, 0.12),
+    inset 0 1px rgba(255, 255, 255, 0.55);
+}
+
+.fops-toolbar .toolbar-left,
+.fops-toolbar .toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.fops-toolbar .changed-info {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.68);
+  color: #356b65;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Кнопки */
+
+.fops-add-button,
+.fops-save-button {
+  height: 32px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 9px;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 120ms ease,
+    filter 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.fops-add-button {
+  background: linear-gradient(
+    135deg,
+    #c2a76a 0%,
+    #9a8146 100%
+  );
+  box-shadow: 0 5px 12px rgba(92, 72, 30, 0.16);
+}
+
+.fops-save-button {
+  background: linear-gradient(
+    135deg,
+    #3f9a7f 0%,
+    #26715f 100%
+  );
+  box-shadow: 0 5px 12px rgba(31, 105, 87, 0.18);
+}
+
+.fops-add-button:hover:not(:disabled),
+.fops-save-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+
+.fops-add-button:disabled,
+.fops-save-button:disabled {
+  opacity: 0.48;
+  cursor: default;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Сообщения */
+
+.fops-page > .login-error,
+.fops-empty {
+  flex: 0 0 auto;
+}
+
+.fops-empty {
+  width: min(760px, 100%);
+  margin: 0;
+}
+
+/* Таблица */
+
+.fops-table-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  width: min(760px, 100%);
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  overflow-y: auto;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgba(40, 87, 81, 0.08),
+    0 0 0 1px rgba(94, 150, 141, 0.11);
+}
+
+.fops-table {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  table-layout: fixed;
+}
+
+.fops-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+}
+
+.fops-table th:nth-child(1),
+.fops-table td:nth-child(1) {
+  width: 58%;
+}
+
+.fops-table th:nth-child(2),
+.fops-table td:nth-child(2) {
+  width: 27%;
+}
+
+.fops-table th:nth-child(3),
+.fops-table td:nth-child(3) {
+  width: 15%;
+  text-align: center;
+}
+
+.fops-table .table-input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.fops-table td:nth-child(3) input[type="checkbox"] {
+  margin: 0;
+}
+
+@supports not (height: 100dvh) {
+  .fops-page {
+    height: calc(100vh - 122px);
+  }
+}
+
+@media (max-width: 700px) {
+  .fops-toolbar .toolbar-left,
+    .fops-toolbar .toolbar-right {
+    width: 100%;
+  }
+
+  .fops-toolbar .toolbar-right {
+    justify-content: flex-start;
+  }
+
+  .fops-table-wrap,
+    .fops-empty {
+    width: 100%;
+  }
+}
+
+/*
+ * =========================================================
+ * Справочник: Список скидок
+ * =========================================================
+ */
+
+.discount-page {
+  width: 100%;
+  max-width: 100%;
+  height: calc(100dvh - 122px);
+  min-height: 340px;
+  min-width: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Верхняя панель */
+
+.discount-page .discount-toolbar {
+  flex: 0 0 auto;
+  margin-bottom: 9px;
+  padding: 9px 11px;
+  border: 0;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: linear-gradient(
+    135deg,
+    #dbf7f2 0%,
+    #b3e6df 100%
+  );
+  box-shadow: 0 7px 18px rgba(43, 112, 103, 0.12),
+    inset 0 1px rgba(255, 255, 255, 0.55);
+}
+
+.discount-toolbar .toolbar-left,
+.discount-toolbar .toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.discount-toolbar .changed-info {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.68);
+  color: #356b65;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Сохранение */
+
+.discount-save-button {
+  height: 32px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 9px;
+  background: linear-gradient(
+    135deg,
+    #3f9a7f 0%,
+    #26715f 100%
+  );
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 5px 12px rgba(31, 105, 87, 0.18);
+  transition: transform 120ms ease,
+    filter 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.discount-save-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+
+.discount-save-button:disabled {
+  opacity: 0.48;
+  cursor: default;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Сообщения */
+
+.discount-page > .login-error,
+.discount-empty {
+  flex: 0 0 auto;
+}
+
+.discount-empty {
+  width: min(760px, 100%);
+  max-width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+/* Таблица */
+
+.discount-table-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  width: min(760px, 100%);
+  max-width: 100%;
+  margin-inline: auto;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  overflow-y: auto;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgba(40, 87, 81, 0.08),
+    0 0 0 1px rgba(94, 150, 141, 0.11);
+}
+
+.discount-table {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  table-layout: fixed;
+}
+
+.discount-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+}
+
+.discount-table th:nth-child(1),
+.discount-table td:nth-child(1) {
+  width: 62%;
+}
+
+.discount-table th:nth-child(2),
+.discount-table td:nth-child(2) {
+  width: 23%;
+}
+
+.discount-table th:nth-child(3),
+.discount-table td:nth-child(3) {
+  width: 15%;
+  text-align: center;
+}
+
+.discount-table .table-input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.discount-table td:nth-child(3) input[type="checkbox"] {
+  margin: 0;
+}
+
+@supports not (height: 100dvh) {
+  .discount-page {
+    height: calc(100vh - 122px);
+  }
+}
+
+@media (max-width: 700px) {
+  .discount-toolbar .toolbar-left,
+    .discount-toolbar .toolbar-right {
+    width: 100%;
+  }
+
+  .discount-toolbar .toolbar-right {
+    justify-content: flex-start;
+  }
+
+  .discount-table-wrap,
+    .discount-empty {
+    width: 100%;
+  }
+}
+
+/*
+ * =========================================================
+ * Приходные накладные — поиск поставщика
+ * Добавить в конец src/styles.css
+ * =========================================================
+ */
+
+.prih-post-field {
+  min-width: 310px;
+}
+
+.prih-post-search {
+  width: 260px;
+  min-width: 260px;
+}
+
+.prih-post-search input {
+  width: 100%;
+  height: 24px;
+  padding: 2px 28px 2px 7px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  background: #ffffff;
+  color: #111827;
+  font-size: 13px;
+  outline: none;
+}
+
+.prih-post-search input:focus {
+  border-color: #879d72;
+  box-shadow: 0 0 0 2px rgba(135, 157, 114, 0.18);
+}
+
+.prih-post-search .searchable-select-list {
+  z-index: 100;
+  min-width: 100%;
+  width: max-content;
+  max-width: 430px;
+}
+
+.prih-post-search .searchable-select-option {
+  min-width: 258px;
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .prih-post-field,
+    .prih-post-search {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+/*
+ * =========================================================
+ * Приходные накладные — высота рабочей области
+ * =========================================================
+ */
+
+.prih-list-page {
+  width: 100%;
+  max-width: 100%;
+  height: calc(100dvh - 132px);
+  min-height: 320px;
+  min-width: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.prih-list-page > .module-toolbar {
+  flex: 0 0 auto;
+}
+
+.prih-list-page > .table-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: auto;
+  overflow-y: auto;
+}
+
+@supports not (height: 100dvh) {
+  .prih-list-page {
+    height: calc(100vh - 132px);
+  }
+}
+
+/*
+ * =========================================================
+ * Общая высота списков накладных:
+ * - перемещения;
+ * - списание сырья;
+ * - списание блюд.
+ * =========================================================
+ */
+
+/*
+ * Все три компонента используют один корневой класс .perem-page.
+ * Рабочую область переводим во flex-контейнер только тогда,
+ * когда непосредственным дочерним элементом является .perem-page.
+ */
+
+.work-area:has(> .perem-page) {
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Глобальный заголовок App.jsx, если он отображается */
+
+.work-area:has(> .perem-page) > h2 {
+  flex: 0 0 auto;
+  margin-top: 0;
+}
+
+/* Страница занимает только оставшееся место рабочей области */
+
+.work-area:has(> .perem-page) > .perem-page {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.perem-page {
+  width: 100%;
+  max-width: 100%;
+  height: auto !important;
+  min-height: 0;
+  box-sizing: border-box;
+  padding-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Две колонки занимают оставшуюся высоту */
+
+.perem-page .perem-layout {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Каждая колонка становится вертикальным flex-контейнером */
+
+.perem-page .perem-left,
+.perem-page .perem-right {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.perem-page .perem-panel-title,
+.perem-page .perem-info,
+.perem-page .perem-empty {
+  flex: 0 0 auto;
+}
+
+/*
+ * Убираем старый max-height: calc(100vh - 140px).
+ * Теперь таблицы занимают фактически доступное место,
+ * а прокрутка остаётся только внутри них.
+ */
+
+.perem-page .perem-list-wrap,
+.perem-page .perem-items-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none !important;
+  overflow: auto;
+}
+
+/*
+ * =========================================================
+ * Список блюд — убрать внешнюю вертикальную прокрутку
+ * =========================================================
+ */
+
+/* Рабочая область не прокручивается целиком именно на этой странице */
+
+.work-area:has(> .dishes-page) {
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Заголовок, который выводит App.jsx */
+
+.work-area:has(> .dishes-page) > h2 {
+  flex: 0 0 auto;
+  margin-top: 0;
+}
+
+/* Страница занимает только реально оставшееся место */
+
+.work-area:has(> .dishes-page) > .dishes-page {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.dishes-page {
+  width: 100%;
+  max-width: 100%;
+  height: auto !important;
+  min-height: 0;
+  min-width: 0;
+  box-sizing: border-box;
+  padding-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.dishes-page > .dishes-toolbar,
+.dishes-page > .login-error,
+.dishes-page > p {
+  flex: 0 0 auto;
+}
+
+/*
+ * Перекрываем старое общее правило:
+ * .table-wrap { max-height: calc(100vh - 165px); }
+ */
+
+.dishes-page > .table-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none !important;
+  overflow-x: auto;
+  overflow-y: auto;
+}
+
+/*
+ * =========================================================
+ * Касса — заметное предупреждение режима просмотра
+ * =========================================================
+ */
+
+.kassa-page .readonly-notice {
+  flex: 0 0 auto;
+  margin: 0 0 8px;
+  padding: 10px 14px;
+  border: 1px solid #d87994;
+  border-left: 5px solid #c94f72;
+  border-radius: 10px;
+  background: linear-gradient(
+    135deg,
+    #f8ced9 0%,
+    #efb7c7 100%
+  );
+  color: #74243c;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.4;
+  box-shadow: 0 5px 14px rgba(166, 61, 92, 0.16),
+    inset 0 1px rgba(255, 255, 255, 0.45);
+}
+/* =========================================================
+   Касса — узкая колонка удаления
+   JSX и компоновку двух панелей не менять
+   ========================================================= */
+
+.kassa-table th:last-child,
+.kassa-table td:last-child {
+  width: 42px !important;
+  min-width: 42px !important;
+  max-width: 42px !important;
+
+  padding-left: 4px !important;
+  padding-right: 4px !important;
+
+  text-align: center;
+}
+
+.kassa-table td:last-child .small-danger-button {
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 !important;
+}
+/* =========================================================
+   Касса — режим «Организация: Все»
+   Не позволяем длинным названиям расширять правую панель
+   ========================================================= */
+
+.kassa-page:has(> .readonly-notice) .kassa-main-columns {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.kassa-page:has(> .readonly-notice) .kassa-operation-panel,
+.kassa-page:has(> .readonly-notice) .kassa-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+/*
+  В режиме «Все» вместо select/input выводятся полные текстовые значения.
+  table-layout: fixed не позволяет длинному поставщику или статье
+  расширять всю таблицу и выталкивать правую панель за экран.
+*/
+.kassa-page:has(> .readonly-notice) .kassa-table {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  table-layout: fixed !important;
+}
+
+.kassa-page:has(> .readonly-notice) .kassa-table th,
+.kassa-page:has(> .readonly-notice) .kassa-table td {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Общие узкие колонки обеих таблиц */
+.kassa-page:has(> .readonly-notice) .kassa-table th:nth-child(1),
+.kassa-page:has(> .readonly-notice) .kassa-table td:nth-child(1) {
+  width: 92px;
+}
+
+.kassa-page:has(> .readonly-notice) .kassa-table th:nth-child(2),
+.kassa-page:has(> .readonly-notice) .kassa-table td:nth-child(2) {
+  width: 78px;
+}
+
+/* Левая таблица: Приход в кассу — 6 колонок */
+.kassa-page:has(> .readonly-notice)
+  .kassa-operation-panel:first-child
+  .kassa-table
+  th:nth-child(3),
+.kassa-page:has(> .readonly-notice)
+  .kassa-operation-panel:first-child
+  .kassa-table
+  td:nth-child(3) {
+  width: 24%;
+}
+
+.kassa-page:has(> .readonly-notice)
+  .kassa-operation-panel:first-child
+  .kassa-table
+  th:nth-child(4),
+.kassa-page:has(> .readonly-notice)
+  .kassa-operation-panel:first-child
+  .kassa-table
+  td:nth-child(4) {
+  width: 24%;
+}
+
+/* Правая таблица: Расход из кассы — 7 колонок */
+.kassa-page:has(> .readonly-notice)
+  .kassa-operation-panel:last-child
+  .kassa-table
+  th:nth-child(3),
+.kassa-page:has(> .readonly-notice)
+  .kassa-operation-panel:last-child
+  .kassa-table
+  td:nth-child(3) {
+  width: 24%;
+}
+
+.kassa-page:has(> .readonly-notice)
+  .kassa-operation-panel:last-child
+  .kassa-table
+  th:nth-child(4),
+.kassa-page:has(> .readonly-notice)
+  .kassa-operation-panel:last-child
+  .kassa-table
+  td:nth-child(4) {
+  width: 22%;
+}
+
+.kassa-page:has(> .readonly-notice)
+  .kassa-operation-panel:last-child
+  .kassa-table
+  th:nth-child(6),
+.kassa-page:has(> .readonly-notice)
+  .kassa-operation-panel:last-child
+  .kassa-table
+  td:nth-child(6) {
+  width: 82px;
+}
+
+/* Колонка удаления остаётся узкой в обоих режимах */
+.kassa-table th:last-child,
+.kassa-table td:last-child {
+  width: 42px !important;
+  min-width: 42px !important;
+  max-width: 42px !important;
+  padding-left: 4px !important;
+  padding-right: 4px !important;
+  text-align: center;
+}
+
+.kassa-table td:last-child .small-danger-button {
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 !important;
+}
+/* =========================================================
+   Страница входа — версия и автор
+   ========================================================= */
+
+.login-version {
+  position: fixed;
+  z-index: 4;
+  top: 16px;
+  left: 20px;
+
+  color: #596155;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.35;
+  letter-spacing: 0.015em;
+
+  opacity: 0.88;
+  pointer-events: none;
+  user-select: none;
+}
+
+@media (max-width: 760px) {
+  .login-version {
+    top: 10px;
+    left: 12px;
+    font-size: 11px;
+  }
 }

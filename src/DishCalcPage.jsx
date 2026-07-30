@@ -587,12 +587,13 @@ async function handleSave() {
 }
   return (
     <div className="dish-calc-page">
-      <div className="calc-dish-title">
-        <span>Калькуляционная карта:</span>
-        <strong>{dishName || `ID ${dishId}`}</strong>
-      </div>
+      <div className="form-header-panel dish-calc-form-header">
+        <div className="calc-dish-title dish-calc-title">
+          <span>Калькуляционная карта:</span>
+          <strong>{dishName || `ID ${dishId}`}</strong>
+        </div>
 
-      <div className="calc-header">
+        <div className="calc-header dish-calc-header">
         <div className="calc-field">
           <span>Дата загрузки</span>
           <select
@@ -627,19 +628,24 @@ async function handleSave() {
 
         <button
           type="button"
-          className="primary-button"
+          className="primary-button dish-calc-save-button"
           disabled={!isDirty}
           onClick={handleSave}
         >
           Сохранить
         </button>
+        </div>
       </div>
 
       <div className="calc-layout">
         <div className="calc-panel">
-          <div className="calc-panel-title">
+          <div className="calc-panel-title dish-calc-panel-title">
             <span>Сырьё</span>
-            <button type="button" onClick={addRawRow}>
+            <button
+              type="button"
+              className="dish-calc-add-row-button"
+              onClick={addRawRow}
+            >
               + строка
             </button>
           </div>
@@ -724,9 +730,13 @@ async function handleSave() {
         </div>
 
         <div className="calc-panel">
-          <div className="calc-panel-title">
+          <div className="calc-panel-title dish-calc-panel-title">
             <span>Блюда / полуфабрикаты</span>
-            <button type="button" onClick={addDishRow}>
+            <button
+              type="button"
+              className="dish-calc-add-row-button"
+              onClick={addDishRow}
+            >
               + строка
             </button>
           </div>
@@ -811,7 +821,7 @@ async function handleSave() {
         </div>
       </div>
 
-      <div className="calc-rem-block">
+      <div className="calc-rem-block dish-calc-rem-block">
         <label>
           <span>Технология приготовления</span>
           <textarea

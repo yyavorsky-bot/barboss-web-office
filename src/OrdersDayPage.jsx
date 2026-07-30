@@ -157,9 +157,9 @@ export default function OrdersDayPage({ data, ordersDate, onDateChange, onReload
 
   return (
     <div className="orders-day-page">
-      <div className="module-toolbar orders-day-toolbar">
+      <div className="module-toolbar orders-day-toolbar orders-day-main-toolbar">
         <div className="toolbar-left">
-          <button type="button" className="small-action-button" onClick={() => shiftDate(-1)} title="Предыдущий день">
+          <button type="button" className="small-action-button orders-day-date-nav-button" onClick={() => shiftDate(-1)} title="Предыдущий день">
             ←
           </button>
 
@@ -167,19 +167,24 @@ export default function OrdersDayPage({ data, ordersDate, onDateChange, onReload
             Дата
             <input
               type="date"
-              className="toolbar-date"
+              className="toolbar-date orders-day-date-input"
               value={formatDateForInput(ordersDate)}
               onChange={(event) => onDateChange?.(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+                  event.preventDefault();
+                }
+              }}
             />
           </label>
 
-          <button type="button" className="small-action-button" onClick={() => shiftDate(1)} title="Следующий день">
+          <button type="button" className="small-action-button orders-day-date-nav-button" onClick={() => shiftDate(1)} title="Следующий день">
             →
           </button>
 
           <label className="toolbar-field">
             Официант
-            <select value={ofFilter} onChange={(event) => setOfFilter(event.target.value)}>
+            <select className="orders-day-filter-select" value={ofFilter} onChange={(event) => setOfFilter(event.target.value)}>
               <option value="%">Все</option>
               {ofOptions.map((item) => (
                 <option key={item.value} value={item.value}>
@@ -191,7 +196,7 @@ export default function OrdersDayPage({ data, ordersDate, onDateChange, onReload
 
           <label className="toolbar-field">
             Касса
-            <select value={kassFilter} onChange={(event) => setKassFilter(event.target.value)}>
+            <select className="orders-day-filter-select" value={kassFilter} onChange={(event) => setKassFilter(event.target.value)}>
               <option value="%">Все</option>
               {kassOptions.map((item) => (
                 <option key={item.value} value={item.value}>
@@ -201,13 +206,13 @@ export default function OrdersDayPage({ data, ordersDate, onDateChange, onReload
             </select>
           </label>
 
-          <button type="button" className="small-action-button" onClick={onReload}>
+          <button type="button" className="small-action-button orders-day-refresh-button" onClick={onReload}>
             Обновить
           </button>
 
           <button
             type="button"
-            className="primary-button"
+            className="primary-button orders-day-view-button"
             disabled={!selectedOrder}
             title={selectedOrder ? "Открыть просмотр заказа" : "Выберите заказ"}
             onClick={() => {
@@ -228,7 +233,7 @@ export default function OrdersDayPage({ data, ordersDate, onDateChange, onReload
       </div>
 
       <div className="orders-day-layout">
-        <section className="orders-day-list-panel">
+        <section className="orders-day-list-panel orders-day-panel">
           <div className="table-wrap orders-day-list-wrap">
             <table className="data-table orders-day-table">
               <colgroup>
@@ -336,17 +341,10 @@ export default function OrdersDayPage({ data, ordersDate, onDateChange, onReload
           </div>
         </section>
 
-        <section className="orders-day-items-panel">
-          <div className="orders-day-items-title">
-            <strong>Состав заказа{selectedOrder ? ` №${selectedOrder.Number || ""}` : ""}</strong>
+        <section className="orders-day-items-panel orders-day-panel">
+          <div className="orders-day-items-title perem-panel-title">
+            <strong>Состав заказа (первые 5 блюд) {selectedOrder ? ` №${selectedOrder.Number || ""}` : ""}</strong>
 
-            {selectedOrder && (
-              <span>
-                {formatDateTime(selectedOrder.DatOp)}
-                {selectedOrder.Table ? ` · стол ${selectedOrder.Table}` : ""}
-                {selectedOrder.NameOf ? ` · ${selectedOrder.NameOf}` : ""}
-              </span>
-            )}
           </div>
 
           <div className="table-wrap orders-day-items-wrap">
