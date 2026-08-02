@@ -1,0 +1,22 @@
+{ 
+"language": "ru", 
+"translations": { 
+"Login.RequiredFieldsError": "Введите алиас, логин и пароль", 
+"Login.LoginError": "Ошибка входа", 
+"Login.Version": "Версия 1.1 © Юрий Яворский 2026 г.", 
+"Login.IntroDescription": "Рабочее пространство для кассы, склада, заказов и справочников ресторана.", 
+"Login.MainSectionsAriaLabel": "Основные разделы", 
+"Login.Cash": "Касса", 
+"Login.Warehouse": "Склад", 
+"Login.Orders": "Заказ", 
+"Login.References": "Справочники", 
+"Login.Title": "Вход в Web Office", 
+"Login.Subtitle": "Введите данные вашего заведения", 
+"Login.AliasLabel": "Алиас заведения", 
+"Login.AliasPlaceholder": "Например: demo", 
+"Login.LoginLabel": "Логин", 
+"Login.PasswordLabel": "Пароль", 
+"Login.LoggingIn": "Выполняется вход...", 
+"Login.LoginButton": "Войти" 
+}
+}

@@ -12,9 +12,26 @@ function makeTempId() {
   return -Date.now() - Math.floor(Math.random() * 1000);
 }
 
+const UNSAVED_CHANGES_MESSAGE =
+  "Внимание! Вы не сохранили измененные данные!\nУверены, что хотите уйти?";
+
 function normalizeDate(value) {
   if (!value) return "";
   return String(value).slice(0, 10);
+}
+
+function normalizeInvoiceItem(row) {
+  return {
+    ID: Number(row.ID || 0),
+    Tov: Number(row.Tov || 0),
+    Postup: Number(row.Postup || 0),
+    Price: Number(row.Price || 0),
+    Summ: Number(row.Summ || 0),
+    Zach: Boolean(row.Zach),
+    Pf: Boolean(row.Pf),
+    CenaAvg: Number(row.CenaAvg || 0),
+    VatTov: Number(row.VatTov || 0)
+  };
 }
 
 function normalizeInvoiceState(header, rows) {
@@ -35,17 +52,7 @@ function normalizeInvoiceState(header, rows) {
       Vozv: Boolean(header.Vozv),
       Moldova: Number(header.Moldova || 0)
     },
-    items: rows.map((row) => ({
-      ID: Number(row.ID || 0),
-      Tov: Number(row.Tov || 0),
-      Postup: Number(row.Postup || 0),
-      Price: Number(row.Price || 0),
-      Summ: Number(row.Summ || 0),
-      Zach: Boolean(row.Zach),
-      Pf: Boolean(row.Pf),
-      CenaAvg: Number(row.CenaAvg || 0),
-      VatTov: Number(row.VatTov || 0)
-    }))
+    items: rows.map(normalizeInvoiceItem)
   };
 }
 
@@ -68,7 +75,8 @@ function SearchableSelect({
   placeholder,
   onChange,
   onEnterNext,
-  cellIndex
+  cellIndex,
+  t = (key, fallback = "") => fallback
 }) {
   const selected = options.find((item) => Number(item.ID) === Number(value));
   const [text, setText] = useState(selected?.Name || "");
@@ -132,7 +140,7 @@ if (filtered.length === 1) {
       {open && (
         <div className="searchable-select-list">
           {filtered.length === 0 && (
-            <div className="searchable-select-empty">Ничего не найдено</div>
+            <div className="searchable-select-empty">{t("PrihInvoice.SearchNothingFound", "Ничего не найдено")}</div>
           )}
 
           {filtered.map((item) => (
@@ -154,10 +162,10 @@ if (filtered.length === 1) {
   );
 }
 
-function normalizeSupplierSearch(value) {
+function normalizeSupplierSearch(value, locale) {
   return String(value ?? "")
     .trim()
-    .toLocaleLowerCase("ru-RU");
+    .toLocaleLowerCase(locale);
 }
 
 function SupplierSearch({
@@ -165,7 +173,9 @@ function SupplierSearch({
   options,
   placeholder,
   disabled = false,
-  onChange
+  onChange,
+  t = (key, fallback = "") => fallback,
+  locale = "ru-RU"
 }) {
   const rootRef = useRef(null);
   const supplierList = Array.isArray(options) ? options : [];
@@ -201,8 +211,8 @@ function SupplierSearch({
     };
   }, [selectedText]);
 
-  const query = normalizeSupplierSearch(text);
-  const selectedQuery = normalizeSupplierSearch(selectedText);
+  const query = normalizeSupplierSearch(text, locale);
+  const selectedQuery = normalizeSupplierSearch(selectedText, locale);
 
   const prefix = query === selectedQuery ? "" : query;
 
@@ -210,21 +220,21 @@ function SupplierSearch({
     () =>
       [...supplierList]
         .filter((item) =>
-          normalizeSupplierSearch(item.Name).startsWith(prefix)
+          normalizeSupplierSearch(item.Name, locale).startsWith(prefix)
         )
         .sort((a, b) =>
           String(a.Name ?? "").localeCompare(
             String(b.Name ?? ""),
-            "ru"
+            locale
           )
         )
         .slice(0, 100),
-    [supplierList, prefix]
+    [supplierList, prefix, locale]
   );
 
   const showEmptyOption =
     prefix === "" ||
-    normalizeSupplierSearch("Не выбран").startsWith(prefix);
+    normalizeSupplierSearch(t("PrihInvoice.SupplierNotSelected", "Не выбран"), locale).startsWith(prefix);
 
   function choose(item) {
     onChange?.(Number(item?.ID || 0));
@@ -252,7 +262,7 @@ function SupplierSearch({
 
     const exact = filtered.find(
       (item) =>
-        normalizeSupplierSearch(item.Name) === prefix
+        normalizeSupplierSearch(item.Name, locale) === prefix
     );
 
     if (exact) {
@@ -267,7 +277,7 @@ function SupplierSearch({
 
   return (
     <div
-      className="searchable-select prih-supplier-search"
+      className="searchable-select prih-invoice-supplier-search"
       ref={rootRef}
     >
       <input
@@ -287,7 +297,7 @@ function SupplierSearch({
           setOpen(true);
         }}
         onKeyDown={handleKeyDown}
-        aria-label="Поиск поставщика"
+        aria-label={t("PrihInvoice.SupplierSearchAria", "Поиск поставщика")}
         aria-expanded={open}
       />
 
@@ -302,7 +312,7 @@ function SupplierSearch({
                 choose(null);
               }}
             >
-              Не выбран
+              {t("PrihInvoice.SupplierNotSelected", "Не выбран")}
             </button>
           )}
 
@@ -322,7 +332,7 @@ function SupplierSearch({
 
           {!showEmptyOption && filtered.length === 0 && (
             <div className="searchable-select-empty">
-              Поставщик не найден
+              {t("PrihInvoice.SupplierNotFound", "Поставщик не найден")}
             </div>
           )}
         </div>
@@ -337,7 +347,10 @@ export default function PrihInvoicePage({
   mode = "edit",
   invoiceKind = "prih",
   fetchWithAuth,
-  onBack
+  onBack,
+  onDirtyChange,
+  t = (key, fallback = "") => fallback,
+  locale = "ru-RU"
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -367,10 +380,33 @@ export default function PrihInvoicePage({
     ? normalizeInvoiceState(header, rows)
     : null;
 
-  const isDirty =
-    originalState &&
-    currentState &&
-    JSON.stringify(currentState) !== JSON.stringify(originalState);
+  const isDirty = Boolean(
+    deletedIds.length > 0 ||
+      (
+        originalState &&
+        currentState &&
+        JSON.stringify(currentState) !== JSON.stringify(originalState)
+      )
+  );
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
+
+  useEffect(() => {
+    function handleBeforeUnload(event) {
+      if (!isDirty) return;
+
+      event.preventDefault();
+      event.returnValue = "";
+    }
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [isDirty]);
 
 useEffect(() => {
   if (initialInvoice) {
@@ -406,7 +442,7 @@ useEffect(() => {
       try {
         invoiceData = JSON.parse(invoiceText);
       } catch {
-        throw new Error("Накладная вернула не JSON: " + invoiceText.substring(0, 500));
+        throw new Error(t("PrihInvoice.InvoiceNonJsonPrefix", "Накладная вернула не JSON:") + " " + invoiceText.substring(0, 500));
       }
 
       if (Array.isArray(invoiceData)) {
@@ -475,7 +511,7 @@ useEffect(() => {
         setPostList(Array.isArray(postData) ? postData : []);
       }
     } catch (err) {
-      setError(err.message || "Ошибка загрузки приходной накладной");
+      setError(err.message || t("PrihInvoice.LoadError", "Ошибка загрузки приходной накладной"));
     } finally {
       setLoading(false);
     }
@@ -547,11 +583,35 @@ const [sklResponse, postResponse, formResponse, rawResponse] = await Promise.all
     setOriginalState(normalizeInvoiceState(normalizedHeader, loadedRows));
     
   } catch (err) {
-    setError(err.message || "Ошибка загрузки новой приходной накладной");
+    setError(err.message || t("PrihInvoice.LoadNewError", "Ошибка загрузки новой приходной накладной"));
   } finally {
     setLoading(false);
   }
 }
+  function isInvoiceRowDirty(row) {
+    if (!originalState) return false;
+
+    const originalRow = originalState.items.find(
+      (item) => Number(item.ID) === Number(row.ID)
+    );
+
+    if (!originalRow) return true;
+
+    return (
+      JSON.stringify(normalizeInvoiceItem(row)) !==
+      JSON.stringify(originalRow)
+    );
+  }
+
+  function handleBackClick() {
+    if (isDirty && !window.confirm(t("PrihInvoice.UnsavedChangesWarning", UNSAVED_CHANGES_MESSAGE))) {
+      return;
+    }
+
+    onDirtyChange?.(false);
+    onBack?.();
+  }
+
   function updateHeaderField(field, value) {
     setHeader((prev) => ({
       ...prev,
@@ -598,7 +658,7 @@ const [sklResponse, postResponse, formResponse, rawResponse] = await Promise.all
   }
 
   function deleteRow(rowId) {
-    const ok = window.confirm("Вы уверены?");
+    const ok = window.confirm(t("PrihInvoice.DeleteConfirm", "Вы уверены?"));
 
     if (!ok) return;
 
@@ -666,17 +726,17 @@ ${deletedXml}
 
 async function handleSave() {
   if (isMoveInvoice && Number(header?.IdSkl || 0) <= 0) {
-    alert("!!! Выберите склад, куда перемещаем товар.");
+    alert(t("PrihInvoice.DestinationWarehouseRequired", "!!! Выберите склад, куда перемещаем товар."));
     return;
   }
 
   if (isMoveInvoice && Number(header?.IdSkl || 0) === Number(header?.IdSklPer || 0)) {
-    alert("!!! Склад назначения не должен совпадать со складом-источником.");
+    alert(t("PrihInvoice.SameWarehouseError", "!!! Склад назначения не должен совпадать со складом-источником."));
     return;
   }
 
   if (!isMoveInvoice && Number(header?.Post || 0) <= 0) {
-    alert("!!! Выберите поставщика перед сохранением накладной.");
+    alert(t("PrihInvoice.SupplierRequired", "!!! Выберите поставщика перед сохранением накладной."));
     return;
   }
 
@@ -703,21 +763,21 @@ async function handleSave() {
     try {
       data = JSON.parse(text);
     } catch {
-      throw new Error("Сервер вернул не JSON: " + text.substring(0, 500));
+      throw new Error(t("PrihInvoice.ServerNonJsonPrefix", "Сервер вернул не JSON:") + " " + text.substring(0, 500));
     }
 
     if (!response.ok || data.status !== "success") {
-      throw new Error(data.error || "Ошибка сохранения приходной накладной");
+      throw new Error(data.error || t("PrihInvoice.SaveError", "Ошибка сохранения приходной накладной"));
     }
 
     await loadAll();
   } catch (err) {
-    alert(err.message || "Ошибка сохранения приходной накладной");
+    alert(err.message || t("PrihInvoice.SaveError", "Ошибка сохранения приходной накладной"));
   }
 }
 
   if (loading) {
-    return <p>Загрузка накладной...</p>;
+    return <p>{t("PrihInvoice.Loading", "Загрузка накладной...")}</p>;
   }
 
   if (error) {
@@ -725,42 +785,44 @@ async function handleSave() {
   }
 
   if (!header) {
-    return <p>Накладная не выбрана.</p>;
+    return <p>{t("PrihInvoice.NotSelected", "Накладная не выбрана.")}</p>;
   }
 
   let cellIndex = 1;
 
   return (
-    <div className="prih-page">
-      <div className="form-header-panel prih-form-header">
+    <div className={`prih-page prih-invoice-page${isMoldova ? " is-moldova" : ""}`}>
+      <div className="form-header-panel prih-form-header prih-invoice-form-header">
         <div className="page-toolbar">
         <button
           type="button"
-          className="back-to-list-button prih-back-button"
-          onClick={onBack}
+          className="back-to-list-button prih-back-button prih-invoice-back-button"
+          onClick={handleBackClick}
         >
-          ← К списку накладных
+          ← {t("PrihInvoice.BackToList", "К списку накладных")}
         </button>
 
         <button
           type="button"
-          className="primary-button"
+          className="primary-button prih-invoice-save-button"
           disabled={!isDirty}
           onClick={handleSave}
         >
-          Сохранить
+          {t("PrihInvoice.Save", "Сохранить")}
         </button>
       </div>
 
-      <div className="prih-title">
-        {isMoveInvoice ? "Накладная перемещения" : "Накладная прихода"} №{" "}
-        <strong>{header.Invoice}</strong> от{" "}
+      <div className="prih-title prih-invoice-title">
+        {isMoveInvoice
+          ? t("PrihInvoice.MoveInvoiceTitle", "Накладная перемещения")
+          : t("PrihInvoice.ReceiptInvoiceTitle", "Накладная прихода")} №{" "}
+        <strong>{header.Invoice}</strong> {t("PrihInvoice.DateSeparator", "от")}{" "}
         <strong>{header.DateP}</strong>
       </div>
 
-      <div className="prih-header-grid">
+      <div className="prih-header-grid prih-invoice-header-grid">
         <label className="calc-field">
-          <span>Номер</span>
+          <span>{t("PrihInvoice.Number", "Номер")}</span>
           <input
             value={header.Invoice}
             onChange={(e) => updateHeaderField("Invoice", e.target.value)}
@@ -768,7 +830,7 @@ async function handleSave() {
         </label>
 
         <label className="calc-field">
-          <span>Дата</span>
+          <span>{t("PrihInvoice.Date", "Дата")}</span>
           <input
             type="date"
             value={header.DateP}
@@ -778,7 +840,9 @@ async function handleSave() {
 
 {(!isNewMode || isMoveInvoice) && (
   <label className="calc-field">
-    <span>{isMoveInvoice ? "Куда перемещено" : "Склад прихода"}</span>
+    <span>{isMoveInvoice
+      ? t("PrihInvoice.DestinationWarehouse", "Куда перемещено")
+      : t("PrihInvoice.ReceiptWarehouse", "Склад прихода")}</span>
 
     <select
       value={header.IdSkl}
@@ -786,7 +850,7 @@ async function handleSave() {
         updateHeaderField("IdSkl", Number(e.target.value || 0))
       }
     >
-      <option value="0">Выберите склад...</option>
+      <option value="0">{t("PrihInvoice.SelectWarehouse", "Выберите склад...")}</option>
 
       {sklList.map((item) => (
         <option key={item.ID} value={item.ID}>
@@ -798,24 +862,26 @@ async function handleSave() {
 )}
 {!isNewMode && !isMoveInvoice && (
   <label className="calc-field">
-    <span>Склад перемещения</span>
+    <span>{t("PrihInvoice.TransferWarehouse", "Склад перемещения")}</span>
     <input value={header.IdSklPer || ""} readOnly />
   </label>
 )}
 {!isMoveInvoice && (
   <>
 <label className="calc-field">
-  <span>Поставщик</span>
+  <span>{t("PrihInvoice.Supplier", "Поставщик")}</span>
 
   <SupplierSearch
     value={Number(header.Post || 0)}
     options={postList}
     placeholder={
       isNewMode
-        ? "Начните вводить поставщика..."
-        : "Нет поставщика"
+        ? t("PrihInvoice.SupplierSearchPlaceholder", "Начните вводить поставщика...")
+        : t("PrihInvoice.NoSupplier", "Нет поставщика")
     }
     disabled={!isNewMode && Number(header.Post || 0) === 0}
+    t={t}
+    locale={locale}
     onChange={(value) =>
       updateHeaderField("Post", Number(value || 0))
     }
@@ -823,14 +889,14 @@ async function handleSave() {
 </label>
 
         <label className="calc-field">
-          <span>Форма оплаты</span>
+          <span>{t("PrihInvoice.PaymentForm", "Форма оплаты")}</span>
           <select
             value={header.Form}
             onChange={(e) =>
               updateHeaderField("Form", Number(e.target.value || 0))
             }
           >
-            <option value="0">Выберите...</option>
+            <option value="0">{t("PrihInvoice.SelectOption", "Выберите...")}</option>
             {formList.map((item) => (
               <option key={item.ID} value={item.ID}>
                 {item.Name}
@@ -846,7 +912,7 @@ async function handleSave() {
       checked={Boolean(header.Oplach)}
       onChange={(e) => updateHeaderField("Oplach", e.target.checked)}
     />
-    <span>Оплачено</span>
+    <span>{t("PrihInvoice.Paid", "Оплачено")}</span>
   </label>
 )}
         <label className="checkbox-field">
@@ -855,7 +921,7 @@ async function handleSave() {
             checked={Boolean(header.Bel)}
             onChange={(e) => updateHeaderField("Bel", e.target.checked)}
           />
-          <span>Бел.</span>
+          <span>{t("PrihInvoice.Bel", "Бел.")}</span>
         </label>
 
         <label className="checkbox-field">
@@ -864,17 +930,17 @@ async function handleSave() {
             checked={Boolean(header.Vozv)}
             onChange={(e) => updateHeaderField("Vozv", e.target.checked)}
           />
-          <span>Возврат</span>
+          <span>{t("PrihInvoice.Return", "Возврат")}</span>
         </label>
   </>
 )}
 
         <div className="calc-info">
-          <span>Сумма:</span>
+          <span>{t("PrihInvoice.AmountLabel", "Сумма:")}</span>
           <strong>{formatMoney(totalSumm)}</strong>
         </div>
       </div>
-<label className="calc-field prih-rem-field">
+<label className="calc-field prih-rem-field prih-invoice-rem-field">
 
   <textarea
     value={header.Rem || ""}
@@ -883,27 +949,37 @@ async function handleSave() {
 </label>
       </div>
 
-      <div className="calc-panel-title prih-items-title">
-        <span>Содержимое накладной</span>
+      <div className="calc-panel-title prih-items-title prih-invoice-items-title">
+        <span>{t("PrihInvoice.ContentsTitle", "Содержимое накладной")}</span>
         <button
           type="button"
-          className="prih-add-row-button"
+          className="prih-add-row-button prih-invoice-add-row-button"
           onClick={addRow}
         >
-          + строка
+          + {t("PrihInvoice.AddRow", "строка")}
         </button>
       </div>
 
-      <div className="table-wrap prih-table-wrap">
-        <table className="data-table prih-table">
+      <div className="table-wrap prih-table-wrap prih-invoice-table-wrap">
+        <table className="data-table prih-table prih-invoice-table">
+          <colgroup>
+            <col className="prih-invoice-col-raw" />
+            <col className="prih-invoice-col-quantity" />
+            <col className="prih-invoice-col-price" />
+            <col className="prih-invoice-col-sum" />
+            <col className="prih-invoice-col-average" />
+            {isMoldova && <col className="prih-invoice-col-vat" />}
+            <col className="prih-invoice-col-delete" />
+          </colgroup>
+
           <thead>
             <tr>
-              <th>Сырьё</th>
-              <th>Кол-во</th>
-              <th>Цена</th>
-              <th>Сумма</th>
-              <th>Ср. цена</th>
-              {isMoldova && <th>VAT</th>}
+              <th>{t("PrihInvoice.RawMaterial", "Сырьё")}</th>
+              <th>{t("PrihInvoice.Quantity", "Кол-во")}</th>
+              <th>{t("PrihInvoice.Price", "Цена")}</th>
+              <th>{t("PrihInvoice.Amount", "Сумма")}</th>
+              <th>{t("PrihInvoice.AveragePrice", "Ср. цена")}</th>
+              {isMoldova && <th>{t("PrihInvoice.Vat", "VAT")}</th>}
               <th></th>
             </tr>
           </thead>
@@ -911,19 +987,23 @@ async function handleSave() {
           <tbody>
             {rows.length === 0 && (
               <tr>
-                <td colSpan={isMoldova ? 9 : 8}>Строки не добавлены.</td>
+                <td className="prih-invoice-empty-row" colSpan={isMoldova ? 7 : 6}>{t("PrihInvoice.EmptyRows", "Строки не добавлены.")}</td>
               </tr>
             )}
 
             {rows.map((row) => (
-              <tr key={row.ID}>
+              <tr
+                key={row.ID}
+                className={isInvoiceRowDirty(row) ? "changed-row" : ""}
+              >
                 <td>
 <SearchableSelect
   value={row.Tov}
   options={rawList}
-  placeholder="Выберите сырьё..."
+  placeholder={t("PrihInvoice.SelectRawMaterial", "Выберите сырьё...")}
   cellIndex={cellIndex++}
   onEnterNext={focusNextCell}
+  t={t}
   onChange={(value) => {
     const selectedRaw = rawList.find((item) => Number(item.ID) === Number(value));
 
@@ -992,7 +1072,9 @@ async function handleSave() {
                 <td>
                   <button
                     type="button"
-                    className="small-danger-button"
+                    className="small-danger-button prih-invoice-delete-button"
+                    title={t("PrihInvoice.DeleteRow", "Удалить строку")}
+                    aria-label={t("PrihInvoice.DeleteRow", "Удалить строку")}
                     onClick={() => deleteRow(row.ID)}
                   >
                     ×

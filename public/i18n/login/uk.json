@@ -1,0 +1,22 @@
+{
+  "language": "uk",
+  "translations": {
+    "Login.RequiredFieldsError": "Введіть аліас, логін і пароль",
+    "Login.LoginError": "Помилка входу",
+    "Login.Version": "Версія 1.1 © Юрій Яворський 2026 р.",
+    "Login.IntroDescription": "Робочий простір для каси, складу, замовлень і довідників ресторану.",
+    "Login.MainSectionsAriaLabel": "Основні розділи",
+    "Login.Cash": "Каса",
+    "Login.Warehouse": "Склад",
+    "Login.Orders": "Замовлення",
+    "Login.References": "Довідники",
+    "Login.Title": "Вхід до Web Office",
+    "Login.Subtitle": "Введіть дані вашого закладу",
+    "Login.AliasLabel": "Аліас закладу",
+    "Login.AliasPlaceholder": "Наприклад: demo",
+    "Login.LoginLabel": "Логін",
+    "Login.PasswordLabel": "Пароль",
+    "Login.LoggingIn": "Виконується вхід...",
+    "Login.LoginButton": "Увійти"
+  }
+}

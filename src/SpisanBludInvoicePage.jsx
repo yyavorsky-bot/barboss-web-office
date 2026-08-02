@@ -19,6 +19,9 @@ function makeTempId() {
   return -Date.now() - Math.floor(Math.random() * 1000);
 }
 
+const UNSAVED_CHANGES_MESSAGE =
+  "Внимание! Вы не сохранили измененные данные!\nУверены, что хотите уйти?";
+
 function escapeXml(value) {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -41,6 +44,14 @@ function normalizeDishList(data) {
     .filter((item) => Number(item.ID || 0) > 0);
 }
 
+function normalizeItem(row) {
+  return {
+    ID: Number(row.ID || 0),
+    CodeBluda: Number(row.CodeBluda || 0),
+    Kolvo: Number(row.Kolvo || 0)
+  };
+}
+
 function normalizeState(header, rows) {
   return {
     header: {
@@ -51,11 +62,7 @@ function normalizeState(header, rows) {
       Rem: header.Rem || ""
     },
 
-items: rows.map((row) => ({
-  ID: Number(row.ID || 0),
-  CodeBluda: Number(row.CodeBluda || 0),
-  Kolvo: Number(row.Kolvo || 0)
-}))
+    items: rows.map(normalizeItem)
   };
 }
 
@@ -65,7 +72,8 @@ function SearchableSelect({
   placeholder,
   onChange,
   onEnterNext,
-  cellIndex
+  cellIndex,
+  t = (key, fallback = "") => fallback
 }) {
   const selected = options.find((item) => Number(item.ID) === Number(value));
   const [text, setText] = useState(selected?.Name || "");
@@ -106,7 +114,7 @@ function SearchableSelect({
   }
 
   return (
-    <div className="searchable-select">
+    <div className="searchable-select spisan-blud-invoice-dish-search">
       <input
         data-cell={cellIndex}
         value={text}
@@ -139,7 +147,7 @@ function SearchableSelect({
         <div className="searchable-select-list">
           {filtered.length === 0 && (
             <div className="searchable-select-empty">
-              Ничего не найдено
+              {t("SpisanBludInvoice.SearchNothingFound", "Ничего не найдено")}
             </div>
           )}
 
@@ -156,7 +164,7 @@ function SearchableSelect({
               <span>{item.Name}</span>
 
               {item.SkladName && (
-                <small style={{ marginLeft: 8, opacity: 0.7 }}>
+                <small className="spisan-blud-invoice-search-warehouse">
                   {item.SkladName}
                 </small>
               )}
@@ -171,7 +179,9 @@ function SearchableSelect({
 export default function SpisanBludInvoicePage({
   initialData,
   fetchWithAuth,
-  onBack
+  onBack,
+  onDirtyChange,
+  t = (key, fallback = "") => fallback
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -192,10 +202,39 @@ export default function SpisanBludInvoicePage({
 
   const currentState = header ? normalizeState(header, rows) : null;
 
-  const isDirty =
-    originalState &&
-    currentState &&
-    JSON.stringify(currentState) !== JSON.stringify(originalState);
+  const isDirty = Boolean(
+    deletedIds.length > 0 ||
+      (
+        originalState &&
+        currentState &&
+        JSON.stringify(currentState) !== JSON.stringify(originalState)
+      )
+  );
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
+
+  useEffect(() => {
+    return () => {
+      onDirtyChange?.(false);
+    };
+  }, [onDirtyChange]);
+
+  useEffect(() => {
+    function handleBeforeUnload(event) {
+      if (!isDirty) return;
+
+      event.preventDefault();
+      event.returnValue = "";
+    }
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [isDirty]);
 
   useEffect(() => {
     loadData();
@@ -244,10 +283,34 @@ const loadedRows = Array.isArray(initialData.items)
       setDeletedIds([]);
       setOriginalState(normalizeState(normalizedHeader, loadedRows));
     } catch (err) {
-      setError(err.message || "Ошибка загрузки накладной списания блюд");
+      setError(err.message || t("SpisanBludInvoice.LoadError", "Ошибка загрузки накладной списания блюд"));
     } finally {
       setLoading(false);
     }
+  }
+
+  function isRowDirty(row) {
+    if (!originalState) return false;
+
+    const originalRow = originalState.items.find(
+      (item) => Number(item.ID) === Number(row.ID)
+    );
+
+    if (!originalRow) return true;
+
+    return (
+      JSON.stringify(normalizeItem(row)) !==
+      JSON.stringify(originalRow)
+    );
+  }
+
+  function handleBackClick() {
+    if (isDirty && !window.confirm(t("SpisanBludInvoice.UnsavedChangesWarning", UNSAVED_CHANGES_MESSAGE))) {
+      return;
+    }
+
+    onDirtyChange?.(false);
+    onBack?.();
   }
 
   function updateHeaderField(field, value) {
@@ -283,7 +346,7 @@ const loadedRows = Array.isArray(initialData.items)
   }
 
   function deleteRow(rowId) {
-    const ok = window.confirm("Удалить строку?");
+    const ok = window.confirm(t("SpisanBludInvoice.DeleteRowConfirm", "Удалить строку?"));
     if (!ok) return;
 
     setRows((prevRows) => prevRows.filter((row) => row.ID !== rowId));
@@ -348,7 +411,7 @@ ${deletedXml}
 
   async function handleSave() {
     if (Number(header?.CodSpis || 0) <= 0) {
-      alert("!!! Выберите статью затрат.");
+      alert(t("SpisanBludInvoice.ExpenseRequired", "!!! Выберите статью затрат."));
       return;
     }
 
@@ -378,21 +441,22 @@ ${deletedXml}
       try {
         data = JSON.parse(text);
       } catch {
-        throw new Error("Сервер вернул не JSON: " + text.substring(0, 500));
+        throw new Error(t("SpisanBludInvoice.ServerNonJsonPrefix", "Сервер вернул не JSON:") + " " + text.substring(0, 500));
       }
 
       if (!response.ok || data.status !== "success") {
-        throw new Error(data.error || "Ошибка сохранения накладной списания блюд");
+        throw new Error(data.error || t("SpisanBludInvoice.SaveError", "Ошибка сохранения накладной списания блюд"));
       }
 
+      onDirtyChange?.(false);
       onBack?.();
     } catch (err) {
-      alert(err.message || "Ошибка сохранения накладной списания блюд");
+      alert(err.message || t("SpisanBludInvoice.SaveError", "Ошибка сохранения накладной списания блюд"));
     }
   }
 
   if (loading) {
-    return <p>Загрузка накладной...</p>;
+    return <p>{t("SpisanBludInvoice.Loading", "Загрузка накладной...")}</p>;
   }
 
   if (error) {
@@ -400,47 +464,47 @@ ${deletedXml}
   }
 
   if (!header) {
-    return <p>Накладная не выбрана.</p>;
+    return <p>{t("SpisanBludInvoice.NotSelected", "Накладная не выбрана.")}</p>;
   }
 
   let cellIndex = 1;
 
   return (
-    <div className="prih-page">
-      <div className="form-header-panel prih-form-header spisan-blud-form-header">
+    <div className="prih-page spisan-blud-invoice-page">
+      <div className="form-header-panel prih-form-header spisan-blud-invoice-form-header">
         <div className="page-toolbar">
         <button
           type="button"
-          className="back-to-list-button prih-back-button"
-          onClick={onBack}
+          className="back-to-list-button prih-back-button spisan-blud-invoice-back-button"
+          onClick={handleBackClick}
         >
-          ← К списку списаний блюд
+          ← {t("SpisanBludInvoice.BackToList", "К списку списаний блюд")}
         </button>
 
         <button
           type="button"
-          className="primary-button"
+          className="primary-button spisan-blud-invoice-save-button"
           disabled={!isDirty}
           onClick={handleSave}
         >
-          Сохранить
+          {t("SpisanBludInvoice.Save", "Сохранить")}
         </button>
       </div>
 
-      <div className="prih-title">
-        Накладная списания блюд{" "}
+      <div className="prih-title spisan-blud-invoice-title">
+        {t("SpisanBludInvoice.Title", "Накладная списания блюд")}{" "}
         {header.Nakl ? (
           <>
-            № <strong>{header.Nakl}</strong>{" "}
+            {t("SpisanBludInvoice.NumberPrefix", "№")} <strong>{header.Nakl}</strong>{" "}
           </>
         ) : null}
-        от <strong>{header.DateP}</strong>
+        {t("SpisanBludInvoice.DateSeparator", "от")} <strong>{header.DateP}</strong>
       </div>
 
-      <div className="prih-header-grid spisan-blud-header-grid">
+      <div className="prih-header-grid spisan-blud-invoice-header-grid">
 
         <label className="calc-field">
-          <span>Дата</span>
+          <span>{t("SpisanBludInvoice.Date", "Дата")}</span>
 
           <input
             type="date"
@@ -450,7 +514,7 @@ ${deletedXml}
         </label>
 
         <label className="calc-field">
-          <span>Затраты</span>
+          <span>{t("SpisanBludInvoice.Expenses", "Затраты")}</span>
 
           <select
             value={header.CodSpis}
@@ -458,7 +522,7 @@ ${deletedXml}
               updateHeaderField("CodSpis", Number(e.target.value || 0))
             }
           >
-            <option value="0">Выберите затраты...</option>
+            <option value="0">{t("SpisanBludInvoice.SelectExpenses", "Выберите затраты...")}</option>
 
             {zatrList.map((item) => (
               <option key={item.ID} value={item.ID}>
@@ -468,8 +532,8 @@ ${deletedXml}
           </select>
         </label>
 
-         <label className="calc-field calc-field-wide">
-          <span>Примечание</span>
+         <label className="calc-field calc-field-wide spisan-blud-invoice-rem-field">
+          <span>{t("SpisanBludInvoice.Note", "Примечание")}</span>
 
           <input
             value={header.Rem || ""}
@@ -479,25 +543,32 @@ ${deletedXml}
       </div>
       </div>
 
-      <div className="calc-panel-title prih-items-title">
-        <span>Содержимое списания блюд</span>
+      <div className="calc-panel-title prih-items-title spisan-blud-invoice-items-title">
+        <span>{t("SpisanBludInvoice.ContentsTitle", "Содержимое списания блюд")}</span>
 
         <button
           type="button"
-          className="prih-add-row-button"
+          className="prih-add-row-button spisan-blud-invoice-add-row-button"
           onClick={addRow}
         >
-          + строка
+          + {t("SpisanBludInvoice.AddRow", "строка")}
         </button>
       </div>
 
-      <div className="table-wrap prih-table-wrap">
-        <table className="data-table prih-table">
+      <div className="table-wrap prih-table-wrap spisan-blud-invoice-table-wrap">
+        <table className="data-table prih-table spisan-blud-invoice-table">
+          <colgroup>
+            <col className="spisan-blud-invoice-col-dish" />
+            <col className="spisan-blud-invoice-col-warehouse" />
+            <col className="spisan-blud-invoice-col-qty" />
+            <col className="spisan-blud-invoice-col-delete" />
+          </colgroup>
+
           <thead>
             <tr>
-              <th>Блюдо</th>
-              <th>Склад</th>
-              <th>Кол-во</th>
+              <th>{t("SpisanBludInvoice.Dish", "Блюдо")}</th>
+              <th>{t("SpisanBludInvoice.Warehouse", "Склад")}</th>
+              <th>{t("SpisanBludInvoice.Quantity", "Кол-во")}</th>
               <th></th>
             </tr>
           </thead>
@@ -505,19 +576,23 @@ ${deletedXml}
           <tbody>
             {rows.length === 0 && (
               <tr>
-                <td colSpan={4}>Строки не добавлены.</td>
+                <td className="spisan-blud-invoice-empty-row" colSpan={4}>{t("SpisanBludInvoice.EmptyRows", "Строки не добавлены.")}</td>
               </tr>
             )}
 
             {rows.map((row) => (
-              <tr key={row.ID}>
+              <tr
+                key={row.ID}
+                className={isRowDirty(row) ? "changed-row" : ""}
+              >
                 <td>
                   <SearchableSelect
                     value={row.CodeBluda}
                     options={dishList}
-                    placeholder="Выберите блюдо..."
+                    placeholder={t("SpisanBludInvoice.SelectDish", "Выберите блюдо...")}
                     cellIndex={cellIndex++}
                     onEnterNext={focusNextCell}
+                    t={t}
                     onChange={(value) => {
                       const selectedDish = dishList.find(
                         (item) => Number(item.ID) === Number(value)
@@ -532,7 +607,7 @@ ${deletedXml}
                   />
                 </td>
 
-                <td>{row.SkladName || ""}</td>
+                <td title={row.SkladName || ""}>{row.SkladName || ""}</td>
 
                 <td>
                   <input
@@ -552,7 +627,9 @@ ${deletedXml}
                 <td>
                   <button
                     type="button"
-                    className="small-danger-button"
+                    className="small-danger-button spisan-blud-invoice-delete-button"
+                    title={t("SpisanBludInvoice.DeleteRow", "Удалить строку")}
+                    aria-label={t("SpisanBludInvoice.DeleteRow", "Удалить строку")}
                     onClick={() => deleteRow(row.ID)}
                   >
                     ×

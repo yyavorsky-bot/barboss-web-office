@@ -1,15 +1,19 @@
 import { useEffect, useState } from "react";
 
+
 const categoryFields = [
   "ID",
   "Name"
 ];
 
 export default function CategoriesPage({
+  t = (_, fallback = "") => fallback,
+  locale = "ru-RU",
   data,
   readOnly,
   onAddCategory,
-  onSaveCategory
+  onSaveCategory,
+  onDirtyChange
 }) {
   const [rows, setRows] = useState([]);
   const [changedRows, setChangedRows] = useState({});
@@ -17,6 +21,34 @@ export default function CategoriesPage({
   const [addLoading, setAddLoading] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const changedCount = Object.keys(changedRows).length;
+  const isDirty = !readOnly && changedCount > 0;
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
+
+  useEffect(() => {
+    return () => {
+      onDirtyChange?.(false);
+    };
+  }, [onDirtyChange]);
+
+  useEffect(() => {
+    function handleBeforeUnload(event) {
+      if (!isDirty) return;
+
+      event.preventDefault();
+      event.returnValue = "";
+    }
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [isDirty]);
 
   useEffect(() => {
     setRows(Array.isArray(data) ? data : []);
@@ -100,7 +132,7 @@ export default function CategoriesPage({
 
       setSelectedId(newItem.ID);
     } catch (err) {
-      setError(err.message || "Ошибка добавления категории");
+      setError(err.message || t("Categories.ErrorAdd", "Ошибка добавления категории"));
     } finally {
       setAddLoading(false);
     }
@@ -128,8 +160,9 @@ export default function CategoriesPage({
       await onSaveCategory(xml);
 
       setChangedRows({});
+      onDirtyChange?.(false);
     } catch (err) {
-      setError(err.message || "Ошибка сохранения категорий");
+      setError(err.message || t("Categories.ErrorSave", "Ошибка сохранения категорий"));
     } finally {
       setSaveLoading(false);
     }
@@ -139,9 +172,9 @@ export default function CategoriesPage({
     <div className="categories-page">
       <div className="module-toolbar categories-toolbar">
         <div className="toolbar-left">
-          {Object.keys(changedRows).length > 0 && (
+          {changedCount > 0 && (
             <span className="changed-info">
-              Изменено: {Object.keys(changedRows).length}
+              {t("Categories.Changed", "Изменено")}: {changedCount}
             </span>
           )}
         </div>
@@ -154,7 +187,7 @@ export default function CategoriesPage({
               disabled={addLoading}
               onClick={addNewCategory}
             >
-              {addLoading ? "Добавление..." : "Добавить"}
+              {addLoading ? t("Categories.Adding", "Добавление...") : t("Categories.Add", "Добавить")}
             </button>
           )}
 
@@ -162,10 +195,10 @@ export default function CategoriesPage({
             <button
               type="button"
               className="toolbar-save-button categories-save-button"
-              disabled={Object.keys(changedRows).length === 0 || saveLoading}
+              disabled={changedCount === 0 || saveLoading}
               onClick={saveCategory}
             >
-              {saveLoading ? "Сохранение..." : "Сохранить"}
+              {saveLoading ? t("Categories.Saving", "Сохранение...") : t("Categories.Save", "Сохранить")}
             </button>
           )}
         </div>
@@ -178,15 +211,20 @@ export default function CategoriesPage({
       )}
 
       {rows.length === 0 && (
-        <div className="perem-empty categories-empty">Список категорий пуст.</div>
+        <div className="categories-empty">{t("Categories.Empty", "Список категорий пуст.")}</div>
       )}
 
       {rows.length > 0 && (
-        <div className="table-wrap table-wrap-xnarrow categories-table-wrap">
-          <table className="data-table compact-table categories-table">
-            <thead>
+        <section className="categories-table-panel">
+          <div className="table-wrap categories-table-wrap">
+            <table className="data-table categories-table">
+              <colgroup>
+                <col className="categories-col-name" />
+              </colgroup>
+
+              <thead>
               <tr>
-                <th>Категория</th>
+                <th>{t("Categories.Category", "Категория")}</th>
               </tr>
             </thead>
 
@@ -205,15 +243,17 @@ export default function CategoriesPage({
                       className="table-input"
                       type="text"
                       value={row.Name ?? ""}
+                      title={row.Name ?? ""}
                       disabled={readOnly}
                       onChange={(e) => updateField(row.ID, "Name", e.target.value)}
                     />
                   </td>
                 </tr>
               ))}
-            </tbody>
-          </table>
-        </div>
+              </tbody>
+            </table>
+          </div>
+        </section>
       )}
     </div>
   );

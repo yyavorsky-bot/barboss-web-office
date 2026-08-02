@@ -5,7 +5,8 @@ export default function CardsSiryaPage({
   categories,
   filterCat,
   onChangeCat,
-  onApply
+  onApply,
+  t = (key, fallback = "") => fallback
 }) {
   const rows = Array.isArray(data) ? data : [];
   const categoryList = Array.isArray(categories) ? categories : [];
@@ -17,7 +18,7 @@ export default function CardsSiryaPage({
       <div className="module-toolbar cards-sirya-toolbar">
         <div className="toolbar-left">
           <label className="toolbar-field">
-            <span>Категория</span>
+            <span>{t("CardsSirya.Category", "Категория")}</span>
 
             <select
               className="toolbar-select"
@@ -29,7 +30,7 @@ export default function CardsSiryaPage({
                 onApply?.(nextCategory);
               }}
             >
-              <option value="0">Все</option>
+              <option value="0">{t("CardsSirya.All", "Все")}</option>
 
               {categoryList.map((cat) => (
                 <option key={cat.ID} value={String(cat.ID)}>
@@ -43,20 +44,30 @@ export default function CardsSiryaPage({
       </div>
 
       {rows.length === 0 && (
-        <p>Карточки сырья не найдены.</p>
+        <div className="cards-sirya-empty">
+          {t("CardsSirya.EmptyList", "Карточки сырья не найдены.")}
+        </div>
       )}
 
       {rows.length > 0 && (
-  <div className="raw-cards-page">
-    <div className="table-wrap">
-      <table className="data-table raw-cards-table">
-        <thead>
+        <section className="cards-sirya-table-panel">
+          <div className="table-wrap cards-sirya-table-wrap">
+            <table className="data-table cards-sirya-table">
+              <colgroup>
+                <col className="cards-sirya-col-name" />
+                <col className="cards-sirya-col-unit" />
+                <col className="cards-sirya-col-price" />
+                <col className="cards-sirya-col-last-price" />
+                <col className="cards-sirya-col-category" />
+              </colgroup>
+
+              <thead>
           <tr>
-            <th>Наименование</th>
-            <th>Ед.</th>
-            <th>Цена</th>
-            <th>Последняя цена</th>
-            <th>Категория</th>
+            <th>{t("CardsSirya.Name", "Наименование")}</th>
+            <th>{t("CardsSirya.UnitShort", "Ед.")}</th>
+            <th>{t("CardsSirya.Price", "Цена")}</th>
+            <th>{t("CardsSirya.LastPrice", "Последняя цена")}</th>
+            <th>{t("CardsSirya.Category", "Категория")}</th>
           </tr>
         </thead>
 
@@ -67,7 +78,7 @@ export default function CardsSiryaPage({
               className={selectedId === row.ID ? "selected-row" : ""}
               onClick={() => setSelectedId(row.ID)}
             >
-              <td>{row.Name}</td>
+              <td title={row.Name ?? ""}>{row.Name}</td>
               <td>{row.Ediz}</td>
               <td className="num">
                 {Number(row.Price ?? 0).toFixed(2)}
@@ -75,14 +86,14 @@ export default function CardsSiryaPage({
               <td className="num">
                 {Number(row.PriceLast ?? 0).toFixed(2)}
               </td>
-              <td>{row.Categor}</td>
+              <td title={row.Categor ?? ""}>{row.Categor}</td>
             </tr>
           ))}
-        </tbody>
-      </table>
-    </div>
-  </div>
-)}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
     </div>
   );
 }

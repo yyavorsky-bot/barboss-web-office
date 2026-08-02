@@ -1,0 +1,22 @@
+{
+"language": "en",
+"translations": {
+"Login.RequiredFieldsError": "Enter an alias, login, and password",
+"Login.LoginError": "Login error",
+"Login.Version": "Version 1.1 © Yuri Yavorsky 2026",
+"Login.IntroDescription": "Workspace for the cash register, warehouse, orders, and restaurant references",
+"Login.MainSectionsAriaLabel": "Main Sections",
+"Login.Cash": "Cash Register",
+"Login.Warehouse": "Warehouse",
+"Login.Orders": "Order",
+"Login.References": "References",
+"Login.Title": "Web Office Login",
+"Login.Subtitle": "Enter your establishment details",
+"Login.AliasLabel": "Establishment Alias",
+"Login.AliasPlaceholder": "For example: demo",
+"Login.LoginLabel": "Login",
+"Login.PasswordLabel": "Password",
+"Login.LoggingIn": "Logging in...",
+"Login.LoginButton": "Login"
+}
+}

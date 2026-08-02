@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+
 const fopFields = [
   "ID",
   "Name",
@@ -7,8 +8,8 @@ const fopFields = [
   "IfNoSelect"
 ];
 
-const taxGroupOptions = [
-  { value: 0, label: "нет" },
+const taxGroupOptions = (t) => [
+  { value: 0, label: t("Fops.None", "нет") },
   { value: 1, label: "А" },
   { value: 2, label: "Б" },
   { value: 3, label: "В" },
@@ -20,10 +21,13 @@ const taxGroupOptions = [
 ];
 
 export default function FopsPage({
+  t = (_, fallback = "") => fallback,
+  locale = "ru-RU",
   data,
   readOnly,
   onAddFop,
-  onSaveFop
+  onSaveFop,
+  onDirtyChange
 }) {
   const [rows, setRows] = useState([]);
   const [changedRows, setChangedRows] = useState({});
@@ -31,6 +35,34 @@ export default function FopsPage({
   const [addLoading, setAddLoading] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const changedCount = Object.keys(changedRows).length;
+  const isDirty = !readOnly && changedCount > 0;
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
+
+  useEffect(() => {
+    return () => {
+      onDirtyChange?.(false);
+    };
+  }, [onDirtyChange]);
+
+  useEffect(() => {
+    function handleBeforeUnload(event) {
+      if (!isDirty) return;
+
+      event.preventDefault();
+      event.returnValue = "";
+    }
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [isDirty]);
 
   useEffect(() => {
     setRows(Array.isArray(data) ? data : []);
@@ -114,7 +146,7 @@ export default function FopsPage({
 
       setSelectedId(newItem.ID);
     } catch (err) {
-      setError(err.message || "Ошибка добавления предприятия");
+      setError(err.message || t("Fops.ErrorAdd", "Ошибка добавления предприятия"));
     } finally {
       setAddLoading(false);
     }
@@ -142,8 +174,9 @@ export default function FopsPage({
       await onSaveFop(xml);
 
       setChangedRows({});
+      onDirtyChange?.(false);
     } catch (err) {
-      setError(err.message || "Ошибка сохранения предприятий");
+      setError(err.message || t("Fops.ErrorSave", "Ошибка сохранения предприятий"));
     } finally {
       setSaveLoading(false);
     }
@@ -153,9 +186,9 @@ export default function FopsPage({
     <div className="fops-page">
       <div className="module-toolbar fops-toolbar">
         <div className="toolbar-left">
-           {Object.keys(changedRows).length > 0 && (
+           {changedCount > 0 && (
             <span className="changed-info">
-              Изменено: {Object.keys(changedRows).length}
+              {t("Fops.Changed", "Изменено")}: {changedCount}
             </span>
           )}
         </div>
@@ -168,7 +201,7 @@ export default function FopsPage({
               disabled={addLoading}
               onClick={addNewFop}
             >
-              {addLoading ? "Добавление..." : "Добавить"}
+              {addLoading ? t("Fops.Adding", "Добавление...") : t("Fops.Add", "Добавить")}
             </button>
           )}
 
@@ -176,10 +209,10 @@ export default function FopsPage({
             <button
               type="button"
               className="toolbar-save-button fops-save-button"
-              disabled={Object.keys(changedRows).length === 0 || saveLoading}
+              disabled={changedCount === 0 || saveLoading}
               onClick={saveFop}
             >
-              {saveLoading ? "Сохранение..." : "Сохранить"}
+              {saveLoading ? t("Fops.Saving", "Сохранение...") : t("Fops.Save", "Сохранить")}
             </button>
           )}
         </div>
@@ -192,17 +225,24 @@ export default function FopsPage({
       )}
 
       {rows.length === 0 && (
-        <div className="perem-empty fops-empty">Список предприятий пуст.</div>
+        <div className="fops-empty">{t("Fops.Empty", "Список предприятий пуст.")}</div>
       )}
 
       {rows.length > 0 && (
-        <div className="table-wrap table-wrap-fops fops-table-wrap">
-          <table className="data-table compact-table fops-table">
-            <thead>
+        <section className="fops-table-panel">
+          <div className="table-wrap fops-table-wrap">
+            <table className="data-table fops-table">
+              <colgroup>
+                <col className="fops-col-name" />
+                <col className="fops-col-tax-group" />
+                <col className="fops-col-default" />
+              </colgroup>
+
+              <thead>
               <tr>
-                <th>Предприятие</th>
-                <th>Налоговая группа</th>
-                <th>По умолчанию</th>
+                <th>{t("Fops.Enterprise", "Предприятие")}</th>
+                <th>{t("Fops.TaxGroup", "Налоговая группа")}</th>
+                <th>{t("Fops.Default", "По умолчанию")}</th>
               </tr>
             </thead>
 
@@ -221,6 +261,7 @@ export default function FopsPage({
                       className="table-input"
                       type="text"
                       value={row.Name ?? ""}
+                      title={row.Name ?? ""}
                       disabled={readOnly}
                       onChange={(e) => updateField(row.ID, "Name", e.target.value)}
                     />
@@ -233,7 +274,7 @@ export default function FopsPage({
                       disabled={readOnly}
                       onChange={(e) => updateField(row.ID, "TaxGroup", Number(e.target.value))}
                     >
-                      {taxGroupOptions.map((item) => (
+                      {taxGroupOptions(t).map((item) => (
                         <option
                           key={item.value}
                           value={item.value}
@@ -254,9 +295,10 @@ export default function FopsPage({
                   </td>
                 </tr>
               ))}
-            </tbody>
-          </table>
-        </div>
+              </tbody>
+            </table>
+          </div>
+        </section>
       )}
     </div>
   );

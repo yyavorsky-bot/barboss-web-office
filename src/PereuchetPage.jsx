@@ -58,14 +58,14 @@ function normalizeNumber(value) {
   return String(n);
 }
 
-function formatNumber(value, digits = 3) {
+function formatNumber(value, digits = 3, locale = "ru-RU") {
   const n = Number(value || 0);
 
   if (!Number.isFinite(n)) {
     return "";
   }
 
-  return n.toLocaleString("ru-RU", {
+  return n.toLocaleString(locale, {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits
   });
@@ -133,7 +133,8 @@ function SearchableSelect({
   options,
   disabled,
   onChange,
-  placeholder = "Выберите..."
+  placeholder,
+  t = (key, fallback = "") => fallback
 }) {
   const selected = options.find((item) => Number(item.ID) === Number(value));
   const [text, setText] = useState(selected?.Name || "");
@@ -157,11 +158,11 @@ function SearchableSelect({
   }, [text, options]);
 
   return (
-    <div className="searchable-select">
+    <div className="searchable-select pereuchet-search">
       <input
         value={text}
         disabled={disabled}
-        placeholder={placeholder}
+        placeholder={placeholder || t("Pereuchet.SelectPlaceholder", "Выберите...")}
         onFocus={() => setOpen(true)}
         onChange={(event) => {
           setText(event.target.value);
@@ -192,7 +193,7 @@ function SearchableSelect({
 
           {filtered.length === 0 && (
             <div className="searchable-select-empty">
-              Ничего не найдено
+              {t("Pereuchet.NothingFound", "Ничего не найдено")}
             </div>
           )}
         </div>
@@ -205,7 +206,10 @@ export default function PereuchetPage({
   data,
   currentSklad,
   fetchWithAuth,
-  onReload
+  onReload,
+  onDirtyChange,
+  t = (key, fallback = "") => fallback,
+  locale = "ru-RU"
 }) {
   const skladId = Number(currentSklad || 1);
   const [rows, setRows] = useState([]);
@@ -281,6 +285,71 @@ export default function PereuchetPage({
     [rows, deletedRows]
   );
 
+  const isDirty = Boolean(listChanged || perChanged || pfChanged);
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
+
+  useEffect(() => {
+    return () => {
+      onDirtyChange?.(false);
+    };
+  }, [onDirtyChange]);
+
+  useEffect(() => {
+    function handleBeforeUnload(event) {
+      if (!isDirty) return;
+
+      event.preventDefault();
+      event.returnValue = "";
+    }
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [isDirty]);
+
+  function confirmDiscardChanges(condition = isDirty) {
+    if (!condition) return true;
+
+    return window.confirm(t("Pereuchet.UnsavedChangesWarning", "Внимание! Вы не сохранили измененные данные!\nУверены, что хотите уйти?"));
+  }
+
+  function resetPerEditor() {
+    setPerRows([]);
+    setPerChanged(false);
+    setPerError("");
+  }
+
+  function resetPfEditor() {
+    setPfRows([]);
+    setPfDeletedRows([]);
+    setPfChanged(false);
+    setPfError("");
+    setPfIdPer(null);
+  }
+
+  function closeWorkEditors() {
+    resetPerEditor();
+    resetPfEditor();
+    setActiveMode("list");
+  }
+
+  function handleHeaderDateChange(value) {
+    if ((perChanged || pfChanged) && !confirmDiscardChanges(perChanged || pfChanged)) {
+      return;
+    }
+
+    if (perChanged || pfChanged) {
+      closeWorkEditors();
+    }
+
+    setHeaderDate(value);
+  }
+
   function updateListRow(id, field, value) {
     setRows((prev) =>
       prev.map((row) =>
@@ -296,7 +365,15 @@ export default function PereuchetPage({
   }
 
   function deleteListRow(row) {
-    if (!window.confirm("Вы уверены?")) {
+    const deletingSelected =
+      Number(selectedPerId) === Number(row.ID) &&
+      (perChanged || pfChanged);
+
+    if (deletingSelected && !confirmDiscardChanges(true)) {
+      return;
+    }
+
+    if (!window.confirm(t("Pereuchet.ConfirmDelete", "Вы уверены?"))) {
       return;
     }
 
@@ -307,17 +384,25 @@ export default function PereuchetPage({
     setRows((prev) => prev.filter((item) => item.ID !== row.ID));
 
     if (Number(selectedPerId) === Number(row.ID)) {
+      closeWorkEditors();
       setSelectedPerId(null);
     }
   }
 
   function selectPerListRow(row) {
     const nextPerId = Number(row.ID || 0);
+    const isAnotherRow = Number(selectedPerId) !== nextPerId;
 
-    // При выборе другого переучета закрываем открытую правую панель.
-    // Повторный клик по уже выбранной строке ничего не скрывает.
-    if (Number(selectedPerId) !== nextPerId) {
-      setActiveMode("list");
+    if (
+      isAnotherRow &&
+      (perChanged || pfChanged) &&
+      !confirmDiscardChanges(perChanged || pfChanged)
+    ) {
+      return;
+    }
+
+    if (isAnotherRow) {
+      closeWorkEditors();
     }
 
     setSelectedPerId(nextPerId);
@@ -386,17 +471,31 @@ export default function PereuchetPage({
     try {
       result = JSON.parse(text);
     } catch {
-      throw new Error(`Сервер вернул не JSON: ${text.slice(0, 500)}`);
+      throw new Error(
+        t("Pereuchet.ServerInvalidJson", "Сервер вернул не JSON: {details}")
+          .replace("{details}", text.slice(0, 500))
+      );
     }
 
     if (!response.ok || result.status === "error") {
-      throw new Error(result.message || result.error || "Ошибка сохранения");
+      throw new Error(result.message || result.error || t("Pereuchet.SaveError", "Ошибка сохранения"));
     }
 
     return result;
   }
 
   async function savePerList() {
+    if (
+      (perChanged || pfChanged) &&
+      !confirmDiscardChanges(perChanged || pfChanged)
+    ) {
+      return;
+    }
+
+    if (perChanged || pfChanged) {
+      closeWorkEditors();
+    }
+
     try {
       setSaving(true);
       setSaveError("");
@@ -406,8 +505,9 @@ export default function PereuchetPage({
 
       setRows((prev) => prev.map((row) => ({ ...row, _changed: false })));
       setDeletedRows([]);
+      onDirtyChange?.(false);
     } catch (err) {
-      setSaveError(err.message || "Ошибка сохранения списка переучетов");
+      setSaveError(err.message || t("Pereuchet.SaveListError", "Ошибка сохранения списка переучетов"));
     } finally {
       setSaving(false);
     }
@@ -422,7 +522,11 @@ export default function PereuchetPage({
     try {
       result = JSON.parse(text);
     } catch {
-      throw new Error(`${errorPrefix} вернул не JSON: ${text.slice(0, 500)}`);
+      throw new Error(
+        t("Pereuchet.NamedInvalidJson", "{name} вернул не JSON: {details}")
+          .replace("{name}", errorPrefix)
+          .replace("{details}", text.slice(0, 500))
+      );
     }
 
     if (!response.ok || result.status === "error") {
@@ -435,7 +539,7 @@ export default function PereuchetPage({
   async function refreshPerList() {
     const result = await loadJson(
       `https://webback.bar-boss.com/wf_SpisokPer.php?Sklad=${encodeURIComponent(skladId)}`,
-      "Список переучетов"
+      t("Pereuchet.ListRequestName", "Список переучетов")
     );
 
     const normalized = (Array.isArray(result) ? result : []).map((row) => ({
@@ -460,6 +564,17 @@ export default function PereuchetPage({
   }
 
   async function openPf() {
+    if (
+      (perChanged || pfChanged) &&
+      !confirmDiscardChanges(perChanged || pfChanged)
+    ) {
+      return;
+    }
+
+    if (perChanged || pfChanged) {
+      closeWorkEditors();
+    }
+
     let perRow =
       rows.find((row) => Number(row.ID) === Number(selectedPerId)) ||
       selectedPerRow;
@@ -472,7 +587,7 @@ export default function PereuchetPage({
     }
 
     if (!perRow?.ID) {
-      setPfError("Для выбранной даты переучет еще не найден в списке. Сначала нажмите «Вывести переучет».");
+      setPfError(t("Pereuchet.SelectedDateNotFound", "Для выбранной даты переучет еще не найден в списке. Сначала нажмите «Вывести переучет»."));
       return;
     }
 
@@ -487,11 +602,11 @@ export default function PereuchetPage({
       const [pfData, dishData] = await Promise.all([
         loadJson(
           `https://webback.bar-boss.com/wf_SpisokPerVGot.php?IdPer=${encodeURIComponent(perRow.ID)}`,
-          "Полуфабрикаты"
+          t("Pereuchet.SemiFinishedRequestName", "Полуфабрикаты")
         ),
         loadJson(
           `https://webback.bar-boss.com/wf_DishShort.php?Sklad=${encodeURIComponent(skladId)}`,
-          "Список блюд"
+          t("Pereuchet.DishesRequestName", "Список блюд")
         )
       ]);
 
@@ -508,8 +623,9 @@ export default function PereuchetPage({
       setPfChanged(false);
       setPfIdPer(Number(perRow.ID));
       setActiveMode("pf");
+      onDirtyChange?.(listChanged);
     } catch (err) {
-      setPfError(err.message || "Ошибка загрузки полуфабрикатов");
+      setPfError(err.message || t("Pereuchet.LoadSemiFinishedError", "Ошибка загрузки полуфабрикатов"));
     } finally {
       setPfLoading(false);
     }
@@ -550,7 +666,7 @@ export default function PereuchetPage({
   }
 
   function deletePfRow(row) {
-    if (!window.confirm("Вы уверены?")) {
+    if (!window.confirm(t("Pereuchet.ConfirmDelete", "Вы уверены?"))) {
       return;
     }
 
@@ -572,14 +688,23 @@ export default function PereuchetPage({
       setPfRows((prev) => prev.map((row) => ({ ...row, _changed: false })));
       setPfDeletedRows([]);
       setPfChanged(false);
+      onDirtyChange?.(listChanged);
     } catch (err) {
-      setSaveError(err.message || "Ошибка сохранения полуфабрикатов");
+      setSaveError(err.message || t("Pereuchet.SaveSemiFinishedError", "Ошибка сохранения полуфабрикатов"));
     } finally {
       setSaving(false);
     }
   }
 
   async function openPer() {
+    if (isDirty && !confirmDiscardChanges(true)) {
+      return;
+    }
+
+    if (perChanged || pfChanged) {
+      closeWorkEditors();
+    }
+
     try {
       setPerLoading(true);
       setPerError("");
@@ -589,7 +714,7 @@ export default function PereuchetPage({
 
       const result = await loadJson(
         `https://webback.bar-boss.com/wf_SpisokPerEdit.php?Dat=${encodeURIComponent(apiDate)}&Sklad=${encodeURIComponent(skladId)}`,
-        "Переучет"
+        t("Pereuchet.StocktakeRequestName", "Переучет")
       );
 
       setPerRows((Array.isArray(result) ? result : []).map((row) => ({
@@ -623,7 +748,7 @@ export default function PereuchetPage({
 
       setActiveMode("per");
     } catch (err) {
-      setPerError(err.message || "Ошибка загрузки переучета");
+      setPerError(err.message || t("Pereuchet.LoadStocktakeError", "Ошибка загрузки переучета"));
     } finally {
       setPerLoading(false);
     }
@@ -683,24 +808,25 @@ export default function PereuchetPage({
       );
 
       setPerChanged(false);
+      onDirtyChange?.(listChanged || pfChanged);
     } catch (err) {
-      setSaveError(err.message || "Ошибка сохранения переучета");
+      setSaveError(err.message || t("Pereuchet.SaveStocktakeError", "Ошибка сохранения переучета"));
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <div className="per-page">
+    <div className="pereuchet-page">
       <div className="module-toolbar pereuchet-toolbar">
         <div className="toolbar-left">
           <label className="toolbar-field">
-            Дата переучета
+            {t("Pereuchet.StocktakeDate", "Дата переучета")}
             <input
               type="date"
               className="toolbar-date"
               value={headerDate}
-              onChange={(event) => setHeaderDate(event.target.value)}
+              onChange={(event) => handleHeaderDateChange(event.target.value)}
             />
           </label>
 
@@ -710,7 +836,7 @@ export default function PereuchetPage({
             onClick={openPer}
             disabled={perLoading || saving}
           >
-            {perLoading ? "Загрузка..." : "Вывести переучет"}
+            {perLoading ? t("Pereuchet.Loading", "Загрузка...") : t("Pereuchet.OpenStocktake", "Вывести переучет")}
           </button>
 
           <button
@@ -718,9 +844,9 @@ export default function PereuchetPage({
             className="small-action-button pereuchet-pf-button"
             onClick={openPf}
             disabled={!canOpenPf || pfLoading || saving}
-            title={!canOpenPf ? "Для этой даты переучет еще не создан" : ""}
+            title={!canOpenPf ? t("Pereuchet.DateNotCreatedTitle", "Для этой даты переучет еще не создан") : ""}
           >
-            {pfLoading ? "Загрузка..." : "Полуфабрикаты"}
+            {pfLoading ? t("Pereuchet.Loading", "Загрузка...") : t("Pereuchet.SemiFinished", "Полуфабрикаты")}
           </button>
         </div>
 
@@ -732,7 +858,7 @@ export default function PereuchetPage({
               onClick={savePerList}
               disabled={saving}
             >
-              Сохранить список
+              {t("Pereuchet.SaveList", "Сохранить список")}
             </button>
           )}
         </div>
@@ -742,18 +868,24 @@ export default function PereuchetPage({
       {perError && <div className="login-error">{perError}</div>}
       {pfError && <div className="login-error">{pfError}</div>}
 
-      <div className="per-layout">
-        <section className="per-list-panel pereuchet-list-panel">
-          <div className="per-panel-title pereuchet-panel-title">
-            <strong>Список переучетов</strong>
+      <div className="pereuchet-layout">
+        <section className="pereuchet-list-panel">
+          <div className="pereuchet-panel-title">
+            <strong>{t("Pereuchet.StocktakeList", "Список переучетов")}</strong>
           </div>
 
-          <div className="table-wrap per-list-wrap">
-            <table className="data-table per-list-table">
+          <div className="table-wrap pereuchet-list-wrap">
+            <table className="data-table pereuchet-list-table">
+              <colgroup>
+                <col className="pereuchet-list-col-date" />
+                <col className="pereuchet-list-col-closed" />
+                <col className="pereuchet-list-col-delete" />
+              </colgroup>
+
               <thead>
                 <tr>
-                  <th>Дата</th>
-                  <th>Закр.</th>
+                  <th>{t("Pereuchet.Date", "Дата")}</th>
+                  <th>{t("Pereuchet.ClosedShort", "Закр.")}</th>
                   <th></th>
                 </tr>
               </thead>
@@ -771,7 +903,7 @@ export default function PereuchetPage({
                     <td>
                       <input
                         type="date"
-                        className="table-input per-date-input"
+                        className="table-input pereuchet-date-input"
                         value={formatDateForInput(row.Date)}
                         onClick={(event) => {
                           event.stopPropagation();
@@ -798,7 +930,9 @@ export default function PereuchetPage({
                     <td className="action-column delete-column">
                       <button
                         type="button"
-                        className="small-danger-button"
+                        className="small-danger-button pereuchet-delete-button"
+                        title={t("Pereuchet.DeleteRow", "Удалить строку")}
+                        aria-label={t("Pereuchet.DeleteRow", "Удалить строку")}
                         onClick={(event) => {
                           event.stopPropagation();
                           deleteListRow(row);
@@ -812,8 +946,8 @@ export default function PereuchetPage({
 
                 {rows.length === 0 && (
                   <tr>
-                    <td colSpan="3" className="empty-cell">
-                      Переучетов нет
+                    <td colSpan="3" className="empty-cell pereuchet-empty-row">
+                      {t("Pereuchet.NoStocktakes", "Переучетов нет")}
                     </td>
                   </tr>
                 )}
@@ -823,9 +957,9 @@ export default function PereuchetPage({
         </section>
 
         {activeMode === "pf" && (
-          <section className="per-work-panel pereuchet-work-panel">
-            <div className="per-panel-title pereuchet-panel-title">
-              <strong>Полуфабрикаты</strong>
+          <section className="pereuchet-work-panel">
+            <div className="pereuchet-panel-title">
+              <strong>{t("Pereuchet.SemiFinished", "Полуфабрикаты")}</strong>
 
               {pfChanged && (
                 <button
@@ -834,7 +968,7 @@ export default function PereuchetPage({
                   onClick={savePf}
                   disabled={saving}
                 >
-                  Сохранить
+                  {t("Pereuchet.Save", "Сохранить")}
                 </button>
               )}
             </div>
@@ -846,16 +980,22 @@ export default function PereuchetPage({
                 onClick={addPfRow}
                 disabled={saving}
               >
-                + Добавить строку
+                {t("Pereuchet.AddRow", "+ Добавить строку")}
               </button>
             </div>
 
-            <div className="table-wrap per-pf-wrap">
-              <table className="data-table per-pf-table">
+            <div className="table-wrap pereuchet-pf-wrap">
+              <table className="data-table pereuchet-pf-table">
+                <colgroup>
+                  <col className="pereuchet-pf-col-name" />
+                  <col className="pereuchet-pf-col-qty" />
+                  <col className="pereuchet-pf-col-delete" />
+                </colgroup>
+
                 <thead>
                   <tr>
-                    <th>Полуфабрикат</th>
-                    <th>Кол-во</th>
+                    <th>{t("Pereuchet.SemiFinishedItem", "Полуфабрикат")}</th>
+                    <th>{t("Pereuchet.QuantityShort", "Кол-во")}</th>
                     <th></th>
                   </tr>
                 </thead>
@@ -867,6 +1007,7 @@ export default function PereuchetPage({
                         <SearchableSelect
                           value={row.IdDish}
                           options={dishOptions}
+                          t={t}
                           onChange={(value) => updatePfRow(row.ID, "IdDish", value)}
                         />
                       </td>
@@ -882,7 +1023,9 @@ export default function PereuchetPage({
                       <td className="action-column delete-column">
                         <button
                           type="button"
-                          className="small-danger-button"
+                          className="small-danger-button pereuchet-delete-button"
+                        title={t("Pereuchet.DeleteRow", "Удалить строку")}
+                        aria-label={t("Pereuchet.DeleteRow", "Удалить строку")}
                           onClick={() => deletePfRow(row)}
                         >
                           ×
@@ -893,8 +1036,8 @@ export default function PereuchetPage({
 
                   {pfRows.length === 0 && (
                     <tr>
-                      <td colSpan="3" className="empty-cell">
-                        Полуфабрикаты не указаны
+                      <td colSpan="3" className="empty-cell pereuchet-empty-row">
+                        {t("Pereuchet.NoSemiFinished", "Полуфабрикаты не указаны")}
                       </td>
                     </tr>
                   )}
@@ -905,9 +1048,9 @@ export default function PereuchetPage({
         )}
 
         {activeMode === "per" && (
-          <section className="per-work-panel pereuchet-work-panel">
-            <div className="per-panel-title pereuchet-panel-title">
-              <strong>Переучет сырья</strong>
+          <section className="pereuchet-work-panel">
+            <div className="pereuchet-panel-title">
+              <strong>{t("Pereuchet.RawStocktake", "Переучет сырья")}</strong>
 
               {perChanged && (
                 <button
@@ -916,46 +1059,59 @@ export default function PereuchetPage({
                   onClick={savePer}
                   disabled={saving}
                 >
-                  Сохранить
+                  {t("Pereuchet.Save", "Сохранить")}
                 </button>
               )}
             </div>
 
-            <div className="table-wrap per-edit-wrap">
-              <table className="data-table per-edit-table">
+            <div className="table-wrap pereuchet-edit-wrap">
+              <table className="data-table pereuchet-edit-table">
+                <colgroup>
+                  <col className="pereuchet-edit-col-name" />
+                  <col className="pereuchet-edit-col-unit" />
+                  <col className="pereuchet-edit-col-number" />
+                  <col className="pereuchet-edit-col-number" />
+                  <col className="pereuchet-edit-col-number" />
+                  <col className="pereuchet-edit-col-number" />
+                  <col className="pereuchet-edit-col-number" />
+                  <col className="pereuchet-edit-col-number" />
+                  <col className="pereuchet-edit-col-number" />
+                  <col className="pereuchet-edit-col-fact" />
+                </colgroup>
+
                 <thead>
                   <tr>
-                    <th>Сырьё</th>
-                    <th>Ед.</th>
-                    <th>Цена</th>
-                    <th>Нач.</th>
-                    <th>Приход</th>
-                    <th>Перем.</th>
-                    <th>Реализ.</th>
-                    <th>Списано</th>
-                    <th>В ПФ</th>
-                    <th>Факт</th>
+                    <th>{t("Pereuchet.RawMaterial", "Сырьё")}</th>
+                    <th>{t("Pereuchet.UnitShort", "Ед.")}</th>
+                    <th>{t("Pereuchet.Price", "Цена")}</th>
+                    <th>{t("Pereuchet.OpeningShort", "Нач.")}</th>
+                    <th>{t("Pereuchet.Receipts", "Приход")}</th>
+                    <th>{t("Pereuchet.TransfersShort", "Перем.")}</th>
+                    <th>{t("Pereuchet.SoldShort", "Реализ.")}</th>
+                    <th>{t("Pereuchet.WrittenOff", "Списано")}</th>
+                    <th>{t("Pereuchet.InSemiFinished", "В ПФ")}</th>
+                    <th>{t("Pereuchet.Actual", "Факт")}</th>
                   </tr>
                 </thead>
 
                 <tbody>
                   {perRows.map((row, index) => (
                     <tr key={row.ID} className={row._changed ? "changed-row" : ""}>
-                      <td>{row.Name}</td>
+                      <td title={row.Name || ""}>{row.Name}</td>
                       <td>{row.Edizm}</td>
-                      <td className="text-right">{formatNumber(row.Price, 2)}</td>
-                      <td className="text-right">{formatNumber(row.Saldo0)}</td>
-                      <td className="text-right">{formatNumber(row.Postup)}</td>
-                      <td className="text-right">{formatNumber(row.Moved)}</td>
-                      <td className="text-right">{formatNumber(row.Realiz)}</td>
-                      <td className="text-right">{formatNumber(row.Spisano)}</td>
-                      <td className="text-right">{formatNumber(row.InPF)}</td>
+                      <td className="text-right">{formatNumber(row.Price, 2, locale)}</td>
+                      <td className="text-right">{formatNumber(row.Saldo0, 3, locale)}</td>
+                      <td className="text-right">{formatNumber(row.Postup, 3, locale)}</td>
+                      <td className="text-right">{formatNumber(row.Moved, 3, locale)}</td>
+                      <td className="text-right">{formatNumber(row.Realiz, 3, locale)}</td>
+                      <td className="text-right">{formatNumber(row.Spisano, 3, locale)}</td>
+                      <td className="text-right">{formatNumber(row.InPF, 3, locale)}</td>
                       <td>
                         <input
                           ref={(input) => {
                             perInputRefs.current[index] = input;
                           }}
-                          className="table-input text-right per-fact-input"
+                          className="table-input text-right pereuchet-fact-input"
                           value={row.OnFactInput}
                           onChange={(event) =>
                             updatePerOnFact(index, event.target.value)
@@ -970,8 +1126,8 @@ export default function PereuchetPage({
 
                   {perRows.length === 0 && (
                     <tr>
-                      <td colSpan="10" className="empty-cell">
-                        Данных переучета нет
+                      <td colSpan="10" className="empty-cell pereuchet-empty-row">
+                        {t("Pereuchet.NoStocktakeData", "Данных переучета нет")}
                       </td>
                     </tr>
                   )}
@@ -982,9 +1138,9 @@ export default function PereuchetPage({
         )}
 
         {activeMode === "list" && (
-          <section className="per-work-panel per-empty-panel">
+          <section className="pereuchet-work-panel pereuchet-empty-panel">
             <div>
-              Выберите дату и нажмите «Вывести переучет» или «Полуфабрикаты».
+              {t("Pereuchet.SelectModeHint", "Выберите дату и нажмите «Вывести переучет» или «Полуфабрикаты».")}
             </div>
           </section>
         )}

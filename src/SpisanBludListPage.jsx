@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-function formatDateTime(value) {
+function formatDateTime(value, locale) {
   if (!value) return "";
 
   const date = new Date(value);
@@ -9,7 +9,7 @@ function formatDateTime(value) {
     return value;
   }
 
-  return date.toLocaleString("ru-RU", {
+  return date.toLocaleString(locale, {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -31,7 +31,9 @@ function formatQty(value) {
 export default function SpisanBludListPage({
   data,
   onOpen,
-  onNew
+  onNew,
+  t = (key, fallback = "") => fallback,
+  locale = "ru-RU"
 }) {
   const [selectedId, setSelectedId] = useState(null);
 
@@ -59,34 +61,40 @@ export default function SpisanBludListPage({
     : [];
 
   return (
-  <div className="perem-page">
-    <div className="perem-layout">
-      <div className="perem-left">
-<div className="perem-panel-title perem-list-header">
-  <span>Накладные списания блюд</span>
+  <div className="spisan-blud-list-page">
+    <div className="spisan-blud-list-layout">
+      <section className="spisan-blud-list-panel">
+<div className="spisan-blud-panel-title spisan-blud-list-header">
+  <span>{t("SpisanBludList.Title", "Накладные списания блюд")}</span>
 
   <button
     type="button"
-    className="perem-new-button"
+    className="spisan-blud-new-button"
     onClick={() => onNew?.()}
   >
-    + Новое списание
+    + {t("SpisanBludList.NewWriteoff", "Новое списание")}
   </button>
 </div>
 
         {rows.length === 0 && (
-          <div className="perem-empty">
-            Накладные списания блюд не найдены.
+          <div className="spisan-blud-empty">
+            {t("SpisanBludList.EmptyList", "Накладные списания блюд не найдены.")}
           </div>
         )}
 
         {rows.length > 0 && (
-        <div className="table-wrap perem-list-wrap">
+        <div className="table-wrap spisan-blud-list-wrap">
           <table className="data-table spisan-blud-list-table">
+            <colgroup>
+              <col className="spisan-blud-col-date" />
+              <col className="spisan-blud-col-expense" />
+              <col className="spisan-blud-col-action" />
+            </colgroup>
+
             <thead>
               <tr>
-                <th>Дата</th>
-                <th>Статья затрат</th>
+                <th>{t("SpisanBludList.Date", "Дата")}</th>
+                <th>{t("SpisanBludList.ExpenseItem", "Статья затрат")}</th>
                 <th className="action-column"></th>
               </tr>
             </thead>
@@ -98,18 +106,18 @@ export default function SpisanBludListPage({
                   className={row.ID === selectedNakl?.ID ? "selected-row" : ""}
                   onClick={() => setSelectedId(row.ID)}
                 >
-                  <td>{formatDateTime(row.DateP)}</td>
-                  <td>{row.NazvSpisania}</td>
+                  <td>{formatDateTime(row.DateP, locale)}</td>
+                  <td title={row.NazvSpisania ?? ""}>{row.NazvSpisania}</td>
    <td className="action-column center">
   <button
     type="button"
-    className="perem-open-button"
+    className="spisan-blud-open-button"
     onClick={(event) => {
       event.stopPropagation();
       onOpen?.(row);
     }}
   >
-    Открыть
+    {t("SpisanBludList.Open", "Открыть")}
   </button>
 </td>
 
@@ -119,48 +127,54 @@ export default function SpisanBludListPage({
           </table>
         </div>
         )}
-      </div>
+      </section>
 
-      <div className="perem-right">
-        <div className="perem-panel-title">
-          Содержимое списания блюд
+      <section className="spisan-blud-items-panel">
+        <div className="spisan-blud-panel-title spisan-blud-content-header">
+          {t("SpisanBludList.ContentsTitle", "Содержимое списания блюд")}
         </div>
 
-        <div className="perem-info">
-          <span>Дата: {formatDateTime(selectedNakl?.DateP)}</span>
-          <span>Статья затрат: {selectedNakl?.NazvSpisania ?? ""}</span>
+        <div className="spisan-blud-info">
+          <span>{t("SpisanBludList.DateLabel", "Дата:")} {formatDateTime(selectedNakl?.DateP, locale)}</span>
+          <span>{t("SpisanBludList.ExpenseItemLabel", "Статья затрат:")} {selectedNakl?.NazvSpisania ?? ""}</span>
         </div>
 
-        <div className="table-wrap perem-items-wrap">
+        <div className="table-wrap spisan-blud-items-wrap">
           <table className="data-table spisan-blud-items-table">
+            <colgroup>
+              <col className="spisan-blud-item-col-name" />
+              <col className="spisan-blud-item-col-qty" />
+              <col className="spisan-blud-item-col-warehouse" />
+            </colgroup>
+
             <thead>
               <tr>
-                <th>Блюдо</th>
-                <th>Кол-во</th>
-                <th>Склад</th>
+                <th>{t("SpisanBludList.Dish", "Блюдо")}</th>
+                <th>{t("SpisanBludList.Quantity", "Кол-во")}</th>
+                <th>{t("SpisanBludList.Warehouse", "Склад")}</th>
               </tr>
             </thead>
 
             <tbody>
               {items.length === 0 && (
                 <tr>
-                  <td colSpan="3">
-                    Содержимое накладной пустое.
+                  <td className="spisan-blud-empty-row" colSpan="3">
+                    {t("SpisanBludList.EmptyContents", "Содержимое накладной пустое.")}
                   </td>
                 </tr>
               )}
 
               {items.map((item, index) => (
                 <tr key={`${selectedNakl?.ID}-${index}`}>
-                  <td>{item.Name}</td>
+                  <td title={item.Name ?? ""}>{item.Name}</td>
                   <td className="text-right">{formatQty(item.Kolvo)}</td>
-                  <td>{item.SkladName}</td>
+                  <td title={item.SkladName ?? ""}>{item.SkladName}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      </div>
+      </section>
     </div>
   </div>
 );

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+
 const cardsPFields = [
   "ID",
   "Name",
@@ -16,11 +17,14 @@ const cardsSaldFields = [
 ];
 
 export default function SuppliersPage({
+  t = (_, fallback = "") => fallback,
+  locale = "ru-RU",
   data,
   org,
   readOnly,
   onAddSupplier,
-  onSaveSupplier
+  onSaveSupplier,
+  onDirtyChange
 }) {
   const [rows, setRows] = useState([]);
   const [changedRows, setChangedRows] = useState({});
@@ -29,6 +33,35 @@ export default function SuppliersPage({
   const [saveLoading, setSaveLoading] = useState(false);
   const [error, setError] = useState("");
   const [skrFilter, setSkrFilter] = useState("active");
+
+  const changedCount = Object.keys(changedRows).length;
+  const isDirty = !readOnly && changedCount > 0;
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
+
+  useEffect(() => {
+    return () => {
+      onDirtyChange?.(false);
+    };
+  }, [onDirtyChange]);
+
+  useEffect(() => {
+    function handleBeforeUnload(event) {
+      if (!isDirty) return;
+
+      event.preventDefault();
+      event.returnValue = "";
+    }
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [isDirty]);
+
   useEffect(() => {
     setRows(Array.isArray(data) ? data : []);
     setChangedRows({});
@@ -39,16 +72,16 @@ export default function SuppliersPage({
   }, [data]);
   
   function getOrgCode() {
-  if (!org) return 0;
+    if (!org) return 0;
 
-  if (typeof org === "object") {
-    const n = Number(org.ID ?? org.id ?? 0);
+    if (typeof org === "object") {
+      const n = Number(org.ID ?? org.id ?? 0);
+      return Number.isFinite(n) ? n : 0;
+    }
+
+    const n = Number(org);
     return Number.isFinite(n) ? n : 0;
   }
-
-  const n = Number(org);
-  return Number.isFinite(n) ? n : 0;
-}
 
   const filteredRows = rows.filter((row) => {
     if (skrFilter === "all") return true;
@@ -99,28 +132,33 @@ export default function SuppliersPage({
   }
 
   function buildRowsXml(sourceRows, fields) {
-  return sourceRows
-    .map((row) => {
-      const orgFromProp = getOrgCode();
-      const orgFromRow = Number(row.org);
+    return sourceRows
+      .map((row) => {
+        const orgFromProp = getOrgCode();
+        const orgFromRow = Number(row.org);
 
-      const rowForXml = {
-        ...row,
-        org: orgFromProp > 0
-          ? orgFromProp
-          : Number.isFinite(orgFromRow)
-            ? orgFromRow
-            : 0
-      };
+        const rowForXml = {
+          ...row,
+          org:
+            orgFromProp > 0
+              ? orgFromProp
+              : Number.isFinite(orgFromRow)
+                ? orgFromRow
+                : 0
+        };
 
-      const fieldsXml = fields
-        .map((field) => `<${field}>${xmlValue(rowForXml[field])}</${field}>`)
-        .join("");
+        const fieldsXml = fields
+          .map(
+            (field) =>
+              `<${field}>${xmlValue(rowForXml[field])}</${field}>`
+          )
+          .join("");
 
-      return `<row>${fieldsXml}</row>`;
-    })
-    .join("");
-}
+        return `<row>${fieldsXml}</row>`;
+      })
+      .join("");
+  }
+
   function buildSupplierXml(sourceRows) {
     const cardsPXml = buildRowsXml(sourceRows, cardsPFields);
     const cardsSaldXml = buildRowsXml(sourceRows, cardsSaldFields);
@@ -154,7 +192,7 @@ export default function SuppliersPage({
         setSkrFilter("active");
       }
     } catch (err) {
-      setError(err.message || "Ошибка добавления поставщика");
+      setError(err.message || t("Suppliers.ErrorAdd", "Ошибка добавления поставщика"));
     } finally {
       setAddLoading(false);
     }
@@ -173,16 +211,15 @@ export default function SuppliersPage({
     setError("");
 
     try {
-      const changedItems = rows.filter((row) =>
-        changedRows[row.ID]
-      );
+      const changedItems = rows.filter((row) => changedRows[row.ID]);
+      const xml = buildSupplierXml(changedItems);
 
- const xml = buildSupplierXml(changedItems);
+      await onSaveSupplier(xml);
 
-await onSaveSupplier(xml);
-
-setChangedRows({});    } catch (err) {
-      setError(err.message || "Ошибка сохранения поставщиков");
+      setChangedRows({});
+      onDirtyChange?.(false);
+    } catch (err) {
+      setError(err.message || t("Suppliers.ErrorSave", "Ошибка сохранения поставщиков"));
     } finally {
       setSaveLoading(false);
     }
@@ -194,21 +231,21 @@ setChangedRows({});    } catch (err) {
         <div className="toolbar-left">
 
           <label className="filter-label">
-            Фильтр:
+            {t("Suppliers.Filter", "Фильтр")}:
             <select
               className="suppliers-filter-select"
               value={skrFilter}
               onChange={(e) => setSkrFilter(e.target.value)}
             >
-              <option value="active">Активные</option>
-              <option value="all">Все</option>
-              <option value="hidden">Скрытые</option>
+              <option value="active">{t("Suppliers.Active", "Активные")}</option>
+              <option value="all">{t("Suppliers.All", "Все")}</option>
+              <option value="hidden">{t("Suppliers.Hidden", "Скрытые")}</option>
             </select>
           </label>
 
-          {Object.keys(changedRows).length > 0 && (
+          {changedCount > 0 && (
             <span className="changed-info">
-              Изменено: {Object.keys(changedRows).length}
+              {t("Suppliers.Changed", "Изменено")}: {changedCount}
             </span>
           )}
         </div>
@@ -221,7 +258,7 @@ setChangedRows({});    } catch (err) {
               disabled={addLoading}
               onClick={addNewSupplier}
             >
-              {addLoading ? "Добавление..." : "Добавить"}
+              {addLoading ? t("Suppliers.Adding", "Добавление...") : t("Suppliers.Add", "Добавить")}
             </button>
           )}
 
@@ -229,10 +266,10 @@ setChangedRows({});    } catch (err) {
             <button
               type="button"
               className="toolbar-save-button suppliers-save-button"
-              disabled={Object.keys(changedRows).length === 0 || saveLoading}
+              disabled={changedCount === 0 || saveLoading}
               onClick={saveSupplier}
             >
-              {saveLoading ? "Сохранение..." : "Сохранить"}
+              {saveLoading ? t("Suppliers.Saving", "Сохранение...") : t("Suppliers.Save", "Сохранить")}
             </button>
           )}
         </div>
@@ -245,24 +282,34 @@ setChangedRows({});    } catch (err) {
       )}
 
       {rows.length === 0 && (
-        <div className="perem-empty suppliers-empty">Список поставщиков пуст.</div>
+        <div className="suppliers-empty">{t("Suppliers.Empty", "Список поставщиков пуст.")}</div>
       )}
 
       {rows.length > 0 && filteredRows.length === 0 && (
-        <div className="perem-empty suppliers-empty">По выбранному фильтру поставщиков нет.</div>
+        <div className="suppliers-empty">{t("Suppliers.EmptyFilter", "По выбранному фильтру поставщиков нет.")}</div>
       )}
 
       {filteredRows.length > 0 && (
-        <div className="table-wrap table-wrap-suppliers suppliers-table-wrap">
-          <table className="data-table compact-table suppliers-table">
-            <thead>
+        <section className="suppliers-table-panel">
+          <div className="table-wrap suppliers-table-wrap">
+            <table className="data-table suppliers-table">
+              <colgroup>
+                <col className="suppliers-col-name" />
+                <col className="suppliers-col-phone" />
+                <col className="suppliers-col-debt" />
+                <col className="suppliers-col-debt" />
+                <col className="suppliers-col-flag" />
+                <col className="suppliers-col-flag" />
+              </colgroup>
+
+              <thead>
               <tr>
-                <th>Поставщик</th>
-                <th>Телефон</th>
-                <th>Долг нал.</th>
-                <th>Долг безнал.</th>
-                <th>Скр.</th>
-                <th>Служ.</th>
+                <th>{t("Suppliers.Supplier", "Поставщик")}</th>
+                <th>{t("Suppliers.Phone", "Телефон")}</th>
+                <th>{t("Suppliers.CashDebt", "Долг нал.")}</th>
+                <th>{t("Suppliers.CashlessDebt", "Долг безнал.")}</th>
+                <th>{t("Suppliers.HiddenAbbr", "Скр.")}</th>
+                <th>{t("Suppliers.ServiceAbbr", "Служ.")}</th>
               </tr>
             </thead>
 
@@ -281,6 +328,7 @@ setChangedRows({});    } catch (err) {
                       className="table-input"
                       type="text"
                       value={row.Name ?? ""}
+                      title={row.Name ?? ""}
                       disabled={readOnly}
                       onChange={(e) => updateField(row.ID, "Name", e.target.value)}
                     />
@@ -291,6 +339,7 @@ setChangedRows({});    } catch (err) {
                       className="table-input"
                       type="text"
                       value={row.Phone ?? ""}
+                      title={row.Phone ?? ""}
                       disabled={readOnly}
                       onChange={(e) => updateField(row.ID, "Phone", e.target.value)}
                     />
@@ -335,9 +384,10 @@ setChangedRows({});    } catch (err) {
                   </td>
                 </tr>
               ))}
-            </tbody>
-          </table>
-        </div>
+              </tbody>
+            </table>
+          </div>
+        </section>
       )}
     </div>
   );

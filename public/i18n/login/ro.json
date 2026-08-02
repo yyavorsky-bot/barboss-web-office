@@ -1,0 +1,23 @@
+
+{
+"language": "ro",
+"translations":{
+
+"Login.RequiredFieldsError": "Introduceți un alias, un nume de utilizator și o parolă",
+"Login.LoginError": "Eroare de conectare",
+"Login.Version": "Versiunea 1.1 © Yuri Yavorsky 2026",
+"Login.IntroDescription": "Spațiu de lucru pentru casa de marcat, depozit, comenzi și referințe restaurant",
+"Login.MainSectionsAriaLabel": "Secțiuni principale",
+"Login.Cash": "Casa de marcat",
+"Login.Warehouse": "Depozit",
+"Login.Orders": "Comandă",
+"Login.References": "Referințe",
+"Login.Title": "Autentificare Web Office",
+"Login.Subtitle": "Introduceți detaliile unității dvs.",
+"Login.AliasLabel": "Aliasul unității", "Login.AliasPlaceholder": "De exemplu: demo",
+"Login.LoginLabel": "Autentificare",
+"Login.PasswordLabel": "Parolă",
+"Login.LoggingIn": "Autentificare...",
+"Login.LoginButton": "Autentificare"
+}
+}

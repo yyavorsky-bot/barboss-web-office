@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+
 const groupFields = [
   "ID",
   "Name",
@@ -41,11 +42,14 @@ const skFields = [
 ];
 
 export default function GroupsPage({
+  t = (_, fallback = "") => fallback,
+  locale = "ru-RU",
   data,
   discounts,
   readOnly,
   onAddGroup,
-  onSaveGroup
+  onSaveGroup,
+  onDirtyChange
 }) {
   const [rows, setRows] = useState([]);
   const [changedRows, setChangedRows] = useState({});
@@ -53,6 +57,34 @@ export default function GroupsPage({
   const [addLoading, setAddLoading] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const changedCount = Object.keys(changedRows).length;
+  const isDirty = !readOnly && changedCount > 0;
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
+
+  useEffect(() => {
+    return () => {
+      onDirtyChange?.(false);
+    };
+  }, [onDirtyChange]);
+
+  useEffect(() => {
+    function handleBeforeUnload(event) {
+      if (!isDirty) return;
+
+      event.preventDefault();
+      event.returnValue = "";
+    }
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [isDirty]);
 
   useEffect(() => {
     setRows(Array.isArray(data) ? data : []);
@@ -153,7 +185,7 @@ export default function GroupsPage({
 
       setSelectedId(newGroup.ID);
     } catch (err) {
-      setError(err.message || "Ошибка добавления группы блюд");
+      setError(err.message || t("Groups.ErrorAdd", "Ошибка добавления группы блюд"));
     } finally {
       setAddLoading(false);
     }
@@ -180,14 +212,13 @@ export default function GroupsPage({
       await onSaveGroup(xml);
 
       setChangedRows({});
+      onDirtyChange?.(false);
     } catch (err) {
-      setError(err.message || "Ошибка сохранения групп блюд");
+      setError(err.message || t("Groups.ErrorSave", "Ошибка сохранения групп блюд"));
     } finally {
       setSaveLoading(false);
     }
   }
-
-  const changedCount = Object.keys(changedRows).length;
 
   return (
     <div className="groups-page">
@@ -195,7 +226,7 @@ export default function GroupsPage({
         <div className="toolbar-left">
           {changedCount > 0 && (
             <span className="changed-info">
-              Изменено: {changedCount}
+              {t("Groups.Changed", "Изменено")}: {changedCount}
             </span>
           )}
         </div>
@@ -208,7 +239,7 @@ export default function GroupsPage({
               disabled={addLoading}
               onClick={addNewGroup}
             >
-              {addLoading ? "Добавление..." : "Добавить"}
+              {addLoading ? t("Groups.Adding", "Добавление...") : t("Groups.Add", "Добавить")}
             </button>
           )}
 
@@ -219,7 +250,7 @@ export default function GroupsPage({
               disabled={changedCount === 0 || saveLoading}
               onClick={saveGroups}
             >
-              {saveLoading ? "Сохранение..." : "Сохранить"}
+              {saveLoading ? t("Groups.Saving", "Сохранение...") : t("Groups.Save", "Сохранить")}
             </button>
           )}
         </div>
@@ -232,51 +263,55 @@ export default function GroupsPage({
       )}
 
       {rows.length === 0 && (
-        <div className="perem-empty groups-empty">Список групп блюд пуст.</div>
+        <div className="groups-empty">{t("Groups.Empty", "Список групп блюд пуст.")}</div>
       )}
 
       {rows.length > 0 && (
-        <div className="table-wrap groups-table-wrap">
-<table className="data-table groups-table">
-  <colgroup>
-    <col className="col-group-name" />
-    <col className="col-group-ind" />
-    <col className="col-group-parent" />
+        <section className="groups-table-panel">
+          <div className="table-wrap groups-table-wrap">
+            <table className="data-table groups-table">
+              <colgroup>
+                <col className="col-group-name" />
+                <col className="col-group-ind" />
+                <col className="col-group-parent" />
 
-    {skFields.map((field) => (
-      <col key={field} className="col-sk" />
-    ))}
-  </colgroup>
+                {skFields.map((field) => (
+                  <col key={field} className="col-sk" />
+                ))}
+              </colgroup>
 
-  <thead>
-    <tr>
-    <th>Название</th>
-    <th>Индекс сортировки</th>
-    <th>Родительская группа</th>
+              <thead>
+                <tr>
+                  <th>{t("Groups.Name", "Название")}</th>
+                  <th>{t("Groups.SortIndex", "Индекс сортировки")}</th>
+                  <th>{t("Groups.ParentGroup", "Родительская группа")}</th>
 
-    {skFields.map((field) => {
-      const discount = getDiscountBySkField(field);
-      const isBonus = discount?.isBon === true;
+                  {skFields.map((field) => {
+                    const discount = getDiscountBySkField(field);
+                    const isBonus = discount?.isBon === true;
 
-      return (
-<th
-  key={field}
-  className={`sk-head ${isBonus ? "discount-bonus-head" : ""}`}
->
-          <div className="discount-head-cell">
-            <div className="discount-head-name">
-              {discount?.Name ?? field}
-            </div>
+                    return (
+                      <th
+                        key={field}
+                        className={`sk-head ${
+                          isBonus ? "discount-bonus-head" : ""
+                        }`}
+                        title={discount?.Name ?? field}
+                      >
+                        <div className="discount-head-cell">
+                          <div className="discount-head-name">
+                            {discount?.Name ?? field}
+                          </div>
 
-            <div className="discount-head-value">
-              {discount?.Discount ?? ""}
-            </div>
-          </div>
-        </th>
-      );
-    })}
-  </tr>
-</thead>
+                          <div className="discount-head-value">
+                            {discount?.Discount ?? ""}
+                          </div>
+                        </div>
+                      </th>
+                    );
+                  })}
+                </tr>
+              </thead>
             <tbody>
               {rows.map((row) => (
                 <tr
@@ -292,6 +327,7 @@ export default function GroupsPage({
                       className="table-input group-name-input"
                       type="text"
                       value={row.Name ?? ""}
+                      title={row.Name ?? ""}
                       disabled={readOnly}
                       onChange={(e) =>
                         updateField(row.ID, "Name", e.target.value)
@@ -337,28 +373,31 @@ export default function GroupsPage({
                   </td>
 
                   {skFields.map((field) => (
-   <td key={`${row.ID}-${field}`} className="sk-cell">
-    <input
-  className="groups-sk-input"
-  type="number"
-  step="0.01"
-  value={row[field] ?? ""}
-  disabled={readOnly}
-  onChange={(e) =>
-    updateField(
-      row.ID,
-      field,
-      e.target.value === "" ? null : Number(e.target.value)
-    )
-  }
-/>
+                    <td key={`${row.ID}-${field}`} className="sk-cell">
+                      <input
+                        className="groups-sk-input"
+                        type="number"
+                        step="0.01"
+                        value={row[field] ?? ""}
+                        disabled={readOnly}
+                        onChange={(e) =>
+                          updateField(
+                            row.ID,
+                            field,
+                            e.target.value === ""
+                              ? null
+                              : Number(e.target.value)
+                          )
+                        }
+                      />
                     </td>
                   ))}
                 </tr>
               ))}
-            </tbody>
-          </table>
-        </div>
+              </tbody>
+            </table>
+          </div>
+        </section>
       )}
     </div>
   );

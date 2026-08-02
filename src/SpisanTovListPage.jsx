@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-function formatDate(value) {
+function formatDate(value, locale) {
   if (!value) return "";
 
   const date = new Date(value);
@@ -9,7 +9,7 @@ function formatDate(value) {
     return value;
   }
 
-  return date.toLocaleDateString("ru-RU");
+  return date.toLocaleDateString(locale);
 }
 
 function formatMoney(value) {
@@ -35,7 +35,9 @@ function formatQty(value) {
 export default function SpisanTovListPage({
   data,
   onOpen,
-  onNew
+  onNew,
+  t = (key, fallback = "") => fallback,
+  locale = "ru-RU"
 }) {
   const [selectedId, setSelectedId] = useState(null);
 
@@ -70,39 +72,47 @@ export default function SpisanTovListPage({
   }
 
   return (
-  <div className="perem-page">
-    <div className="perem-layout">
-      <div className="perem-left">
-        <div className="perem-panel-title perem-list-header">
-          <span>Накладные списания сырья</span>
+  <div className="spisan-tov-list-page">
+    <div className="spisan-tov-list-layout">
+      <section className="spisan-tov-list-panel">
+        <div className="spisan-tov-panel-title spisan-tov-list-header">
+          <span>{t("SpisanTovList.Title", "Накладные списания сырья")}</span>
 
           {onNew && (
             <button
               type="button"
-              className="perem-new-button"
+              className="spisan-tov-new-button"
               onClick={onNew}
             >
-              + Новое списание
+              + {t("SpisanTovList.NewWriteoff", "Новое списание")}
             </button>
           )}
         </div>
 
         {rows.length === 0 && (
-          <div className="perem-empty">
-            Накладные списания сырья не найдены.
+          <div className="spisan-tov-empty">
+            {t("SpisanTovList.EmptyList", "Накладные списания сырья не найдены.")}
           </div>
         )}
 
         {rows.length > 0 && (
-        <div className="table-wrap perem-list-wrap">
-          <table className="data-table perem-list-table">
+        <div className="table-wrap spisan-tov-list-wrap">
+          <table className="data-table spisan-tov-list-table">
+            <colgroup>
+              <col className="spisan-tov-col-date" />
+              <col className="spisan-tov-col-number" />
+              <col className="spisan-tov-col-expense" />
+              <col className="spisan-tov-col-amount" />
+              <col className="spisan-tov-col-action" />
+            </colgroup>
+
             <thead>
               <tr>
-                <th>Дата</th>
-                <th>№</th>
-                <th>Статья затрат</th>
-                <th>Сумма</th>
-                <th>Просмотр</th>
+                <th>{t("SpisanTovList.Date", "Дата")}</th>
+                <th>{t("SpisanTovList.Number", "№")}</th>
+                <th>{t("SpisanTovList.ExpenseItem", "Статья затрат")}</th>
+                <th>{t("SpisanTovList.Amount", "Сумма")}</th>
+                <th>{t("SpisanTovList.View", "Просмотр")}</th>
               </tr>
             </thead>
 
@@ -113,20 +123,20 @@ export default function SpisanTovListPage({
                   className={row.ID === selectedNakl?.ID ? "selected-row" : ""}
                   onClick={() => setSelectedId(row.ID)}
                 >
-                  <td>{formatDate(row.DatP)}</td>
+                  <td>{formatDate(row.DatP, locale)}</td>
                   <td>{row.Nakl}</td>
-                  <td>{row.Name}</td>
+                  <td title={row.Name ?? ""}>{row.Name}</td>
                   <td className="text-right">{formatMoney(row.Summ)}</td>
                   <td className="center">
                     <button
                       type="button"
-                      className="perem-open-button"
+                      className="spisan-tov-open-button"
                       onClick={(event) => {
                         event.stopPropagation();
                         openRow(row);
                       }}
                     >
-                      Открыть
+                      {t("SpisanTovList.Open", "Открыть")}
                     </button>
                   </td>
                 </tr>
@@ -135,42 +145,49 @@ export default function SpisanTovListPage({
           </table>
         </div>
         )}
-      </div>
+      </section>
 
-      <div className="perem-right">
-        <div className="perem-panel-title">
-          Содержимое накладной № {selectedNakl?.Nakl ?? ""}
+      <section className="spisan-tov-items-panel">
+        <div className="spisan-tov-panel-title spisan-tov-content-header">
+          {t("SpisanTovList.ContentsTitle", "Содержимое накладной №")} {selectedNakl?.Nakl ?? ""}
         </div>
 
-        <div className="perem-info">
-          <span>Дата: {formatDate(selectedNakl?.DatP)}</span>
-          <span>Статья затрат: {selectedNakl?.Name ?? ""}</span>
-          <span>Сумма: {formatMoney(selectedNakl?.Summ)}</span>
+        <div className="spisan-tov-info">
+          <span>{t("SpisanTovList.DateLabel", "Дата:")} {formatDate(selectedNakl?.DatP, locale)}</span>
+          <span>{t("SpisanTovList.ExpenseItemLabel", "Статья затрат:")} {selectedNakl?.Name ?? ""}</span>
+          <span>{t("SpisanTovList.AmountLabel", "Сумма:")} {formatMoney(selectedNakl?.Summ)}</span>
         </div>
 
-        <div className="table-wrap perem-items-wrap">
-          <table className="data-table perem-items-table">
+        <div className="table-wrap spisan-tov-items-wrap">
+          <table className="data-table spisan-tov-items-table">
+            <colgroup>
+              <col className="spisan-tov-item-col-name" />
+              <col className="spisan-tov-item-col-qty" />
+              <col className="spisan-tov-item-col-price" />
+              <col className="spisan-tov-item-col-amount" />
+            </colgroup>
+
             <thead>
               <tr>
-                <th>Наименование</th>
-                <th>Кол-во</th>
-                <th>Цена</th>
-                <th>Сумма</th>
+                <th>{t("SpisanTovList.Name", "Наименование")}</th>
+                <th>{t("SpisanTovList.Quantity", "Кол-во")}</th>
+                <th>{t("SpisanTovList.Price", "Цена")}</th>
+                <th>{t("SpisanTovList.Amount", "Сумма")}</th>
               </tr>
             </thead>
 
             <tbody>
               {items.length === 0 && (
                 <tr>
-                  <td colSpan="4">
-                    Содержимое накладной пустое.
+                  <td className="spisan-tov-empty-row" colSpan="4">
+                    {t("SpisanTovList.EmptyContents", "Содержимое накладной пустое.")}
                   </td>
                 </tr>
               )}
 
               {items.map((item, index) => (
                 <tr key={`${selectedNakl?.ID}-${index}`}>
-                  <td>{item.Name}</td>
+                  <td title={item.Name ?? ""}>{item.Name}</td>
                   <td className="text-right">{formatQty(item.Kolvo)}</td>
                   <td className="text-right">{formatMoney(item.Price)}</td>
                   <td className="text-right">{formatMoney(item.Summ)}</td>
@@ -179,7 +196,7 @@ export default function SpisanTovListPage({
             </tbody>
           </table>
         </div>
-      </div>
+      </section>
     </div>
   </div>
 );

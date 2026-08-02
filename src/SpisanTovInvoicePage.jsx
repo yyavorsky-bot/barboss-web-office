@@ -23,6 +23,9 @@ function makeTempId() {
   return -Date.now() - Math.floor(Math.random() * 1000);
 }
 
+const UNSAVED_CHANGES_MESSAGE =
+  "Внимание! Вы не сохранили измененные данные!\\nУверены, что хотите уйти?";
+
 function escapeXml(value) {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -45,6 +48,16 @@ function normalizeRawList(data) {
     .filter((item) => Number(item.ID || 0) > 0);
 }
 
+function normalizeItem(row) {
+  return {
+    CodeSpi: Number(row.CodeSpi || 0),
+    CodeTov: Number(row.CodeTov || 0),
+    Kolvo: Number(row.Kolvo || 0),
+    Price: Number(row.Price || 0),
+    Summ: Number(row.Summ || 0)
+  };
+}
+
 function normalizeState(header, rows) {
   return {
     header: {
@@ -54,13 +67,7 @@ function normalizeState(header, rows) {
       DatP: normalizeDate(header.DatP),
       Rem: header.Rem || ""
     },
-    items: rows.map((row) => ({
-      CodeSpi: Number(row.CodeSpi || 0),
-      CodeTov: Number(row.CodeTov || 0),
-      Kolvo: Number(row.Kolvo || 0),
-      Price: Number(row.Price || 0),
-      Summ: Number(row.Summ || 0)
-    }))
+    items: rows.map(normalizeItem)
   };
 }
 
@@ -70,7 +77,8 @@ function SearchableSelect({
   placeholder,
   onChange,
   onEnterNext,
-  cellIndex
+  cellIndex,
+  t = (key, fallback = "") => fallback
 }) {
   const selected = options.find((item) => Number(item.ID) === Number(value));
   const [text, setText] = useState(selected?.Name || "");
@@ -107,7 +115,7 @@ function SearchableSelect({
   }
 
   return (
-    <div className="searchable-select">
+    <div className="searchable-select spisan-tov-invoice-raw-search">
       <input
         data-cell={cellIndex}
         value={text}
@@ -139,7 +147,7 @@ function SearchableSelect({
       {open && (
         <div className="searchable-select-list">
           {filtered.length === 0 && (
-            <div className="searchable-select-empty">Ничего не найдено</div>
+            <div className="searchable-select-empty">{t("SpisanTovInvoice.SearchNothingFound", "Ничего не найдено")}</div>
           )}
 
           {filtered.map((item) => (
@@ -165,7 +173,9 @@ export default function SpisanTovInvoicePage({
   initialData,
   currentSklad,
   fetchWithAuth,
-  onBack
+  onBack,
+  onDirtyChange,
+  t = (key, fallback = "") => fallback
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -186,10 +196,39 @@ export default function SpisanTovInvoicePage({
 
   const currentState = header ? normalizeState(header, rows) : null;
 
-  const isDirty =
-    originalState &&
-    currentState &&
-    JSON.stringify(currentState) !== JSON.stringify(originalState);
+  const isDirty = Boolean(
+    deletedIds.length > 0 ||
+      (
+        originalState &&
+        currentState &&
+        JSON.stringify(currentState) !== JSON.stringify(originalState)
+      )
+  );
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
+
+  useEffect(() => {
+    return () => {
+      onDirtyChange?.(false);
+    };
+  }, [onDirtyChange]);
+
+  useEffect(() => {
+    function handleBeforeUnload(event) {
+      if (!isDirty) return;
+
+      event.preventDefault();
+      event.returnValue = "";
+    }
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [isDirty]);
 
   useEffect(() => {
     loadData();
@@ -244,10 +283,34 @@ const normalizedHeader = {
       setDeletedIds([]);
       setOriginalState(normalizeState(normalizedHeader, loadedRows));
     } catch (err) {
-      setError(err.message || "Ошибка загрузки накладной списания");
+      setError(err.message || t("SpisanTovInvoice.LoadError", "Ошибка загрузки накладной списания"));
     } finally {
       setLoading(false);
     }
+  }
+
+  function isRowDirty(row) {
+    if (!originalState) return false;
+
+    const originalRow = originalState.items.find(
+      (item) => Number(item.CodeSpi) === Number(row.CodeSpi)
+    );
+
+    if (!originalRow) return true;
+
+    return (
+      JSON.stringify(normalizeItem(row)) !==
+      JSON.stringify(originalRow)
+    );
+  }
+
+  function handleBackClick() {
+    if (isDirty && !window.confirm(t("SpisanTovInvoice.UnsavedChangesWarning", UNSAVED_CHANGES_MESSAGE))) {
+      return;
+    }
+
+    onDirtyChange?.(false);
+    onBack?.();
   }
 
   function updateHeaderField(field, value) {
@@ -293,7 +356,7 @@ const normalizedHeader = {
   }
 
   function deleteRow(rowId) {
-    const ok = window.confirm("Удалить строку?");
+    const ok = window.confirm(t("SpisanTovInvoice.DeleteRowConfirm", "Удалить строку?"));
     if (!ok) return;
 
     setRows((prevRows) => prevRows.filter((row) => row.CodeSpi !== rowId));
@@ -361,7 +424,7 @@ ${deletedXml}
 
   async function handleSave() {
     if (Number(header?.IDzatr || 0) <= 0) {
-      alert("!!! Выберите статью затрат.");
+      alert(t("SpisanTovInvoice.ExpenseRequired", "!!! Выберите статью затрат."));
       return;
     }
 
@@ -391,21 +454,22 @@ ${deletedXml}
       try {
         data = JSON.parse(text);
       } catch {
-        throw new Error("Сервер вернул не JSON: " + text.substring(0, 500));
+        throw new Error(t("SpisanTovInvoice.ServerNonJsonPrefix", "Сервер вернул не JSON:") + " " + text.substring(0, 500));
       }
 
       if (!response.ok || data.status !== "success") {
-        throw new Error(data.error || "Ошибка сохранения накладной списания");
+        throw new Error(data.error || t("SpisanTovInvoice.SaveError", "Ошибка сохранения накладной списания"));
       }
 
+      onDirtyChange?.(false);
       onBack?.();
     } catch (err) {
-      alert(err.message || "Ошибка сохранения накладной списания");
+      alert(err.message || t("SpisanTovInvoice.SaveError", "Ошибка сохранения накладной списания"));
     }
   }
 
   if (loading) {
-    return <p>Загрузка накладной...</p>;
+    return <p>{t("SpisanTovInvoice.Loading", "Загрузка накладной...")}</p>;
   }
 
   if (error) {
@@ -413,41 +477,41 @@ ${deletedXml}
   }
 
   if (!header) {
-    return <p>Накладная не выбрана.</p>;
+    return <p>{t("SpisanTovInvoice.NotSelected", "Накладная не выбрана.")}</p>;
   }
 
   let cellIndex = 1;
 
   return (
-    <div className="prih-page">
-      <div className="form-header-panel prih-form-header spisan-tov-form-header">
+    <div className="prih-page spisan-tov-invoice-page">
+      <div className="form-header-panel prih-form-header spisan-tov-invoice-form-header">
         <div className="page-toolbar">
         <button
           type="button"
-          className="back-to-list-button prih-back-button"
-          onClick={onBack}
+          className="back-to-list-button prih-back-button spisan-tov-invoice-back-button"
+          onClick={handleBackClick}
         >
-          ← К списку списаний
+          ← {t("SpisanTovInvoice.BackToList", "К списку списаний")}
         </button>
 
         <button
           type="button"
-          className="primary-button"
+          className="primary-button spisan-tov-invoice-save-button"
           disabled={!isDirty}
           onClick={handleSave}
         >
-          Сохранить
+          {t("SpisanTovInvoice.Save", "Сохранить")}
         </button>
       </div>
 
-      <div className="prih-title">
-        Накладная списания № <strong>{header.Nakl}</strong> от{" "}
+      <div className="prih-title spisan-tov-invoice-title">
+        {t("SpisanTovInvoice.Title", "Накладная списания")} № <strong>{header.Nakl}</strong> {t("SpisanTovInvoice.DateSeparator", "от")}{" "}
         <strong>{header.DatP}</strong>
       </div>
 
-      <div className="prih-header-grid spisan-tov-header-grid">
+      <div className="prih-header-grid spisan-tov-invoice-header-grid">
         <label className="calc-field">
-          <span>Номер</span>
+          <span>{t("SpisanTovInvoice.Number", "Номер")}</span>
           <input
             value={header.Nakl}
             onChange={(e) => updateHeaderField("Nakl", e.target.value)}
@@ -455,7 +519,7 @@ ${deletedXml}
         </label>
 
         <label className="calc-field">
-          <span>Дата</span>
+          <span>{t("SpisanTovInvoice.Date", "Дата")}</span>
           <input
             type="date"
             value={header.DatP}
@@ -464,7 +528,7 @@ ${deletedXml}
         </label>
 
         <label className="calc-field">
-          <span>Затраты</span>
+          <span>{t("SpisanTovInvoice.Expenses", "Затраты")}</span>
 
           <select
             value={header.IDzatr}
@@ -472,7 +536,7 @@ ${deletedXml}
               updateHeaderField("IDzatr", Number(e.target.value || 0))
             }
           >
-            <option value="0">Выберите затраты...</option>
+            <option value="0">{t("SpisanTovInvoice.SelectExpenses", "Выберите затраты...")}</option>
 
             {zatrList.map((item) => (
               <option key={item.ID} value={item.ID}>
@@ -482,8 +546,8 @@ ${deletedXml}
           </select>
         </label>
 
-<label className="calc-field calc-field-wide">
-  <span>Примечание</span>
+<label className="calc-field calc-field-wide spisan-tov-invoice-rem-field">
+  <span>{t("SpisanTovInvoice.Note", "Примечание")}</span>
 
   <input
     value={header.Rem || ""}
@@ -492,32 +556,40 @@ ${deletedXml}
 </label>
 
         <div className="calc-info">
-          <span>Сумма:</span>
+          <span>{t("SpisanTovInvoice.AmountLabel", "Сумма:")}</span>
           <strong>{formatMoney(totalSumm)}</strong>
         </div>
       </div>
       </div>
 
-      <div className="calc-panel-title prih-items-title">
-        <span>Содержимое списания</span>
+      <div className="calc-panel-title prih-items-title spisan-tov-invoice-items-title">
+        <span>{t("SpisanTovInvoice.ContentsTitle", "Содержимое списания")}</span>
 
         <button
           type="button"
-          className="prih-add-row-button"
+          className="prih-add-row-button spisan-tov-invoice-add-row-button"
           onClick={addRow}
         >
-          + строка
+          + {t("SpisanTovInvoice.AddRow", "строка")}
         </button>
       </div>
 
-      <div className="table-wrap prih-table-wrap">
-        <table className="data-table prih-table">
+      <div className="table-wrap prih-table-wrap spisan-tov-invoice-table-wrap">
+        <table className="data-table prih-table spisan-tov-invoice-table">
+          <colgroup>
+            <col className="spisan-tov-invoice-col-raw" />
+            <col className="spisan-tov-invoice-col-qty" />
+            <col className="spisan-tov-invoice-col-price" />
+            <col className="spisan-tov-invoice-col-amount" />
+            <col className="spisan-tov-invoice-col-delete" />
+          </colgroup>
+
           <thead>
             <tr>
-              <th>Сырьё</th>
-              <th>Кол-во</th>
-              <th>Цена</th>
-              <th>Сумма</th>
+              <th>{t("SpisanTovInvoice.RawMaterial", "Сырьё")}</th>
+              <th>{t("SpisanTovInvoice.Quantity", "Кол-во")}</th>
+              <th>{t("SpisanTovInvoice.Price", "Цена")}</th>
+              <th>{t("SpisanTovInvoice.Amount", "Сумма")}</th>
               <th></th>
             </tr>
           </thead>
@@ -525,19 +597,23 @@ ${deletedXml}
           <tbody>
             {rows.length === 0 && (
               <tr>
-                <td colSpan={5}>Строки не добавлены.</td>
+                <td className="spisan-tov-invoice-empty-row" colSpan={5}>{t("SpisanTovInvoice.EmptyRows", "Строки не добавлены.")}</td>
               </tr>
             )}
 
             {rows.map((row) => (
-              <tr key={row.CodeSpi}>
+              <tr
+                key={row.CodeSpi}
+                className={isRowDirty(row) ? "changed-row" : ""}
+              >
                 <td>
                   <SearchableSelect
                     value={row.CodeTov}
                     options={rawList}
-                    placeholder="Выберите сырьё..."
+                    placeholder={t("SpisanTovInvoice.SelectRawMaterial", "Выберите сырьё...")}
                     cellIndex={cellIndex++}
                     onEnterNext={focusNextCell}
+                    t={t}
                     onChange={(value) => {
                       const selectedRaw = rawList.find(
                         (item) => Number(item.ID) === Number(value)
@@ -591,7 +667,9 @@ ${deletedXml}
                 <td>
                   <button
                     type="button"
-                    className="small-danger-button"
+                    className="small-danger-button spisan-tov-invoice-delete-button"
+                    title={t("SpisanTovInvoice.DeleteRow", "Удалить строку")}
+                    aria-label={t("SpisanTovInvoice.DeleteRow", "Удалить строку")}
                     onClick={() => deleteRow(row.CodeSpi)}
                   >
                     ×

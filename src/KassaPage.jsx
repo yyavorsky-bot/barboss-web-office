@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 
-function formatMoney(value) {
+function formatMoney(value, locale = "ru-RU") {
   const num = Number(value || 0);
 
-  return num.toLocaleString("ru-RU", {
+  return num.toLocaleString(locale, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   });
@@ -37,7 +37,7 @@ function formatDateForInput(value) {
   return `${year}-${month}-${day}`;
 }
 
-function formatDateDisplay(value) {
+function formatDateDisplay(value, locale = "ru-RU") {
   if (!value) return "";
 
   const date = new Date(value);
@@ -46,7 +46,7 @@ function formatDateDisplay(value) {
     return value;
   }
 
-  return date.toLocaleDateString("ru-RU");
+  return date.toLocaleDateString(locale);
 }
 
 function formatDateForApi(value) {
@@ -106,7 +106,10 @@ export default function KassaPage({
   onReload,
   onSave,
   onReceiveRevenue,
-  onLoadSupplierInvoices
+  onLoadSupplierInvoices,
+  onDirtyChange,
+  t = (key, fallback = "") => fallback,
+  locale = "ru-RU"
 }) {
   const [selectedPrihId, setSelectedPrihId] = useState(null);
   const [selectedRashodId, setSelectedRashodId] = useState(null);
@@ -126,6 +129,32 @@ export default function KassaPage({
   const valutId = Number(currentValut || 0);
   const readOnly = orgId === 0;
   const canEdit = orgId > 0;
+  const isDirty = Boolean(canEdit && hasChanges);
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
+
+  useEffect(() => {
+    return () => {
+      onDirtyChange?.(false);
+    };
+  }, [onDirtyChange]);
+
+  useEffect(() => {
+    function handleBeforeUnload(event) {
+      if (!isDirty) return;
+
+      event.preventDefault();
+      event.returnValue = "";
+    }
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [isDirty]);
 
   const prihRows = Array.isArray(data?.prih) ? data.prih : [];
 
@@ -194,7 +223,8 @@ export default function KassaPage({
         KodKl: normalizeNumber(row.KodKl),
         KodZatrat: normalizeNumber(row.KodZatrat),
         Rem: normalizeText(row.Rem),
-        Deleted: 0
+        Deleted: 0,
+        _changed: false
       }))
     );
 
@@ -208,7 +238,8 @@ export default function KassaPage({
         KodPost: normalizeNumber(row.KodPost),
         KodZatrat: normalizeNumber(row.KodZatrat),
         Rem: normalizeText(row.Rem),
-        Deleted: 0
+        Deleted: 0,
+        _changed: false
       }))
     );
 
@@ -250,6 +281,70 @@ export default function KassaPage({
 
   const saldEnd = sald0 + prihSum - rashodSum;
 
+  function confirmDiscardChanges() {
+    if (!isDirty) return true;
+
+    return window.confirm(
+      t(
+        "Kassa.UnsavedChangesWarning",
+        "Внимание! Вы не сохранили измененные данные!\nУверены, что хотите уйти?"
+      )
+    );
+  }
+
+  function discardLocalChanges() {
+    setHasChanges(false);
+    onDirtyChange?.(false);
+  }
+
+  async function handleProtectedDateChange(nextDate) {
+    const normalizedDate = formatDateForInput(nextDate);
+
+    if (!normalizedDate || normalizedDate === formatDateForInput(kassaDate)) {
+      return;
+    }
+
+    if (!confirmDiscardChanges()) {
+      return;
+    }
+
+    if (isDirty) {
+      discardLocalChanges();
+    }
+
+    await onDateChange?.(normalizedDate);
+  }
+
+  async function handleProtectedValutChange(nextValut) {
+    const normalizedValut = Number(nextValut || 0);
+
+    if (normalizedValut === valutId) {
+      return;
+    }
+
+    if (!confirmDiscardChanges()) {
+      return;
+    }
+
+    if (isDirty) {
+      discardLocalChanges();
+    }
+
+    await onValutChange?.(normalizedValut);
+  }
+
+  async function handleProtectedReload() {
+    if (!confirmDiscardChanges()) {
+      return;
+    }
+
+    if (isDirty) {
+      discardLocalChanges();
+    }
+
+    await onReload?.();
+  }
+
   function shiftDate(days) {
     if (!kassaDate) return;
 
@@ -259,7 +354,7 @@ export default function KassaPage({
 
     date.setDate(date.getDate() + days);
 
-    onDateChange?.(date.toISOString().slice(0, 10));
+    handleProtectedDateChange(date.toISOString().slice(0, 10));
   }
 
   function makeTempId() {
@@ -281,7 +376,8 @@ export default function KassaPage({
               ...row,
               [field]: ["Summa", "KodKl", "KodZatrat"].includes(field)
                 ? normalizeNumber(value)
-                : normalizeText(value)
+                : normalizeText(value),
+              _changed: true
             }
           : row
       )
@@ -297,7 +393,8 @@ export default function KassaPage({
               ...row,
               [field]: ["Summa", "KodPost", "KodZatrat"].includes(field)
                 ? normalizeNumber(value)
-                : normalizeText(value)
+                : normalizeText(value),
+              _changed: true
             }
           : row
       )
@@ -321,7 +418,8 @@ export default function KassaPage({
         KodKl: 0,
         KodZatrat: 0,
         Rem: "",
-        Deleted: 0
+        Deleted: 0,
+        _changed: true
       }
     ]);
 
@@ -345,7 +443,8 @@ export default function KassaPage({
         KodPost: 0,
         KodZatrat: 0,
         Rem: "",
-        Deleted: 0
+        Deleted: 0,
+        _changed: true
       }
     ]);
 
@@ -355,6 +454,10 @@ export default function KassaPage({
 
   function deletePrihRow(id) {
     if (!canEdit) return;
+
+    if (!window.confirm(t("Kassa.DeleteRowConfirm", "Удалить строку?"))) {
+      return;
+    }
 
     setEditPrihRows((rows) =>
       rows
@@ -370,6 +473,10 @@ export default function KassaPage({
 
   function deleteRashodRow(id) {
     if (!canEdit) return;
+
+    if (!window.confirm(t("Kassa.DeleteRowConfirm", "Удалить строку?"))) {
+      return;
+    }
 
     setEditRashodRows((rows) =>
       rows
@@ -495,7 +602,7 @@ function buildKassaXml() {
 
       await onReload?.();
     } catch (err) {
-      setSaveError(err.message || "Ошибка приема выручки");
+      setSaveError(err.message || t("Kassa.ReceiveRevenueError", "Ошибка приема выручки"));
     } finally {
       setReceivingRevenue(false);
     }
@@ -527,7 +634,7 @@ function buildKassaXml() {
       });
       setInvoiceTargetRowId(row.ID);
     } catch (err) {
-      setSaveError(err.message || "Ошибка загрузки накладных поставщика");
+      setSaveError(err.message || t("Kassa.SupplierInvoicesLoadError", "Ошибка загрузки накладных поставщика"));
     } finally {
       setInvoiceLoading(false);
     }
@@ -567,18 +674,30 @@ async function saveChanges() {
       console.log("Kassa save XML", xml);
     }
 
+    setEditPrihRows((rows) =>
+      rows.map((row) => ({ ...row, _changed: false }))
+    );
+    setEditRashodRows((rows) =>
+      rows.map((row) => ({ ...row, _changed: false }))
+    );
     setHasChanges(false);
+    onDirtyChange?.(false);
   } catch (err) {
-    setSaveError(err.message || "Ошибка сохранения кассы");
+    setSaveError(err.message || t("Kassa.SaveError", "Ошибка сохранения кассы"));
   } finally {
     setSaving(false);
   }
 }
   return (
-    <div className="kassa-page">
+    <div className="kassa-page kassa-editor-page">
       <div className="kassa-toolbar kassa-main-toolbar">
         <div className="kassa-date-panel">
-          <button type="button" className="kassa-date-nav-button" onClick={() => shiftDate(-1)}>
+          <button
+            type="button"
+            className="kassa-date-nav-button"
+            onClick={() => shiftDate(-1)}
+            disabled={saving || receivingRevenue}
+          >
             ←
           </button>
 
@@ -586,22 +705,31 @@ async function saveChanges() {
             type="date"
             className="kassa-main-date-input"
             value={kassaDate || ""}
-            onChange={(event) => onDateChange?.(event.target.value)}
+            onChange={(event) => handleProtectedDateChange(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === "ArrowUp" || event.key === "ArrowDown") {
                 event.preventDefault();
               }
             }}
-            disabled={hasChanges}
-            title={hasChanges ? "Сначала сохраните или обновите данные" : ""}
+            disabled={saving || receivingRevenue}
           />
 
-          <button type="button" className="kassa-date-nav-button" onClick={() => shiftDate(1)} disabled={hasChanges}>
+          <button
+            type="button"
+            className="kassa-date-nav-button"
+            onClick={() => shiftDate(1)}
+            disabled={saving || receivingRevenue}
+          >
             →
           </button>
 
-          <button type="button" className="kassa-refresh-button" onClick={() => onReload?.()} disabled={saving}>
-            Обновить
+          <button
+            type="button"
+            className="kassa-refresh-button"
+            onClick={handleProtectedReload}
+            disabled={saving || receivingRevenue}
+          >
+            {t("Kassa.Refresh", "Обновить")}
           </button>
 
           <button
@@ -610,7 +738,7 @@ async function saveChanges() {
             onClick={saveChanges}
             disabled={!canEdit || !hasChanges || saving}
           >
-            {saving ? "Сохранение..." : "Сохранить"}
+            {saving ? t("Kassa.Saving", "Сохранение...") : t("Kassa.Save", "Сохранить")}
           </button>
         </div>
 
@@ -620,18 +748,17 @@ async function saveChanges() {
             className="small-action-button receive-revenue-button kassa-revenue-button"
             onClick={receiveRevenue}
             disabled={hasChanges || saving || receivingRevenue}
-            title={hasChanges ? "Сначала сохраните или обновите данные" : ""}
+            title={hasChanges ? t("Kassa.SaveFirstHint", "Сначала сохраните или обновите данные") : ""}
           >
-            {receivingRevenue ? "Прием..." : "Прием выручки"}
+            {receivingRevenue ? t("Kassa.Receiving", "Прием...") : t("Kassa.ReceiveRevenue", "Прием выручки")}
           </button>
 
-          <span>Тип оплаты</span>
+          <span>{t("Kassa.PaymentType", "Тип оплаты")}</span>
 
           <select
             value={currentValut || ""}
-            onChange={(event) => onValutChange?.(Number(event.target.value))}
-            disabled={hasChanges}
-            title={hasChanges ? "Сначала сохраните или обновите данные" : ""}
+            onChange={(event) => handleProtectedValutChange(event.target.value)}
+            disabled={saving || receivingRevenue}
           >
             {valuts.map((item) => (
               <option key={item.ID} value={item.ID}>
@@ -644,8 +771,10 @@ async function saveChanges() {
 
       {readOnly && (
         <div className="readonly-notice">
-          Режим просмотра: выберите конкретную организацию для добавления и
-          редактирования кассовых операций.
+          {t(
+            "Kassa.ReadOnlyNotice",
+            "Режим просмотра: выберите конкретную организацию для добавления и редактирования кассовых операций."
+          )}
         </div>
       )}
 
@@ -653,54 +782,64 @@ async function saveChanges() {
 
       <div className="kassa-summary kassa-summary-panel">
         <div>
-          <span>Сальдо начальное:</span>
-          <strong>{formatMoney(sald0)}</strong>
+          <span>{t("Kassa.InitialBalance", "Сальдо начальное")}:</span>
+          <strong>{formatMoney(sald0, locale)}</strong>
         </div>
 
         <div>
-          <span>Приход:</span>
-          <strong>{formatMoney(prihSum)}</strong>
+          <span>{t("Kassa.Income", "Приход")}:</span>
+          <strong>{formatMoney(prihSum, locale)}</strong>
         </div>
 
         <div>
-          <span>Расход:</span>
-          <strong>{formatMoney(rashodSum)}</strong>
+          <span>{t("Kassa.Expense", "Расход")}:</span>
+          <strong>{formatMoney(rashodSum, locale)}</strong>
         </div>
 
         <div>
-          <span>Сальдо конечное:</span>
-          <strong>{formatMoney(saldEnd)}</strong>
+          <span>{t("Kassa.FinalBalance", "Сальдо конечное")}:</span>
+          <strong>{formatMoney(saldEnd, locale)}</strong>
         </div>
       </div>
 
       {invoiceSupplier && (
-        <div className="invoice-panel kassa-invoice-panel">
-          <div className="invoice-panel-header kassa-invoice-header">
+        <section className="kassa-invoice-panel">
+          <div className="kassa-invoice-header">
             <div>
-              <strong>Неоплаченные накладные</strong>
+              <strong>{t("Kassa.UnpaidInvoices", "Неоплаченные накладные")}</strong>
               <span>{invoiceSupplier.Name}</span>
             </div>
 
             <button
               type="button"
-              className="small-action-button prih-back-button"
+              className="small-action-button kassa-invoice-back-button"
               onClick={closeSupplierInvoices}
             >
-              Вернуться к кассе
+              {t("Kassa.BackToCash", "Вернуться к кассе")}
             </button>
           </div>
 
-          <div className="invoice-table-wrap">
-            <table className="data-table invoice-table">
+          <div className="table-wrap kassa-invoice-table-wrap">
+            <table className="data-table kassa-invoice-table">
+              <colgroup>
+                <col className="kassa-invoice-col-number" />
+                <col className="kassa-invoice-col-date" />
+                <col className="kassa-invoice-col-warehouse" />
+                <col className="kassa-invoice-col-money" />
+                <col className="kassa-invoice-col-money" />
+                <col className="kassa-invoice-col-money" />
+                <col className="kassa-invoice-col-composition" />
+              </colgroup>
+
               <thead>
                 <tr>
-                  <th>№</th>
-                  <th>Дата</th>
-                  <th>Склад</th>
-                  <th>Сумма</th>
-                  <th>Оплачено</th>
-                  <th>Dolg</th>
-                  <th>Состав</th>
+                  <th>{t("Kassa.Number", "№")}</th>
+                  <th>{t("Kassa.Date", "Дата")}</th>
+                  <th>{t("Kassa.Warehouse", "Склад")}</th>
+                  <th>{t("Kassa.Amount", "Сумма")}</th>
+                  <th>{t("Kassa.Paid", "Оплачено")}</th>
+                  <th>{t("Kassa.Debt", "Долг")}</th>
+                  <th>{t("Kassa.Composition", "Состав")}</th>
                 </tr>
               </thead>
 
@@ -708,16 +847,16 @@ async function saveChanges() {
                 {invoiceRows.map((invoice) => (
                   <tr key={invoice.ID}>
                     <td>{invoice.Invoice}</td>
-                    <td>{formatDateDisplay(invoice.Date)}</td>
+                    <td>{formatDateDisplay(invoice.Date, locale)}</td>
                     <td>{invoice.NameSkl}</td>
-                    <td className="text-right">{formatMoney(invoice.SumNakl)}</td>
-                    <td className="text-right">{formatMoney(invoice.Oplach)}</td>
+                    <td className="text-right">{formatMoney(invoice.SumNakl, locale)}</td>
+                    <td className="text-right">{formatMoney(invoice.Oplach, locale)}</td>
                     <td
                       className="text-right invoice-debt-cell"
-                      title="Двойной клик: поставить сумму в расход"
+                      title={t("Kassa.ApplyDebtHint", "Двойной клик: поставить сумму в расход")}
                       onDoubleClick={() => applyInvoiceDebt(invoice)}
                     >
-                      {formatMoney(invoice.Dolg)}
+                      {formatMoney(invoice.Dolg, locale)}
                     </td>
                     <td>{invoice.Sostav}</td>
                   </tr>
@@ -725,36 +864,45 @@ async function saveChanges() {
 
                 {invoiceRows.length === 0 && (
                   <tr>
-                    <td colSpan="7" className="empty-cell">
-                      Неоплаченных накладных нет
+                    <td colSpan="7" className="empty-cell kassa-empty-row">
+                      {t("Kassa.NoUnpaidInvoices", "Неоплаченных накладных нет")}
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
-        </div>
+        </section>
       )}
 
       <div className="kassa-columns kassa-main-columns">
         <section className="kassa-panel kassa-operation-panel">
-          <div className="perem-panel-title kassa-panel-title">
-            <span>Приход в кассу</span>
+          <div className="kassa-panel-title">
+            <span>{t("Kassa.CashIncome", "Приход в кассу")}</span>
 
             <button type="button" className="kassa-add-button" disabled={!canEdit} onClick={addPrihRow}>
-              + Добавить
+              + {t("Kassa.Add", "Добавить")}
             </button>
           </div>
 
           <div className="kassa-table-wrap">
-            <table className="data-table kassa-table">
+            <table className="data-table kassa-table kassa-prih-table">
+              <colgroup>
+                <col className="kassa-col-date" />
+                <col className="kassa-col-amount" />
+                <col className="kassa-col-party" />
+                <col className="kassa-col-expense" />
+                <col className="kassa-col-note" />
+                <col className="kassa-col-delete" />
+              </colgroup>
+
               <thead>
                 <tr>
-                  <th>Дата</th>
-                  <th>Сумма</th>
-                  <th>Клиент</th>
-                  <th>Статья</th>
-                  <th>Примечание</th>
+                  <th>{t("Kassa.Date", "Дата")}</th>
+                  <th>{t("Kassa.Amount", "Сумма")}</th>
+                  <th>{t("Kassa.Client", "Клиент")}</th>
+                  <th>{t("Kassa.Category", "Статья")}</th>
+                  <th>{t("Kassa.Note", "Примечание")}</th>
                   <th></th>
                 </tr>
               </thead>
@@ -763,7 +911,10 @@ async function saveChanges() {
                 {visiblePrihRows.map((row) => (
                   <tr
                     key={`prih-${row.ID}`}
-                    className={row.ID === selectedPrihId ? "selected-row" : ""}
+                    className={[
+                      row.ID === selectedPrihId ? "selected-row" : "",
+                      row._changed ? "changed-row" : ""
+                    ].join(" ")}
                     onClick={() => setSelectedPrihId(row.ID)}
                   >
                     <td>
@@ -777,7 +928,7 @@ async function saveChanges() {
                           }
                         />
                       ) : (
-                        formatDateDisplay(row.Dat)
+                        formatDateDisplay(row.Dat, locale)
                       )}
                     </td>
                     <td className="text-right">
@@ -792,7 +943,7 @@ async function saveChanges() {
                           }
                         />
                       ) : (
-                        formatMoney(row.Summa)
+                        formatMoney(row.Summa, locale)
                       )}
                     </td>
                     <td title={`KodKl: ${row.KodKl}`}>
@@ -852,7 +1003,9 @@ async function saveChanges() {
                     <td className="action-column">
                       <button
                         type="button"
-                        className="small-danger-button"
+                        className="small-danger-button kassa-delete-button"
+                        title={t("Kassa.DeleteRow", "Удалить строку")}
+                        aria-label={t("Kassa.DeleteRow", "Удалить строку")}
                         disabled={!canEdit}
                         onClick={(event) => {
                           event.stopPropagation();
@@ -867,8 +1020,8 @@ async function saveChanges() {
 
                 {visiblePrihRows.length === 0 && (
                   <tr>
-                    <td colSpan="6" className="empty-cell">
-                      Нет приходов за выбранную дату
+                    <td colSpan="6" className="empty-cell kassa-empty-row">
+                      {t("Kassa.NoIncome", "Нет приходов за выбранную дату")}
                     </td>
                   </tr>
                 )}
@@ -878,24 +1031,34 @@ async function saveChanges() {
         </section>
 
         <section className="kassa-panel kassa-operation-panel">
-          <div className="perem-panel-title kassa-panel-title">
-            <span>Расход из кассы</span>
+          <div className="kassa-panel-title">
+            <span>{t("Kassa.CashExpense", "Расход из кассы")}</span>
 
             <button type="button" className="kassa-add-button" disabled={!canEdit} onClick={addRashodRow}>
-              + Добавить
+              + {t("Kassa.Add", "Добавить")}
             </button>
           </div>
 
           <div className="kassa-table-wrap">
-            <table className="data-table kassa-table">
+            <table className="data-table kassa-table kassa-rashod-table">
+              <colgroup>
+                <col className="kassa-col-date" />
+                <col className="kassa-col-amount" />
+                <col className="kassa-col-party" />
+                <col className="kassa-col-expense" />
+                <col className="kassa-col-note" />
+                <col className="kassa-col-invoice" />
+                <col className="kassa-col-delete" />
+              </colgroup>
+
               <thead>
                 <tr>
-                  <th>Дата</th>
-                  <th>Сумма</th>
-                  <th>Поставщик</th>
-                  <th>Статья</th>
-                  <th>Примечание</th>
-                  <th>Invoice</th>
+                  <th>{t("Kassa.Date", "Дата")}</th>
+                  <th>{t("Kassa.Amount", "Сумма")}</th>
+                  <th>{t("Kassa.Supplier", "Поставщик")}</th>
+                  <th>{t("Kassa.Category", "Статья")}</th>
+                  <th>{t("Kassa.Note", "Примечание")}</th>
+                  <th>{t("Kassa.Invoices", "Накладные")}</th>
                   <th></th>
                 </tr>
               </thead>
@@ -904,9 +1067,10 @@ async function saveChanges() {
                 {visibleRashodRows.map((row) => (
                   <tr
                     key={`rashod-${row.ID}`}
-                    className={
-                      row.ID === selectedRashodId ? "selected-row" : ""
-                    }
+                    className={[
+                      row.ID === selectedRashodId ? "selected-row" : "",
+                      row._changed ? "changed-row" : ""
+                    ].join(" ")}
                     onClick={() => setSelectedRashodId(row.ID)}
                   >
                     <td>
@@ -920,7 +1084,7 @@ async function saveChanges() {
                           }
                         />
                       ) : (
-                        formatDateDisplay(row.Dat)
+                        formatDateDisplay(row.Dat, locale)
                       )}
                     </td>
                     <td className="text-right">
@@ -935,7 +1099,7 @@ async function saveChanges() {
                           }
                         />
                       ) : (
-                        formatMoney(row.Summa)
+                        formatMoney(row.Summa, locale)
                       )}
                     </td>
                     <td title={`KodPost: ${row.KodPost}`}>
@@ -1006,13 +1170,15 @@ async function saveChanges() {
                           openSupplierInvoices(row);
                         }}
                       >
-                        Invoice
+                        {t("Kassa.Invoices", "Накладные")}
                       </button>
                     </td>
                     <td className="action-column">
                       <button
                         type="button"
-                        className="small-danger-button"
+                        className="small-danger-button kassa-delete-button"
+                        title={t("Kassa.DeleteRow", "Удалить строку")}
+                        aria-label={t("Kassa.DeleteRow", "Удалить строку")}
                         disabled={!canEdit}
                         onClick={(event) => {
                           event.stopPropagation();
@@ -1027,8 +1193,8 @@ async function saveChanges() {
 
                 {visibleRashodRows.length === 0 && (
                   <tr>
-                    <td colSpan="7" className="empty-cell">
-                      Нет расходов за выбранную дату
+                    <td colSpan="7" className="empty-cell kassa-empty-row">
+                      {t("Kassa.NoExpenses", "Нет расходов за выбранную дату")}
                     </td>
                   </tr>
                 )}

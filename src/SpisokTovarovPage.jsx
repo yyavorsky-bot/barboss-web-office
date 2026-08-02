@@ -10,7 +10,9 @@ export default function SpisokTovarovPage({
   onApply,
   onAddTovar,
   onSaveTovarov,
-  readOnly
+  readOnly,
+  onDirtyChange,
+  t = (key, fallback = "") => fallback
 }) {
   const categoryList = Array.isArray(categories) ? categories : [];
 
@@ -21,12 +23,78 @@ export default function SpisokTovarovPage({
   const [saveError, setSaveError] = useState("");
   const [addLoading, setAddLoading] = useState(false);
 
+  const changedCount = Object.keys(changedRows).length;
+  const isDirty = !readOnly && changedCount > 0;
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
+
+  useEffect(() => {
+    return () => {
+      onDirtyChange?.(false);
+    };
+  }, [onDirtyChange]);
+
+  useEffect(() => {
+    function handleBeforeUnload(event) {
+      if (!isDirty) return;
+
+      event.preventDefault();
+      event.returnValue = "";
+    }
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [isDirty]);
+
   useEffect(() => {
     setRows(Array.isArray(data) ? data : []);
     setChangedRows({});
     setSelectedId(null);
     setSaveError("");
   }, [data]);
+
+  function confirmDiscardChanges() {
+    if (!isDirty) return true;
+
+    return window.confirm(t("SpisokTovarov.UnsavedChangesWarning", "Внимание! Вы не сохранили измененные данные!\nУверены, что хотите уйти?"));
+  }
+
+  async function applyFilters(nextCategory, nextSkr) {
+    const normalizedCategory = String(nextCategory ?? "0");
+    const normalizedSkr = nextSkr ? 1 : 0;
+
+    const currentCategory = String(filterCat ?? "0");
+    const currentSkr = filterSkr ? 1 : 0;
+
+    if (
+      normalizedCategory === currentCategory &&
+      normalizedSkr === currentSkr
+    ) {
+      return;
+    }
+
+    if (!confirmDiscardChanges()) {
+      return;
+    }
+
+    if (isDirty) {
+      setChangedRows({});
+      onDirtyChange?.(false);
+    }
+
+    onChangeCat?.(normalizedCategory);
+    onChangeSkr?.(normalizedSkr);
+
+    await onApply?.({
+      cat: normalizedCategory,
+      skr: normalizedSkr
+    });
+  }
 
   function updateField(id, field, value) {
     if (readOnly) return;
@@ -66,35 +134,35 @@ export default function SpisokTovarovPage({
       await onSaveTovarov(xml);
       setChangedRows({});
     } catch (err) {
-      setSaveError(err.message || "Ошибка сохранения");
+      setSaveError(err.message || t("SpisokTovarov.SaveError", "Ошибка сохранения"));
     } finally {
       setSaveLoading(false);
     }
   }
 
   async function addNewTovar() {
-  if (readOnly) return;
+    if (readOnly) return;
 
-  setAddLoading(true);
-  setSaveError("");
+    setAddLoading(true);
+    setSaveError("");
 
-  try {
-    const newItem = await onAddTovar();
+    try {
+      const newItem = await onAddTovar();
 
-    setRows((prevRows) => [newItem, ...prevRows]);
+      setRows((prevRows) => [newItem, ...prevRows]);
 
-    setChangedRows((prev) => ({
-      ...prev,
-      [newItem.ID]: true
-    }));
+      setChangedRows((prev) => ({
+        ...prev,
+        [newItem.ID]: true
+      }));
 
-    setSelectedId(newItem.ID);
-  } catch (err) {
-    setSaveError(err.message || "Ошибка добавления товара");
-  } finally {
-    setAddLoading(false);
+      setSelectedId(newItem.ID);
+    } catch (err) {
+      setSaveError(err.message || t("SpisokTovarov.AddError", "Ошибка добавления товара"));
+    } finally {
+      setAddLoading(false);
+    }
   }
-}
   return (
     <div className="spisok-tovarov-page">
       <div className="module-toolbar spisok-tovarov-toolbar">
@@ -104,35 +172,23 @@ export default function SpisokTovarovPage({
               type="checkbox"
               checked={Boolean(filterSkr)}
               onChange={(e) => {
-                const nextSkr = e.target.checked ? 1 : 0;
-
-                onChangeSkr?.(nextSkr);
-                onApply?.({
-                  cat: filterCat || "0",
-                  skr: nextSkr
-                });
+                applyFilters(filterCat || "0", e.target.checked ? 1 : 0);
               }}
             />
-            Скрытые
+            {t("SpisokTovarov.Hidden", "Скрытые")}
           </label>
 
           <label className="toolbar-field">
-            <span>Категория</span>
+            <span>{t("SpisokTovarov.Category", "Категория")}</span>
 
             <select
               className="toolbar-select"
               value={String(filterCat ?? "0")}
               onChange={(e) => {
-                const nextCategory = e.target.value;
-
-                onChangeCat?.(nextCategory);
-                onApply?.({
-                  cat: nextCategory || "0",
-                  skr: filterSkr ? 1 : 0
-                });
+                applyFilters(e.target.value || "0", filterSkr ? 1 : 0);
               }}
             >
-              <option value="0">Все</option>
+              <option value="0">{t("SpisokTovarov.All", "Все")}</option>
 
               {categoryList.map((cat) => (
                 <option key={cat.ID} value={String(cat.ID)}>
@@ -144,31 +200,31 @@ export default function SpisokTovarovPage({
         </div>
 
         <div className="toolbar-right">
-{!readOnly && (
-  <button
-    type="button"
-    className="toolbar-save-button spisok-tovarov-add-button"
-    disabled={addLoading || saveLoading}
-    onClick={addNewTovar}
-  >
-    {addLoading ? "Добавление..." : "Добавить товар"}
-  </button>
-)}
+          {!readOnly && (
+            <button
+              type="button"
+              className="toolbar-save-button spisok-tovarov-add-button"
+              disabled={addLoading || saveLoading}
+              onClick={addNewTovar}
+            >
+              {addLoading ? t("SpisokTovarov.Adding", "Добавление...") : t("SpisokTovarov.AddItem", "Добавить товар")}
+            </button>
+          )}
 
           {!readOnly && (
             <>
               <button
                 type="button"
                 className="toolbar-save-button spisok-tovarov-save-button"
-                disabled={Object.keys(changedRows).length === 0 || saveLoading}
+                disabled={changedCount === 0 || saveLoading}
                 onClick={saveChanges}
               >
-                {saveLoading ? "Сохранение..." : "Сохранить изменения"}
+                {saveLoading ? t("SpisokTovarov.Saving", "Сохранение...") : t("SpisokTovarov.SaveChanges", "Сохранить изменения")}
               </button>
 
-              {Object.keys(changedRows).length > 0 && (
+              {changedCount > 0 && (
                 <span className="changed-info">
-                  Изменено: {Object.keys(changedRows).length}
+                  {t("SpisokTovarov.ChangedCountPrefix", "Изменено:")} {changedCount}
                 </span>
               )}
             </>
@@ -183,27 +239,45 @@ export default function SpisokTovarovPage({
       )}
 
       {rows.length === 0 && (
-        <p>Загрузка...</p>
+        <div className="spisok-tovarov-empty">
+          {t("SpisokTovarov.Loading", "Загрузка...")}
+        </div>
       )}
 
       {rows.length > 0 && (
         <div className="table-wrap spisok-tovarov-table-wrap">
           <table className="data-table spisok-tovarov-table">
+            <colgroup>
+              <col className="spisok-tovarov-col-name" />
+              <col className="spisok-tovarov-col-price" />
+              <col className="spisok-tovarov-col-check" />
+              <col className="spisok-tovarov-col-check" />
+              <col className="spisok-tovarov-col-kcal" />
+              <col className="spisok-tovarov-col-category" />
+              <col className="spisok-tovarov-col-check" />
+              <col className="spisok-tovarov-col-number" />
+              <col className="spisok-tovarov-col-number" />
+              <col className="spisok-tovarov-col-weight" />
+              <col className="spisok-tovarov-col-barcode" />
+              <col className="spisok-tovarov-col-check" />
+              <col className="spisok-tovarov-col-capacity" />
+            </colgroup>
+
             <thead>
               <tr>
-                <th>Наименование</th>
-                <th>Цена</th>
-                <th>Зач.</th>
-                <th>Скр.</th>
-                <th>Ккал</th>
-                <th>Категория</th>
-                <th>Отбор</th>
-                <th>Норма</th>
-                <th>Тара</th>
-                <th>Вес/Литр</th>
-                <th>ШК</th>
-                <th>Марка</th>
-                <th>Ёмкость</th>
+                <th>{t("SpisokTovarov.Name", "Наименование")}</th>
+                <th>{t("SpisokTovarov.Price", "Цена")}</th>
+                <th>{t("SpisokTovarov.CreditShort", "Зач.")}</th>
+                <th>{t("SpisokTovarov.HiddenShort", "Скр.")}</th>
+                <th>{t("SpisokTovarov.Kcal", "Ккал")}</th>
+                <th>{t("SpisokTovarov.Category", "Категория")}</th>
+                <th>{t("SpisokTovarov.Selection", "Отбор")}</th>
+                <th>{t("SpisokTovarov.Norm", "Норма")}</th>
+                <th>{t("SpisokTovarov.Tare", "Тара")}</th>
+                <th>{t("SpisokTovarov.WeightPerLiter", "Вес/Литр")}</th>
+                <th>{t("SpisokTovarov.BarcodeShort", "ШК")}</th>
+                <th>{t("SpisokTovarov.Brand", "Марка")}</th>
+                <th>{t("SpisokTovarov.Capacity", "Ёмкость")}</th>
               </tr>
             </thead>
 
@@ -219,8 +293,9 @@ export default function SpisokTovarovPage({
                 >
                   <td>
                     <input
-                      className="table-input"
+                      className="table-input spisok-tovarov-name-input"
                       type="text"
+                      title={row.Name ?? ""}
                       value={row.Name ?? ""}
                       disabled={readOnly}
                       onChange={(e) => updateField(row.ID, "Name", e.target.value)}
@@ -269,22 +344,24 @@ export default function SpisokTovarovPage({
                     />
                   </td>
 
- <td>
-  <select
-    className="table-select"
-    value={String(row.Grup ?? 0)}
-    disabled={readOnly}
-    onChange={(e) => updateField(row.ID, "Grup", Number(e.target.value))}
-  >
-    <option value="0"></option>
+                  <td>
+                    <select
+                      className="table-select"
+                      value={String(row.Grup ?? 0)}
+                      disabled={readOnly}
+                      onChange={(e) =>
+                        updateField(row.ID, "Grup", Number(e.target.value))
+                      }
+                    >
+                      <option value="0"></option>
 
-    {categoryList.map((cat) => (
-      <option key={cat.ID} value={String(cat.ID)}>
-        {cat.Name}
-      </option>
-    ))}
-  </select>
-</td>
+                      {categoryList.map((cat) => (
+                        <option key={cat.ID} value={String(cat.ID)}>
+                          {cat.Name}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
                   <td className="center">
                     <input
                       type="checkbox"

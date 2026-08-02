@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-function formatDate(value) {
+function formatDate(value, locale) {
   if (!value) return "";
 
   const date = new Date(value);
@@ -9,7 +9,7 @@ function formatDate(value) {
     return value;
   }
 
-  return date.toLocaleDateString("ru-RU");
+  return date.toLocaleDateString(locale);
 }
 
 function formatMoney(value) {
@@ -35,7 +35,9 @@ function formatQty(value) {
 export default function PeremListPage({
   data,
   onOpen,
-  onNew
+  onNew,
+  t = (key, fallback = "") => fallback,
+  locale = "ru-RU"
 }) {
   const [selectedId, setSelectedId] = useState(null);
 
@@ -74,39 +76,47 @@ export default function PeremListPage({
   }
 
   return (
-    <div className="perem-page">
-      <div className="perem-layout">
-        <div className="perem-left">
-          <div className="perem-panel-title perem-list-header">
-            <span>Накладные перемещения</span>
+    <div className="move-list-page">
+      <div className="move-list-layout">
+        <section className="move-list-panel">
+          <div className="move-panel-title move-list-header">
+            <span>{t("PeremList.Title", "Накладные перемещения")}</span>
 
             {onNew && (
               <button
                 type="button"
-                className="perem-new-button"
+                className="move-new-button"
                 onClick={onNew}
               >
-                + Новое перемещение
+                + {t("PeremList.NewMove", "Новое перемещение")}
               </button>
             )}
           </div>
 
           {rows.length === 0 && (
-            <div className="perem-empty">
-              Накладные перемещения не найдены.
+            <div className="move-empty">
+              {t("PeremList.EmptyList", "Накладные перемещения не найдены.")}
             </div>
           )}
 
           {rows.length > 0 && (
-            <div className="table-wrap perem-list-wrap">
-              <table className="data-table perem-list-table">
+            <div className="table-wrap move-list-wrap">
+              <table className="data-table move-list-table">
+                <colgroup>
+                  <col className="move-col-date" />
+                  <col className="move-col-number" />
+                  <col className="move-col-destination" />
+                  <col className="move-col-amount" />
+                  <col className="move-col-action" />
+                </colgroup>
+
                 <thead>
                   <tr>
-                    <th>Дата</th>
-                    <th>№</th>
-                    <th>Куда перемещено</th>
-                    <th>Сумма</th>
-                    <th>Просмотр</th>
+                    <th>{t("PeremList.Date", "Дата")}</th>
+                    <th>{t("PeremList.Number", "№")}</th>
+                    <th>{t("PeremList.Destination", "Куда перемещено")}</th>
+                    <th>{t("PeremList.Amount", "Сумма")}</th>
+                    <th>{t("PeremList.View", "Просмотр")}</th>
                   </tr>
                 </thead>
 
@@ -122,22 +132,22 @@ export default function PeremListPage({
                       onClick={() => setSelectedId(row.ID)}
                       onDoubleClick={() => openRow(row)}
                     >
-                      <td>{formatDate(row.DatP)}</td>
+                      <td>{formatDate(row.DatP, locale)}</td>
                       <td>{row.Nakl}</td>
-                      <td>{row.Name}</td>
+                      <td title={row.Name ?? ""}>{row.Name}</td>
                       <td className="text-right">
                         {formatMoney(row.Summ)}
                       </td>
                       <td className="center">
                         <button
                           type="button"
-                          className="perem-open-button"
+                          className="move-open-button"
                           onClick={(event) => {
                             event.stopPropagation();
                             openRow(row);
                           }}
                         >
-                          Открыть
+                          {t("PeremList.Open", "Открыть")}
                         </button>
                       </td>
                     </tr>
@@ -146,46 +156,53 @@ export default function PeremListPage({
               </table>
             </div>
           )}
-        </div>
+        </section>
 
-        <div className="perem-right">
-          <div className="perem-panel-title perem-content-header">
+        <section className="move-items-panel">
+          <div className="move-panel-title move-content-header">
             <span>
-              Содержимое накладной №{" "}
+              {t("PeremList.ContentsTitle", "Содержимое накладной №")} {" "}
               {selectedNakl?.Nakl ?? ""}
             </span>
           </div>
 
           {selectedNakl ? (
             <>
-              <div className="perem-info">
+              <div className="move-info">
                 <span>
-                  Дата: {formatDate(selectedNakl.DatP)}
+                  {t("PeremList.DateLabel", "Дата:")} {formatDate(selectedNakl.DatP, locale)}
                 </span>
                 <span>
-                  Куда: {selectedNakl.Name ?? ""}
+                  {t("PeremList.DestinationLabel", "Куда:")} {selectedNakl.Name ?? ""}
                 </span>
                 <span>
-                  Сумма: {formatMoney(selectedNakl.Summ)}
+                  {t("PeremList.AmountLabel", "Сумма:")} {formatMoney(selectedNakl.Summ)}
                 </span>
               </div>
 
-              <div className="table-wrap perem-items-wrap">
-                <table className="data-table perem-items-table">
+              <div className="table-wrap move-items-wrap">
+                <table className="data-table move-items-table">
+                  <colgroup>
+                    <col className="move-item-col-name" />
+                    <col className="move-item-col-qty" />
+                    <col className="move-item-col-price" />
+                    <col className="move-item-col-amount" />
+                  </colgroup>
+
                   <thead>
                     <tr>
-                      <th>Наименование</th>
-                      <th>Кол-во</th>
-                      <th>Цена</th>
-                      <th>Сумма</th>
+                      <th>{t("PeremList.Name", "Наименование")}</th>
+                      <th>{t("PeremList.Quantity", "Кол-во")}</th>
+                      <th>{t("PeremList.Price", "Цена")}</th>
+                      <th>{t("PeremList.Amount", "Сумма")}</th>
                     </tr>
                   </thead>
 
                   <tbody>
                     {items.length === 0 && (
                       <tr>
-                        <td colSpan="4">
-                          Содержимое накладной пустое.
+                        <td className="move-empty-row" colSpan="4">
+                          {t("PeremList.EmptyContents", "Содержимое накладной пустое.")}
                         </td>
                       </tr>
                     )}
@@ -194,7 +211,7 @@ export default function PeremListPage({
                       <tr
                         key={`${selectedNakl.ID}-${index}`}
                       >
-                        <td>{item.Name}</td>
+                        <td title={item.Name ?? ""}>{item.Name}</td>
                         <td className="text-right">
                           {formatQty(item.Postup)}
                         </td>
@@ -211,11 +228,11 @@ export default function PeremListPage({
               </div>
             </>
           ) : (
-            <div className="perem-empty">
-              Выберите накладную перемещения.
+            <div className="move-empty">
+              {t("PeremList.SelectInvoice", "Выберите накладную перемещения.")}
             </div>
           )}
-        </div>
+        </section>
       </div>
     </div>
   );

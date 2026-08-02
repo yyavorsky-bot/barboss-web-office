@@ -36,22 +36,67 @@ export async function loginRequest({ alias, login, password }) {
   return data;
 }
 
-export async function menuRequest(accessToken) {
-  const response = await fetch(`${API_BASE}/wf_Menu.php`, {
+export async function menuRequest(accessToken, language = "uk") {
+  const safeLanguage = ["uk", "ru", "ro", "en"].includes(language)
+    ? language
+    : "uk";
+
+  const url = new URL(`${API_BASE}/wf_Menu.php`);
+  url.searchParams.set("lang", safeLanguage);
+  url.searchParams.set("Lang", safeLanguage);
+  url.searchParams.set("_", String(Date.now()));
+
+  // URLSearchParams формирует application/x-www-form-urlencoded.
+  // В PHP эти значения доступны через $_POST, в отличие от JSON-тела.
+  const body = new URLSearchParams();
+  body.set("lang", safeLanguage);
+  body.set("Lang", safeLanguage);
+  body.set("language", safeLanguage);
+
+  console.log("[wf_Menu] request", {
+    language: safeLanguage,
+    url: url.toString()
+  });
+
+  const response = await fetch(url.toString(), {
     method: "POST",
     credentials: "include",
+    cache: "no-store",
     headers: {
       Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json"
-    }
+      "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+      Accept: "application/json"
+    },
+    body
   });
 
   const text = await response.text();
-  const data = JSON.parse(text);
 
-  if (!response.ok) {
-    throw new Error(data.error || "Ошибка загрузки меню");
+  let data;
+
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error("Меню вернуло не JSON: " + text.substring(0, 500));
   }
+
+  if (!response.ok || data?.status === "error") {
+    throw new Error(
+      data?.message || data?.error || "Ошибка загрузки меню"
+    );
+  }
+
+  const menuRows = Array.isArray(data)
+    ? data
+    : Array.isArray(data?.menu)
+      ? data.menu
+      : [];
+
+  console.log("[wf_Menu] response", {
+    language: safeLanguage,
+    count: menuRows.length,
+    firstNames: menuRows.slice(0, 6).map((item) => item?.name ?? item?.Name)
+  });
 
   return data;
 }

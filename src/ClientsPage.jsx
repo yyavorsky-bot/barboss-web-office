@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+
 const cardsPFields = [
   "ID",
   "Name",
@@ -35,11 +36,14 @@ const checkboxFields = [
 ];
 
 export default function ClientsPage({
+  t = (_, fallback = "") => fallback,
+  locale = "ru-RU",
   data,
   discounts,
   readOnly,
   onAddCustomer,
-  onSaveCustomer
+  onSaveCustomer,
+  onDirtyChange
 }) {
   const [rows, setRows] = useState([]);
   const [changedRows, setChangedRows] = useState({});
@@ -48,6 +52,34 @@ export default function ClientsPage({
   const [saveLoading, setSaveLoading] = useState(false);
   const [error, setError] = useState("");
   const [skrFilter, setSkrFilter] = useState("active");
+
+  const changedCount = Object.keys(changedRows).length;
+  const isDirty = !readOnly && changedCount > 0;
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
+
+  useEffect(() => {
+    return () => {
+      onDirtyChange?.(false);
+    };
+  }, [onDirtyChange]);
+
+  useEffect(() => {
+    function handleBeforeUnload(event) {
+      if (!isDirty) return;
+
+      event.preventDefault();
+      event.returnValue = "";
+    }
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [isDirty]);
 
   useEffect(() => {
     setRows(Array.isArray(data) ? data : []);
@@ -149,7 +181,7 @@ export default function ClientsPage({
         setSkrFilter("active");
       }
     } catch (err) {
-      setError(err.message || "Ошибка добавления клиента");
+      setError(err.message || t("Clients.ErrorAdd", "Ошибка добавления клиента"));
     } finally {
       setAddLoading(false);
     }
@@ -177,8 +209,9 @@ export default function ClientsPage({
       await onSaveCustomer(xml);
 
       setChangedRows({});
+      onDirtyChange?.(false);
     } catch (err) {
-      setError(err.message || "Ошибка сохранения клиентов");
+      setError(err.message || t("Clients.ErrorSave", "Ошибка сохранения клиентов"));
     } finally {
       setSaveLoading(false);
     }
@@ -190,21 +223,21 @@ export default function ClientsPage({
         <div className="toolbar-left">
 
           <label className="filter-label">
-            Фильтр:
+            {t("Clients.Filter", "Фильтр")}:
             <select
               className="clients-filter-select"
               value={skrFilter}
               onChange={(e) => setSkrFilter(e.target.value)}
             >
-              <option value="active">Активные</option>
-              <option value="all">Все</option>
-              <option value="hidden">Скрытые</option>
+              <option value="active">{t("Clients.Active", "Активные")}</option>
+              <option value="all">{t("Clients.All", "Все")}</option>
+              <option value="hidden">{t("Clients.Hidden", "Скрытые")}</option>
             </select>
           </label>
 
-          {Object.keys(changedRows).length > 0 && (
+          {changedCount > 0 && (
             <span className="changed-info">
-              Изменено: {Object.keys(changedRows).length}
+              {t("Clients.Changed", "Изменено")}: {changedCount}
             </span>
           )}
         </div>
@@ -217,7 +250,7 @@ export default function ClientsPage({
               disabled={addLoading}
               onClick={addNewCustomer}
             >
-              {addLoading ? "Добавление..." : "Добавить клиента"}
+              {addLoading ? t("Clients.Adding", "Добавление...") : t("Clients.AddClient", "Добавить клиента")}
             </button>
           )}
 
@@ -225,10 +258,10 @@ export default function ClientsPage({
             <button
               type="button"
               className="toolbar-save-button clients-save-button"
-              disabled={Object.keys(changedRows).length === 0 || saveLoading}
+              disabled={changedCount === 0 || saveLoading}
               onClick={saveCustomer}
             >
-              {saveLoading ? "Сохранение..." : "Сохранить изменения"}
+              {saveLoading ? t("Clients.Saving", "Сохранение...") : t("Clients.SaveChanges", "Сохранить изменения")}
             </button>
           )}
         </div>
@@ -241,35 +274,55 @@ export default function ClientsPage({
       )}
 
       {rows.length === 0 && (
-        <div className="perem-empty clients-empty">Список клиентов пуст.</div>
+        <div className="clients-empty">{t("Clients.Empty", "Список клиентов пуст.")}</div>
       )}
 
       {rows.length > 0 && filteredRows.length === 0 && (
-        <div className="perem-empty clients-empty">По выбранному фильтру клиентов нет.</div>
+        <div className="clients-empty">{t("Clients.EmptyFilter", "По выбранному фильтру клиентов нет.")}</div>
       )}
 
       {filteredRows.length > 0 && (
-        <div className="table-wrap clients-table-wrap">
+        <section className="clients-table-panel">
+          <div className="table-wrap clients-table-wrap">
             <table className="data-table clients-table">
+              <colgroup>
+                <col className="clients-col-name" />
+                <col className="clients-col-card-number" />
+                <col className="clients-col-discount" />
+                <col className="clients-col-phone" />
+                <col className="clients-col-card-code" />
+                <col className="clients-col-bonus" />
+                <col className="clients-col-opening-debt" />
+                <col className="clients-col-birthday" />
+                <col className="clients-col-email" />
+                <col className="clients-col-note" />
+                <col className="clients-col-flag" />
+                <col className="clients-col-flag" />
+                <col className="clients-col-flag" />
+                <col className="clients-col-flag" />
+                <col className="clients-col-flag" />
+                <col className="clients-col-flag" />
+              </colgroup>
+
               <thead>
               <tr>
-                <th>Имя</th>
-                <th>№ Карты</th>
-                <th>Скидка</th>
-                <th>Телефон</th>
-                <th>Код карты</th>
-                <th>Бонус</th>
-                <th>Долг нач.</th>
-                <th>День рождения</th>
-                <th>Email</th>
-                <th>Примечание</th>
+                <th>{t("Clients.Name", "Имя")}</th>
+                <th>{t("Clients.CardNumber", "№ Карты")}</th>
+                <th>{t("Clients.Discount", "Скидка")}</th>
+                <th>{t("Clients.Phone", "Телефон")}</th>
+                <th>{t("Clients.CardCode", "Код карты")}</th>
+                <th>{t("Clients.Bonus", "Бонус")}</th>
+                <th>{t("Clients.OpeningDebt", "Долг нач.")}</th>
+                <th>{t("Clients.Birthday", "День рождения")}</th>
+                <th>{t("Clients.Email", "Email")}</th>
+                <th>{t("Clients.Note", "Примечание")}</th>
 
-                <th>Долг</th>
-                <th>Накоп.</th>
-                <th>Пост.</th>
-                <th>Служ.</th>
-                <th>Скр.</th>
-                <th>БН</th>
+                <th>{t("Clients.Debt", "Долг")}</th>
+                <th>{t("Clients.AccumAbbr", "Накоп.")}</th>
+                <th>{t("Clients.PermanentAbbr", "Пост.")}</th>
+                <th>{t("Clients.ServiceAbbr", "Служ.")}</th>
+                <th>{t("Clients.HiddenAbbr", "Скр.")}</th>
+                <th>{t("Clients.CashlessAbbr", "БН")}</th>
               </tr>
             </thead>
 
@@ -288,6 +341,7 @@ export default function ClientsPage({
                       className="table-input"
                       type="text"
                       value={row.Name ?? ""}
+                      title={row.Name ?? ""}
                       disabled={readOnly}
                       onChange={(e) => updateField(row.ID, "Name", e.target.value)}
                     />
@@ -298,6 +352,7 @@ export default function ClientsPage({
                       className="table-input"
                       type="text"
                       value={row.NomCard ?? ""}
+                      title={row.NomCard ?? ""}
                       disabled={readOnly}
                       onChange={(e) => updateField(row.ID, "NomCard", e.target.value)}
                     />
@@ -326,6 +381,7 @@ export default function ClientsPage({
                       className="table-input"
                       type="text"
                       value={row.Phone ?? ""}
+                      title={row.Phone ?? ""}
                       disabled={readOnly}
                       onChange={(e) => updateField(row.ID, "Phone", e.target.value)}
                     />
@@ -336,6 +392,7 @@ export default function ClientsPage({
                       className="table-input"
                       type="text"
                       value={row.Nom ?? ""}
+                      title={row.Nom ?? ""}
                       disabled={readOnly}
                       onChange={(e) => updateField(row.ID, "Nom", e.target.value)}
                     />
@@ -376,6 +433,7 @@ export default function ClientsPage({
                       className="table-input"
                       type="text"
                       value={row.email ?? ""}
+                      title={row.email ?? ""}
                       disabled={readOnly}
                       onChange={(e) => updateField(row.ID, "email", e.target.value)}
                     />
@@ -386,6 +444,7 @@ export default function ClientsPage({
                       className="table-input"
                       type="text"
                       value={row.Rem ?? ""}
+                      title={row.Rem ?? ""}
                       disabled={readOnly}
                       onChange={(e) => updateField(row.ID, "Rem", e.target.value)}
                     />
@@ -403,9 +462,10 @@ export default function ClientsPage({
                   ))}
                 </tr>
               ))}
-            </tbody>
-          </table>
-        </div>
+              </tbody>
+            </table>
+          </div>
+        </section>
       )}
     </div>
   );

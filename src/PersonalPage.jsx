@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+
 const checkboxFields = [
   "Skr",
   "Admin",
@@ -14,10 +15,13 @@ const checkboxFields = [
 ];
 
 export default function PersonalPage({
+  t = (_, fallback = "") => fallback,
+  locale = "ru-RU",
   data,
   readOnly,
   onAddPersonal,
-  onSavePersonal
+  onSavePersonal,
+  onDirtyChange
 }) {
   const [rows, setRows] = useState([]);
   const [changedRows, setChangedRows] = useState({});
@@ -29,6 +33,34 @@ export default function PersonalPage({
   // all = показываем всех
   // hidden = показываем только скрытых
   const [skrFilter, setSkrFilter] = useState("active");
+
+  const changedCount = Object.keys(changedRows).length;
+  const isDirty = !readOnly && changedCount > 0;
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
+
+  useEffect(() => {
+    return () => {
+      onDirtyChange?.(false);
+    };
+  }, [onDirtyChange]);
+
+  useEffect(() => {
+    function handleBeforeUnload(event) {
+      if (!isDirty) return;
+
+      event.preventDefault();
+      event.returnValue = "";
+    }
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [isDirty]);
 
   useEffect(() => {
     setRows(Array.isArray(data) ? data : []);
@@ -138,8 +170,9 @@ async function savePersonal() {
     await onSavePersonal(xml);
 
     setChangedRows({});
+    onDirtyChange?.(false);
   } catch (err) {
-    setError(err.message || "Ошибка сохранения сотрудников");
+    setError(err.message || t("Personal.ErrorSave", "Ошибка сохранения сотрудников"));
   }
 }
   function updateField(id, field, value) {
@@ -185,7 +218,7 @@ async function savePersonal() {
         setSkrFilter("active");
       }
     } catch (err) {
-      setError(err.message || "Ошибка добавления сотрудника");
+      setError(err.message || t("Personal.ErrorAdd", "Ошибка добавления сотрудника"));
     } finally {
       setAddLoading(false);
     }
@@ -197,15 +230,15 @@ async function savePersonal() {
         <div className="toolbar-left">
  
           <label className="filter-label">
-            Фильтр : 
+            {t("Personal.Filter", "Фильтр")} : 
             <select
               className="personal-filter-select"
               value={skrFilter}
               onChange={(e) => setSkrFilter(e.target.value)}
             >
-              <option value="active">Активные</option>
-              <option value="all">Все</option>
-              <option value="hidden">Скрытые</option>
+              <option value="active">{t("Personal.Active", "Активные")}</option>
+              <option value="all">{t("Personal.All", "Все")}</option>
+              <option value="hidden">{t("Personal.Hidden", "Скрытые")}</option>
             </select>
           </label>
         </div>
@@ -218,23 +251,23 @@ async function savePersonal() {
               disabled={addLoading}
               onClick={addNewPersonal}
             >
-              {addLoading ? "Добавление..." : "Добавить сотрудника"}
+              {addLoading ? t("Personal.Adding", "Добавление...") : t("Personal.AddPersonal", "Добавить сотрудника")}
             </button>
           )}
 
-{!readOnly && (
-  <button
-    type="button"
-    className="toolbar-save-button personal-save-button"
-    disabled={Object.keys(changedRows).length === 0}
-    onClick={savePersonal}
-  >
-    Сохранить изменения
-  </button>
-)}
-          {Object.keys(changedRows).length > 0 && (
+          {!readOnly && (
+            <button
+              type="button"
+              className="toolbar-save-button personal-save-button"
+              disabled={changedCount === 0}
+              onClick={savePersonal}
+            >
+              {t("Personal.SaveChanges", "Сохранить изменения")}
+            </button>
+          )}
+          {changedCount > 0 && (
             <span className="changed-info">
-              Изменено: {Object.keys(changedRows).length}
+              {t("Personal.Changed", "Изменено")}: {changedCount}
             </span>
           )}
         </div>
@@ -247,34 +280,54 @@ async function savePersonal() {
       )}
 
       {rows.length === 0 && (
-        <div className="perem-empty personal-empty">Список персонала пуст.</div>
+        <div className="personal-empty">{t("Personal.Empty", "Список персонала пуст.")}</div>
       )}
 
       {rows.length > 0 && filteredRows.length === 0 && (
-        <div className="perem-empty personal-empty">По выбранному фильтру сотрудников нет.</div>
+        <div className="personal-empty">{t("Personal.EmptyFilter", "По выбранному фильтру сотрудников нет.")}</div>
       )}
 
       {filteredRows.length > 0 && (
-        <div className="table-wrap personal-table-wrap">
+        <section className="personal-table-panel">
+          <div className="table-wrap personal-table-wrap">
             <table className="data-table personal-table">
+              <colgroup>
+                <col className="personal-col-name" />
+                <col className="personal-col-password" />
+                <col className="personal-col-phone" />
+                <col className="personal-col-email" />
+                <col className="personal-col-note" />
+                <col className="personal-col-mobile-login" />
+                <col className="personal-col-flag" />
+                <col className="personal-col-flag" />
+                <col className="personal-col-flag" />
+                <col className="personal-col-flag" />
+                <col className="personal-col-flag" />
+                <col className="personal-col-flag" />
+                <col className="personal-col-flag" />
+                <col className="personal-col-flag" />
+                <col className="personal-col-flag" />
+                <col className="personal-col-flag" />
+              </colgroup>
+
               <thead>
               <tr>
-                <th>Имя</th>
-                <th>Пароль</th>
-                <th>Телефон</th>
-                <th>Email</th>
-                <th>Примечание</th>
-                <th>Mobile login</th>
-                <th>Скр.</th>
-                <th>Admin</th>
-                <th>Упр.</th>
-                <th>Бил.</th>
-                <th>Налог</th>
-                <th>Дост.</th>
-                <th>Пост.</th>
-                <th>Кли.</th>
-                <th>Кур.</th>
-                <th>Бонд</th>
+                <th>{t("Personal.Name", "Имя")}</th>
+                <th>{t("Personal.Password", "Пароль")}</th>
+                <th>{t("Personal.Phone", "Телефон")}</th>
+                <th>{t("Personal.Email", "Email")}</th>
+                <th>{t("Personal.Note", "Примечание")}</th>
+                <th>{t("Personal.MobileLogin", "Mobile login")}</th>
+                <th>{t("Personal.HiddenAbbr", "Скр.")}</th>
+                <th>{t("Personal.Admin", "Admin")}</th>
+                <th>{t("Personal.ManagerAbbr", "Упр.")}</th>
+                <th>{t("Personal.BillingAbbr", "Бил.")}</th>
+                <th>{t("Personal.Tax", "Налог")}</th>
+                <th>{t("Personal.DeliveryAbbr", "Дост.")}</th>
+                <th>{t("Personal.SupplierAbbr", "Пост.")}</th>
+                <th>{t("Personal.ClientAbbr", "Кли.")}</th>
+                <th>{t("Personal.CourierAbbr", "Кур.")}</th>
+                <th>{t("Personal.Bond", "Бонд")}</th>
               </tr>
             </thead>
 
@@ -293,6 +346,7 @@ async function savePersonal() {
                       className="table-input"
                       type="text"
                       value={row.Name ?? ""}
+                      title={row.Name ?? ""}
                       disabled={readOnly}
                       onChange={(e) => updateField(row.ID, "Name", e.target.value)}
                     />
@@ -313,6 +367,7 @@ async function savePersonal() {
                       className="table-input"
                       type="text"
                       value={row.Phone ?? ""}
+                      title={row.Phone ?? ""}
                       disabled={readOnly}
                       onChange={(e) => updateField(row.ID, "Phone", e.target.value)}
                     />
@@ -323,6 +378,7 @@ async function savePersonal() {
                       className="table-input"
                       type="text"
                       value={row.email ?? ""}
+                      title={row.email ?? ""}
                       disabled={readOnly}
                       onChange={(e) => updateField(row.ID, "email", e.target.value)}
                     />
@@ -333,6 +389,7 @@ async function savePersonal() {
                       className="table-input"
                       type="text"
                       value={row.Rem ?? ""}
+                      title={row.Rem ?? ""}
                       disabled={readOnly}
                       onChange={(e) => updateField(row.ID, "Rem", e.target.value)}
                     />
@@ -343,6 +400,7 @@ async function savePersonal() {
                       className="table-input"
                       type="text"
                       value={row.LoginMobile ?? ""}
+                      title={row.LoginMobile ?? ""}
                       disabled={readOnly}
                       onChange={(e) => updateField(row.ID, "LoginMobile", e.target.value)}
                     />
@@ -360,9 +418,10 @@ async function savePersonal() {
                   ))}
                 </tr>
               ))}
-            </tbody>
-          </table>
-        </div>
+              </tbody>
+            </table>
+          </div>
+        </section>
       )}
     </div>
   );

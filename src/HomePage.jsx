@@ -29,7 +29,8 @@ export default function HomePage({
   multiOrg = false,
   organizationName,
   skladName,
-  license
+  license,
+  t = (key, fallback = "") => fallback
 }) {
   const sections = (Array.isArray(menu) ? menu : [])
     .map((item, index) => {
@@ -37,7 +38,7 @@ export default function HomePage({
 
       return {
         id: `${normalized.name}-${index}`,
-        name: normalized.name || "Раздел",
+        name: normalized.name || t("Home.SectionFallback", "Раздел"),
         actions: collectActions(normalized)
       };
     })
@@ -51,21 +52,23 @@ export default function HomePage({
 
 
           <p>
-            Выберите рабочий раздел в меню слева или используйте быстрые
-            переходы ниже.
+            {t(
+              "Home.IntroDescription",
+              "Выберите рабочий раздел в меню слева или используйте быстрые переходы ниже."
+            )}
           </p>
 
           <div className="home-context">
             {multiOrg && organizationName && (
               <div className="home-context-item">
-                <span>Организация</span>
+                <span>{t("Home.Organization", "Организация")}</span>
                 <strong>{organizationName}</strong>
               </div>
             )}
 
             {skladName && (
               <div className="home-context-item">
-                <span>Подразделение</span>
+                <span>{t("Home.Department", "Подразделение")}</span>
                 <strong>{skladName}</strong>
               </div>
             )}
@@ -76,8 +79,8 @@ export default function HomePage({
                   license.warn ? "warning" : ""
                 }`}
               >
-                <span>Лицензия</span>
-                <strong>до {license.validUntil}</strong>
+                <span>{t("Home.License", "Лицензия")}</span>
+                <strong>{t("Home.ValidUntilPrefix", "до")} {license.validUntil}</strong>
               </div>
             )}
           </div>
@@ -117,7 +120,8 @@ export default function HomePage({
 
                 {hiddenCount > 0 && (
                   <div className="home-more-note">
-                    Ещё разделов: {hiddenCount}. Они доступны в меню слева.
+                    {t("Home.MoreSectionsPrefix", "Ещё разделов:")} {hiddenCount}.{" "}
+                    {t("Home.MoreSectionsSuffix", "Они доступны в меню слева.")}
                   </div>
                 )}
               </article>

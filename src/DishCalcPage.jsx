@@ -39,20 +39,24 @@ function makeTempId() {
   return -Date.now() - Math.floor(Math.random() * 1000);
 }
 
+function normalizeCalcItem(row) {
+  return {
+    ID: Number(row.ID || 0),
+    CodeTov: Number(row.CodeTov || 0),
+    CodeDish: Number(row.CodeDish || 0),
+    Kolvo: Number(row.Kolvo || 0),
+    Netto: Number(row.Netto || 0),
+    Price: Number(row.Price || 0),
+    SumSeb: Number(row.SumSeb || 0),
+    Kind: row.Kind || ""
+  };
+}
+
 function normalizeCalcState(calcDate, rem, rows, deletedIds = []) {
   return {
     Date: calcDate || "",
     Rem: rem || "",
-    items: rows.map((row) => ({
-      ID: Number(row.ID || 0),
-      CodeTov: Number(row.CodeTov || 0),
-      CodeDish: Number(row.CodeDish || 0),
-      Kolvo: Number(row.Kolvo || 0),
-      Netto: Number(row.Netto || 0),
-      Price: Number(row.Price || 0),
-      SumSeb: Number(row.SumSeb || 0),
-      Kind: row.Kind || ""
-    })),
+    items: rows.map(normalizeCalcItem),
     deletedIds: deletedIds.map(Number)
   };
 }
@@ -61,7 +65,8 @@ function SearchableSelect({
   value,
   options,
   placeholder,
-  onChange
+  onChange,
+  t
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchText, setSearchText] = useState("");
@@ -103,7 +108,7 @@ function SearchableSelect({
   }
 
   return (
-    <div className="searchable-select">
+    <div className="searchable-select dish-calc-search">
       <input
         type="text"
         value={inputValue}
@@ -143,13 +148,13 @@ function SearchableSelect({
                 clearValue();
               }}
             >
-              Очистить выбор
+              {t("DishCalc.ClearSelection", "Очистить выбор")}
             </button>
           )}
 
           {filteredOptions.length === 0 && (
             <div className="searchable-select-empty">
-              Ничего не найдено
+              {t("DishCalc.NothingFound", "Ничего не найдено")}
             </div>
           )}
 
@@ -175,7 +180,10 @@ function SearchableSelect({
 export default function DishCalcPage({
   dishId,
   currentSklad,
-  fetchWithAuth
+  fetchWithAuth,
+  onBack,
+  onDirtyChange,
+  t = (key, fallback = "") => fallback
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -195,6 +203,11 @@ export default function DishCalcPage({
   const [deletedIds, setDeletedIds] = useState([]);
   const [originalState, setOriginalState] = useState(null);
 
+  const unsavedChangesMessage = t(
+    "DishCalc.UnsavedChangesWarning",
+    "Внимание! Вы не сохранили измененные данные!\nУверены, что хотите уйти?"
+  );
+
   const rawById = useMemo(() => {
     return new Map(rawList.map((item) => [Number(item.ID), item]));
   }, [rawList]);
@@ -213,9 +226,35 @@ export default function DishCalcPage({
 
   const currentState = normalizeCalcState(calcDate, rem, rows, deletedIds);
 
-  const isDirty =
+  const isDirty = Boolean(
     originalState &&
-    JSON.stringify(currentState) !== JSON.stringify(originalState);
+      JSON.stringify(currentState) !== JSON.stringify(originalState)
+  );
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
+
+  useEffect(() => {
+    return () => {
+      onDirtyChange?.(false);
+    };
+  }, [onDirtyChange]);
+
+  useEffect(() => {
+    function handleBeforeUnload(event) {
+      if (!isDirty) return;
+
+      event.preventDefault();
+      event.returnValue = "";
+    }
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [isDirty]);
 
   useEffect(() => {
     loadAll();
@@ -301,28 +340,64 @@ export default function DishCalcPage({
         )
       );
     } catch (err) {
-      setError(err.message || "Ошибка загрузки калькуляционной карты");
+      setError(err.message || t("DishCalc.LoadError", "Ошибка загрузки калькуляционной карты"));
     } finally {
       setLoading(false);
     }
   }
 
+  function isRowDirty(row) {
+    if (!originalState) return false;
+
+    const originalRow = originalState.items.find(
+      (item) => Number(item.ID) === Number(row.ID)
+    );
+
+    if (!originalRow) return true;
+
+    return (
+      JSON.stringify(normalizeCalcItem(row)) !==
+      JSON.stringify(originalRow)
+    );
+  }
+
+  function handleBackClick() {
+    if (isDirty && !window.confirm(unsavedChangesMessage)) {
+      return;
+    }
+
+    onDirtyChange?.(false);
+    onBack?.();
+  }
+
   function handleSourceDateChange(value) {
     const selectedDate = normalizeDate(value);
+
+    if (selectedDate === sourceDate) {
+      return;
+    }
+
+    if (isDirty && !window.confirm(unsavedChangesMessage)) {
+      return;
+    }
+
+    onDirtyChange?.(false);
 
     const visibleRows = allRows.filter(
       (row) => normalizeDate(row.Date) === selectedDate
     );
+    const restoredRem = originalState?.Rem ?? rem;
 
     setSourceDate(selectedDate);
     setCalcDate(selectedDate);
     setRows(visibleRows);
+    setRem(restoredRem);
     setDeletedIds([]);
 
     setOriginalState(
       normalizeCalcState(
         selectedDate,
-        rem,
+        restoredRem,
         visibleRows,
         []
       )
@@ -494,6 +569,9 @@ export default function DishCalcPage({
   }
 
   function deleteRow(rowId) {
+    const ok = window.confirm(t("DishCalc.DeleteConfirm", "Удалить строку?"));
+    if (!ok) return;
+
     setRows((prevRows) => prevRows.filter((row) => row.ID !== rowId));
 
     if (rowId > 0) {
@@ -576,32 +654,43 @@ async function handleSave() {
     const data = await response.json();
 
     if (data.status !== "ok") {
-      alert(data.error || "Ошибка сохранения калькуляционной карты");
+      alert(data.error || t("DishCalc.SaveError", "Ошибка сохранения калькуляционной карты"));
       return;
     }
 
     await loadAll();
+    onDirtyChange?.(false);
   } catch (err) {
-    alert(err.message || "Ошибка сохранения калькуляционной карты");
+    alert(err.message || t("DishCalc.SaveError", "Ошибка сохранения калькуляционной карты"));
   }
 }
   return (
-    <div className="dish-calc-page">
-      <div className="form-header-panel dish-calc-form-header">
-        <div className="calc-dish-title dish-calc-title">
-          <span>Калькуляционная карта:</span>
-          <strong>{dishName || `ID ${dishId}`}</strong>
+    <div className="dish-calc-page dish-calc-editor-page">
+      <div className="form-header-panel dish-calc-form-header dish-calc-editor-header">
+        <div className="dish-calc-editor-title-block">
+          <button
+            type="button"
+            className="back-to-list-button dish-calc-back-button"
+            onClick={handleBackClick}
+          >
+            {t("DishCalc.BackToDishes", "← К списку блюд")}
+          </button>
+
+          <div className="calc-dish-title dish-calc-title dish-calc-editor-title">
+            <span>{t("DishCalc.TitlePrefix", "Калькуляционная карта:")}</span>
+            <strong>{dishName || `ID ${dishId}`}</strong>
+          </div>
         </div>
 
-        <div className="calc-header dish-calc-header">
+        <div className="calc-header dish-calc-header dish-calc-editor-controls">
         <div className="calc-field">
-          <span>Дата загрузки</span>
+          <span>{t("DishCalc.LoadDate", "Дата загрузки")}</span>
           <select
             value={sourceDate}
             onChange={(e) => handleSourceDateChange(e.target.value)}
           >
             {calcDates.length === 0 && (
-              <option value="">Нет калькуляций</option>
+              <option value="">{t("DishCalc.NoCalculations", "Нет калькуляций")}</option>
             )}
 
             {calcDates.map((date) => (
@@ -613,7 +702,7 @@ async function handleSave() {
         </div>
 
         <div className="calc-field">
-          <span>Дата сохранения</span>
+          <span>{t("DishCalc.SaveDate", "Дата сохранения")}</span>
           <input
             type="date"
             value={calcDate}
@@ -622,7 +711,7 @@ async function handleSave() {
         </div>
 
         <div className="calc-info">
-          <span>Себестоимость блюда:</span>
+          <span>{t("DishCalc.DishCost", "Себестоимость блюда:")}</span>
           <strong>{formatMoney(sebestDish)}</strong>
         </div>
 
@@ -632,33 +721,42 @@ async function handleSave() {
           disabled={!isDirty}
           onClick={handleSave}
         >
-          Сохранить
+          {t("DishCalc.Save", "Сохранить")}
         </button>
         </div>
       </div>
 
-      <div className="calc-layout">
-        <div className="calc-panel">
+      <div className="calc-layout dish-calc-editor-layout">
+        <section className="calc-panel dish-calc-editor-panel">
           <div className="calc-panel-title dish-calc-panel-title">
-            <span>Сырьё</span>
+            <span>{t("DishCalc.RawMaterials", "Сырьё")}</span>
             <button
               type="button"
               className="dish-calc-add-row-button"
               onClick={addRawRow}
             >
-              + строка
+              {t("DishCalc.AddRow", "+ строка")}
             </button>
           </div>
 
-          <div className="table-wrap calc-table-wrap">
-            <table className="data-table calc-table">
+          <div className="table-wrap calc-table-wrap dish-calc-table-wrap">
+            <table className="data-table calc-table dish-calc-table dish-calc-raw-table">
+              <colgroup>
+                <col className="dish-calc-col-item" />
+                <col className="dish-calc-col-qty" />
+                <col className="dish-calc-col-netto" />
+                <col className="dish-calc-col-price" />
+                <col className="dish-calc-col-amount" />
+                <col className="dish-calc-col-delete" />
+              </colgroup>
+
               <thead>
                 <tr>
-                  <th>Сырьё</th>
-                  <th>Кол-во</th>
-                  <th>Нетто</th>
-                  <th>Цена</th>
-                  <th>Сумма</th>
+                  <th>{t("DishCalc.RawMaterials", "Сырьё")}</th>
+                  <th>{t("DishCalc.Quantity", "Кол-во")}</th>
+                  <th>{t("DishCalc.Net", "Нетто")}</th>
+                  <th>{t("DishCalc.Price", "Цена")}</th>
+                  <th>{t("DishCalc.Amount", "Сумма")}</th>
                   <th></th>
                 </tr>
               </thead>
@@ -666,18 +764,24 @@ async function handleSave() {
               <tbody>
                 {rawRows.length === 0 && (
                   <tr>
-                    <td colSpan="6">Сырьё не добавлено.</td>
+                    <td className="dish-calc-empty-row" colSpan="6">
+                      {t("DishCalc.RawEmpty", "Сырьё не добавлено.")}
+                    </td>
                   </tr>
                 )}
 
                 {rawRows.map((row) => (
-                  <tr key={row.ID}>
+                  <tr
+                    key={row.ID}
+                    className={isRowDirty(row) ? "changed-row" : ""}
+                  >
                     <td>
                       <SearchableSelect
                         value={row.CodeTov}
                         options={rawList}
-                        placeholder="Найти сырьё..."
+                        placeholder={t("DishCalc.RawSearchPlaceholder", "Найти сырьё...")}
                         onChange={(value) => handleRawSelect(row.ID, value)}
+                        t={t}
                       />
                     </td>
 
@@ -716,7 +820,9 @@ async function handleSave() {
                     <td>
                       <button
                         type="button"
-                        className="small-danger-button"
+                        className="small-danger-button dish-calc-delete-button"
+                        title={t("DishCalc.DeleteRow", "Удалить строку")}
+                        aria-label={t("DishCalc.DeleteRow", "Удалить строку")}
                         onClick={() => deleteRow(row.ID)}
                       >
                         ×
@@ -727,29 +833,38 @@ async function handleSave() {
               </tbody>
             </table>
           </div>
-        </div>
+        </section>
 
-        <div className="calc-panel">
+        <section className="calc-panel dish-calc-editor-panel">
           <div className="calc-panel-title dish-calc-panel-title">
-            <span>Блюда / полуфабрикаты</span>
+            <span>{t("DishCalc.DishesSemiFinished", "Блюда / полуфабрикаты")}</span>
             <button
               type="button"
               className="dish-calc-add-row-button"
               onClick={addDishRow}
             >
-              + строка
+              {t("DishCalc.AddRow", "+ строка")}
             </button>
           </div>
 
-          <div className="table-wrap calc-table-wrap">
-            <table className="data-table calc-table">
+          <div className="table-wrap calc-table-wrap dish-calc-table-wrap">
+            <table className="data-table calc-table dish-calc-table dish-calc-pf-table">
+              <colgroup>
+                <col className="dish-calc-col-item" />
+                <col className="dish-calc-col-qty" />
+                <col className="dish-calc-col-netto" />
+                <col className="dish-calc-col-price" />
+                <col className="dish-calc-col-amount" />
+                <col className="dish-calc-col-delete" />
+              </colgroup>
+
               <thead>
                 <tr>
-                  <th>Блюдо / ПФ</th>
-                  <th>Кол-во</th>
-                  <th>Нетто</th>
-                  <th>Цена</th>
-                  <th>Сумма</th>
+                  <th>{t("DishCalc.DishSemiFinished", "Блюдо / ПФ")}</th>
+                  <th>{t("DishCalc.Quantity", "Кол-во")}</th>
+                  <th>{t("DishCalc.Net", "Нетто")}</th>
+                  <th>{t("DishCalc.Price", "Цена")}</th>
+                  <th>{t("DishCalc.Amount", "Сумма")}</th>
                   <th></th>
                 </tr>
               </thead>
@@ -757,18 +872,24 @@ async function handleSave() {
               <tbody>
                 {dishRows.length === 0 && (
                   <tr>
-                    <td colSpan="6">Полуфабрикаты не добавлены.</td>
+                    <td className="dish-calc-empty-row" colSpan="6">
+                      {t("DishCalc.SemiFinishedEmpty", "Полуфабрикаты не добавлены.")}
+                    </td>
                   </tr>
                 )}
 
                 {dishRows.map((row) => (
-                  <tr key={row.ID}>
+                  <tr
+                    key={row.ID}
+                    className={isRowDirty(row) ? "changed-row" : ""}
+                  >
                     <td>
                       <SearchableSelect
                         value={row.CodeDish}
                         options={dishList}
-                        placeholder="Найти блюдо / ПФ..."
+                        placeholder={t("DishCalc.DishSearchPlaceholder", "Найти блюдо / ПФ...")}
                         onChange={(value) => handleDishSelect(row.ID, value)}
+                        t={t}
                       />
                     </td>
 
@@ -807,7 +928,9 @@ async function handleSave() {
                     <td>
                       <button
                         type="button"
-                        className="small-danger-button"
+                        className="small-danger-button dish-calc-delete-button"
+                        title={t("DishCalc.DeleteRow", "Удалить строку")}
+                        aria-label={t("DishCalc.DeleteRow", "Удалить строку")}
                         onClick={() => deleteRow(row.ID)}
                       >
                         ×
@@ -818,12 +941,12 @@ async function handleSave() {
               </tbody>
             </table>
           </div>
-        </div>
+        </section>
       </div>
 
-      <div className="calc-rem-block dish-calc-rem-block">
+      <div className="calc-rem-block dish-calc-rem-block dish-calc-editor-rem-block">
         <label>
-          <span>Технология приготовления</span>
+          <span>{t("DishCalc.Technology", "Технология приготовления")}</span>
           <textarea
             value={rem}
             onChange={(e) => setRem(e.target.value)}

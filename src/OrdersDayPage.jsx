@@ -46,10 +46,10 @@ function formatDateTime(value) {
   return text;
 }
 
-function formatNumber(value, digits = 2) {
+function formatNumber(value, locale = "ru-RU", digits = 2) {
   const n = Number(value || 0);
   if (!Number.isFinite(n)) return "";
-  return n.toLocaleString("ru-RU", {
+  return n.toLocaleString(locale, {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits
   });
@@ -60,20 +60,28 @@ function normalizeFilterValue(value) {
   return String(value);
 }
 
-function getKassLabel(value) {
+function getKassLabel(value, t) {
   const text = normalizeFilterValue(value);
-  return text || "Не указана";
+  return text || t("OrdersDay.NotSpecified", "Не указана");
 }
 
-function uniqueOptions(items) {
+function uniqueOptions(items, locale = "ru-RU") {
   const map = new Map();
   for (const item of items) {
     if (!map.has(item.value)) map.set(item.value, item);
   }
-  return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label, "ru"));
+  return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label, locale));
 }
 
-export default function OrdersDayPage({ data, ordersDate, onDateChange, onReload, onViewOrder }) {
+export default function OrdersDayPage({
+  data,
+  ordersDate,
+  onDateChange,
+  onReload,
+  onViewOrder,
+  t = (key, fallback = "") => fallback,
+  locale = "ru-RU"
+}) {
   const [orders, setOrders] = useState([]);
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [ofFilter, setOfFilter] = useState("%");
@@ -92,9 +100,10 @@ export default function OrdersDayPage({ data, ordersDate, onDateChange, onReload
       uniqueOptions(
         orders
           .filter((order) => order.NameOf)
-          .map((order) => ({ value: String(order.NameOf), label: String(order.NameOf) }))
+          .map((order) => ({ value: String(order.NameOf), label: String(order.NameOf) })),
+        locale
       ),
-    [orders]
+    [orders, locale]
   );
 
   const kassOptions = useMemo(
@@ -104,10 +113,11 @@ export default function OrdersDayPage({ data, ordersDate, onDateChange, onReload
           .filter((order) => normalizeFilterValue(order.Kass))
           .map((order) => ({
             value: normalizeFilterValue(order.Kass),
-            label: getKassLabel(order.Kass)
-          }))
+            label: getKassLabel(order.Kass, t)
+          })),
+        locale
       ),
-    [orders]
+    [orders, t, locale]
   );
 
   const visibleOrders = useMemo(() => {
@@ -156,15 +166,15 @@ export default function OrdersDayPage({ data, ordersDate, onDateChange, onReload
   }
 
   return (
-    <div className="orders-day-page">
+    <div className="orders-day-page orders-day-view-page">
       <div className="module-toolbar orders-day-toolbar orders-day-main-toolbar">
         <div className="toolbar-left">
-          <button type="button" className="small-action-button orders-day-date-nav-button" onClick={() => shiftDate(-1)} title="Предыдущий день">
+          <button type="button" className="small-action-button orders-day-date-nav-button" onClick={() => shiftDate(-1)} title={t("OrdersDay.PreviousDay", "Предыдущий день")}>
             ←
           </button>
 
           <label className="toolbar-field">
-            Дата
+            {t("OrdersDay.Date", "Дата")}
             <input
               type="date"
               className="toolbar-date orders-day-date-input"
@@ -178,14 +188,14 @@ export default function OrdersDayPage({ data, ordersDate, onDateChange, onReload
             />
           </label>
 
-          <button type="button" className="small-action-button orders-day-date-nav-button" onClick={() => shiftDate(1)} title="Следующий день">
+          <button type="button" className="small-action-button orders-day-date-nav-button" onClick={() => shiftDate(1)} title={t("OrdersDay.NextDay", "Следующий день")}>
             →
           </button>
 
           <label className="toolbar-field">
-            Официант
+            {t("OrdersDay.Waiter", "Официант")}
             <select className="orders-day-filter-select" value={ofFilter} onChange={(event) => setOfFilter(event.target.value)}>
-              <option value="%">Все</option>
+              <option value="%">{t("OrdersDay.All", "Все")}</option>
               {ofOptions.map((item) => (
                 <option key={item.value} value={item.value}>
                   {item.label}
@@ -195,9 +205,9 @@ export default function OrdersDayPage({ data, ordersDate, onDateChange, onReload
           </label>
 
           <label className="toolbar-field">
-            Касса
+            {t("OrdersDay.CashRegister", "Касса")}
             <select className="orders-day-filter-select" value={kassFilter} onChange={(event) => setKassFilter(event.target.value)}>
-              <option value="%">Все</option>
+              <option value="%">{t("OrdersDay.All", "Все")}</option>
               {kassOptions.map((item) => (
                 <option key={item.value} value={item.value}>
                   {item.label}
@@ -207,28 +217,28 @@ export default function OrdersDayPage({ data, ordersDate, onDateChange, onReload
           </label>
 
           <button type="button" className="small-action-button orders-day-refresh-button" onClick={onReload}>
-            Обновить
+            {t("OrdersDay.Refresh", "Обновить")}
           </button>
 
           <button
             type="button"
             className="primary-button orders-day-view-button"
             disabled={!selectedOrder}
-            title={selectedOrder ? "Открыть просмотр заказа" : "Выберите заказ"}
+            title={selectedOrder ? t("OrdersDay.OpenOrderHint", "Открыть просмотр заказа") : t("OrdersDay.SelectOrderHint", "Выберите заказ")}
             onClick={() => {
               if (selectedOrder) {
                 onViewOrder?.(selectedOrder);
               }
             }}
           >
-            Просмотр
+            {t("OrdersDay.View", "Просмотр")}
           </button>
         </div>
 
         <div className="toolbar-right orders-day-summary">
-          <span>Заказов: {totals.count}</span>
-          <span>Сумма: {formatNumber(totals.summ)}</span>
-          <span>С уч. скидки: {formatNumber(totals.summSk)}</span>
+          <span>{t("OrdersDay.Orders", "Заказов")}: {totals.count}</span>
+          <span>{t("OrdersDay.Amount", "Сумма")}: {formatNumber(totals.summ, locale)}</span>
+          <span>{t("OrdersDay.AmountWithDiscount", "С уч. скидки")}: {formatNumber(totals.summSk, locale)}</span>
         </div>
       </div>
 
@@ -259,24 +269,24 @@ export default function OrdersDayPage({ data, ordersDate, onDateChange, onReload
 
               <thead>
                 <tr>
-                  <th>Время</th>
-                  <th>Стол</th>
-                  <th>№</th>
-                  <th>Клиент</th>
-                  <th>Скидка</th>
-                  <th>Сумма</th>
-                  <th>С уч. скидки</th>
-                  <th>Аванс</th>
-                  <th>Официант</th>
-                  <th>Гости</th>
-                  <th>Касса</th>
-                  <th>Нал.</th>
-                  <th>Долг</th>
-                  <th>Кред.</th>
-                  <th>Бон.</th>
+                  <th>{t("OrdersDay.Time", "Время")}</th>
+                  <th>{t("OrdersDay.Table", "Стол")}</th>
+                  <th>{t("OrdersDay.Number", "№")}</th>
+                  <th>{t("OrdersDay.Client", "Клиент")}</th>
+                  <th>{t("OrdersDay.Discount", "Скидка")}</th>
+                  <th>{t("OrdersDay.Amount", "Сумма")}</th>
+                  <th>{t("OrdersDay.AmountWithDiscount", "С уч. скидки")}</th>
+                  <th>{t("OrdersDay.Advance", "Аванс")}</th>
+                  <th>{t("OrdersDay.Waiter", "Официант")}</th>
+                  <th>{t("OrdersDay.Guests", "Гости")}</th>
+                  <th>{t("OrdersDay.CashRegister", "Касса")}</th>
+                  <th>{t("OrdersDay.Cash", "Нал.")}</th>
+                  <th>{t("OrdersDay.Debt", "Долг")}</th>
+                  <th>{t("OrdersDay.Credit", "Кред.")}</th>
+                  <th>{t("OrdersDay.Bonus", "Бон.")}</th>
                   <th>Mono</th>
-                  <th>Талоны</th>
-                  <th>Обн.</th>
+                  <th>{t("OrdersDay.Coupons", "Талоны")}</th>
+                  <th>{t("OrdersDay.Updated", "Обн.")}</th>
                 </tr>
               </thead>
 
@@ -290,28 +300,28 @@ export default function OrdersDayPage({ data, ordersDate, onDateChange, onReload
                     <td>{formatTime(order.DatOp)}</td>
                     <td>{order.Table || ""}</td>
                     <td className="text-right">{order.Number || ""}</td>
-                    <td>{order.Klient || ""}</td>
+                    <td title={order.Klient || ""}>{order.Klient || ""}</td>
                     <td>{order.Discount || ""}</td>
-                    <td className="text-right">{formatNumber(order.Summ)}</td>
-                    <td className="text-right">{formatNumber(order.SummSk)}</td>
-                    <td className="text-right">{formatNumber(order.Avans)}</td>
-                    <td>{order.NameOf || ""}</td>
+                    <td className="text-right">{formatNumber(order.Summ, locale)}</td>
+                    <td className="text-right">{formatNumber(order.SummSk, locale)}</td>
+                    <td className="text-right">{formatNumber(order.Avans, locale)}</td>
+                    <td title={order.NameOf || ""}>{order.NameOf || ""}</td>
                     <td className="text-right">{order.Guests || ""}</td>
-                    <td>{getKassLabel(order.Kass)}</td>
-                    <td className="text-right">{formatNumber(order.Cash)}</td>
-                    <td className="text-right">{formatNumber(order.SummDolg)}</td>
-                    <td className="text-right">{formatNumber(order.SumKred)}</td>
-                    <td className="text-right">{formatNumber(order.SumBon)}</td>
-                    <td className="text-right">{formatNumber(order.SumMono)}</td>
-                    <td className="text-right">{formatNumber(order.Tallons)}</td>
-                    <td>{order.Updt || ""}</td>
+                    <td title={getKassLabel(order.Kass, t)}>{getKassLabel(order.Kass, t)}</td>
+                    <td className="text-right">{formatNumber(order.Cash, locale)}</td>
+                    <td className="text-right">{formatNumber(order.SummDolg, locale)}</td>
+                    <td className="text-right">{formatNumber(order.SumKred, locale)}</td>
+                    <td className="text-right">{formatNumber(order.SumBon, locale)}</td>
+                    <td className="text-right">{formatNumber(order.SumMono, locale)}</td>
+                    <td className="text-right">{formatNumber(order.Tallons, locale)}</td>
+                    <td title={order.Updt || ""}>{order.Updt || ""}</td>
                   </tr>
                 ))}
 
                 {visibleOrders.length === 0 && (
                   <tr>
-                    <td colSpan="18" className="empty-cell">
-                      Заказов за выбранный день нет
+                    <td colSpan="18" className="empty-cell orders-day-empty-row">
+                      {t("OrdersDay.NoOrders", "Заказов за выбранный день нет")}
                     </td>
                   </tr>
                 )}
@@ -320,19 +330,19 @@ export default function OrdersDayPage({ data, ordersDate, onDateChange, onReload
               {visibleOrders.length > 0 && (
                 <tfoot>
                   <tr>
-                    <td colSpan="5">Итого</td>
-                    <td className="text-right">{formatNumber(totals.summ)}</td>
-                    <td className="text-right">{formatNumber(totals.summSk)}</td>
+                    <td colSpan="5">{t("OrdersDay.Total", "Итого")}</td>
+                    <td className="text-right">{formatNumber(totals.summ, locale)}</td>
+                    <td className="text-right">{formatNumber(totals.summSk, locale)}</td>
                     <td></td>
                     <td></td>
                     <td className="text-right">{totals.count}</td>
                     <td></td>
-                    <td className="text-right">{formatNumber(totals.cash)}</td>
-                    <td className="text-right">{formatNumber(totals.dolg)}</td>
-                    <td className="text-right">{formatNumber(totals.kred)}</td>
-                    <td className="text-right">{formatNumber(totals.bon)}</td>
-                    <td className="text-right">{formatNumber(totals.mono)}</td>
-                    <td className="text-right">{formatNumber(totals.tallons)}</td>
+                    <td className="text-right">{formatNumber(totals.cash, locale)}</td>
+                    <td className="text-right">{formatNumber(totals.dolg, locale)}</td>
+                    <td className="text-right">{formatNumber(totals.kred, locale)}</td>
+                    <td className="text-right">{formatNumber(totals.bon, locale)}</td>
+                    <td className="text-right">{formatNumber(totals.mono, locale)}</td>
+                    <td className="text-right">{formatNumber(totals.tallons, locale)}</td>
                     <td></td>
                   </tr>
                 </tfoot>
@@ -342,35 +352,47 @@ export default function OrdersDayPage({ data, ordersDate, onDateChange, onReload
         </section>
 
         <section className="orders-day-items-panel orders-day-panel">
-          <div className="orders-day-items-title perem-panel-title">
-            <strong>Состав заказа (первые 5 блюд) {selectedOrder ? ` №${selectedOrder.Number || ""}` : ""}</strong>
+          <div className="orders-day-items-title">
+            <strong>{t("OrdersDay.OrderComposition", "Состав заказа (первые 5 блюд)")}{selectedOrder ? ` №${selectedOrder.Number || ""}` : ""}</strong>
 
           </div>
 
           <div className="table-wrap orders-day-items-wrap">
             <table className="data-table orders-day-items-table">
+              <colgroup>
+                <col className="orders-items-col-dish" />
+                <col className="orders-items-col-department" />
+                <col className="orders-items-col-qty" />
+                <col className="orders-items-col-price" />
+                <col className="orders-items-col-amount" />
+                <col className="orders-items-col-check" />
+                <col className="orders-items-col-check" />
+                <col className="orders-items-col-check" />
+                <col className="orders-items-col-time" />
+              </colgroup>
+
               <thead>
                 <tr>
-                  <th>Блюдо</th>
-                  <th>Подразд.</th>
-                  <th>Кол-во</th>
-                  <th>Цена</th>
-                  <th>Сумма</th>
-                  <th>Бел.</th>
-                  <th>Анн.</th>
-                  <th>Перебр.</th>
-                  <th>Время</th>
+                  <th>{t("OrdersDay.Dish", "Блюдо")}</th>
+                  <th>{t("OrdersDay.Department", "Подразд.")}</th>
+                  <th>{t("OrdersDay.Quantity", "Кол-во")}</th>
+                  <th>{t("OrdersDay.Price", "Цена")}</th>
+                  <th>{t("OrdersDay.Amount", "Сумма")}</th>
+                  <th>{t("OrdersDay.BelAbbr", "Бел.")}</th>
+                  <th>{t("OrdersDay.AnulAbbr", "Анн.")}</th>
+                  <th>{t("OrdersDay.PerebrAbbr", "Перебр.")}</th>
+                  <th>{t("OrdersDay.Time", "Время")}</th>
                 </tr>
               </thead>
 
               <tbody>
                 {(selectedOrder?.Items || []).map((item, index) => (
                   <tr key={`${selectedOrder.ID}-${index}`}>
-                    <td>{item.NameB || ""}</td>
-                    <td>{item.Podrazd || ""}</td>
-                    <td className="text-right">{formatNumber(item.Kolv)}</td>
-                    <td className="text-right">{formatNumber(item.Cena)}</td>
-                    <td className="text-right">{formatNumber(item.Summ)}</td>
+                    <td title={item.NameB || ""}>{item.NameB || ""}</td>
+                    <td title={item.Podrazd || ""}>{item.Podrazd || ""}</td>
+                    <td className="text-right">{formatNumber(item.Kolv, locale)}</td>
+                    <td className="text-right">{formatNumber(item.Cena, locale)}</td>
+                    <td className="text-right">{formatNumber(item.Summ, locale)}</td>
                     <td className="center">
                       <input type="checkbox" checked={Boolean(item.Bel)} readOnly />
                     </td>
@@ -386,8 +408,8 @@ export default function OrdersDayPage({ data, ordersDate, onDateChange, onReload
 
                 {(!selectedOrder || !Array.isArray(selectedOrder.Items) || selectedOrder.Items.length === 0) && (
                   <tr>
-                    <td colSpan="9" className="empty-cell">
-                      Выберите заказ в списке
+                    <td colSpan="9" className="empty-cell orders-day-empty-row">
+                      {t("OrdersDay.SelectOrderInList", "Выберите заказ в списке")}
                     </td>
                   </tr>
                 )}

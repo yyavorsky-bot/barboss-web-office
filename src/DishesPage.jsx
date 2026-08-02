@@ -44,7 +44,9 @@ export default function DishesPage({
   onChangeModif,
   onChangeGroup,
   onAddDish,
-  onSaveDishes
+  onSaveDishes,
+  onDirtyChange,
+  t = (key, fallback = "") => fallback
 }) {
   const [rows, setRows] = useState([]);
   const [changedRows, setChangedRows] = useState({});
@@ -54,6 +56,37 @@ export default function DishesPage({
   const [error, setError] = useState("");
 
   const toolbarGroups = Array.isArray(filterGroups) ? filterGroups : [];
+  const changedCount = Object.keys(changedRows).length;
+  const isDirty = !readOnly && changedCount > 0;
+  const unsavedChangesMessage = t(
+    "Dishes.UnsavedChangesWarning",
+    "Внимание! Вы не сохранили измененные данные!\nУверены, что хотите уйти?"
+  );
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
+
+  useEffect(() => {
+    return () => {
+      onDirtyChange?.(false);
+    };
+  }, [onDirtyChange]);
+
+  useEffect(() => {
+    function handleBeforeUnload(event) {
+      if (!isDirty) return;
+
+      event.preventDefault();
+      event.returnValue = "";
+    }
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [isDirty]);
 
   useEffect(() => {
     setRows(Array.isArray(data) ? data : []);
@@ -63,6 +96,35 @@ export default function DishesPage({
     setAddLoading(false);
     setSaveLoading(false);
   }, [data]);
+
+  function confirmDiscardChanges() {
+    if (!isDirty) return true;
+
+    return window.confirm(unsavedChangesMessage);
+  }
+
+  function discardLocalChanges() {
+    setChangedRows({});
+    onDirtyChange?.(false);
+  }
+
+  async function handleProtectedFilterChange(callback, value) {
+    if (!confirmDiscardChanges()) {
+      return;
+    }
+
+    discardLocalChanges();
+    await callback?.(value);
+  }
+
+  function handleOpenCalc(codeBl) {
+    if (!confirmDiscardChanges()) {
+      return;
+    }
+
+    discardLocalChanges();
+    onOpenCalc?.(codeBl);
+  }
 
   function updateField(codeBl, field, value) {
     if (readOnly) return;
@@ -137,7 +199,7 @@ function buildDishesXml(sourceRows) {
 
       setSelectedId(newDish.CodeBl);
     } catch (err) {
-      setError(err.message || "Ошибка добавления блюда");
+      setError(err.message || t("Dishes.AddError", "Ошибка добавления блюда"));
     } finally {
       setAddLoading(false);
     }
@@ -166,7 +228,7 @@ function buildDishesXml(sourceRows) {
 
     setChangedRows({});
     } catch (err) {
-      setError(err.message || "Ошибка сохранения блюд");
+      setError(err.message || t("Dishes.SaveError", "Ошибка сохранения блюд"));
     } finally {
       setSaveLoading(false);
     }
@@ -179,15 +241,22 @@ function buildDishesXml(sourceRows) {
         filterSkr={filterSkr}
         filterModif={filterModif}
         filterGroup={filterGroup}
-        onChangeSkr={onChangeSkr}
-        onChangeModif={onChangeModif}
-        onChangeGroup={onChangeGroup}
+        onChangeSkr={(value) =>
+          handleProtectedFilterChange(onChangeSkr, value)
+        }
+        onChangeModif={(value) =>
+          handleProtectedFilterChange(onChangeModif, value)
+        }
+        onChangeGroup={(value) =>
+          handleProtectedFilterChange(onChangeGroup, value)
+        }
         readOnly={readOnly}
-        changedCount={Object.keys(changedRows).length}
+        changedCount={changedCount}
         addLoading={addLoading}
         saveLoading={saveLoading}
         onAddDish={addNewDish}
         onSaveDishes={saveDishes}
+        t={t}
       />
 
       {error && (
@@ -205,21 +274,21 @@ function buildDishesXml(sourceRows) {
           <table className="data-table dishes-table">
             <thead>
               <tr>
-                <th className="dishes-calc-column">Кальк.</th>
-                <th>Штрихкод</th>
-                <th>Название</th>
-                <th>Цена</th>
-                <th>Вес</th>
-                <th>Ед.</th>
-                <th>НеП.</th>
-                <th>Скр.</th>
-                <th>Группа</th>
-                <th>Цех</th>
-                <th>Орг.</th>
-                <th>Тип</th>
-                <th>ФП</th>
-                <th>УКТЗ.</th>
-                <th>Дост.</th>
+                <th className="dishes-calc-column">{t("Dishes.Calc", "Кальк.")}</th>
+                <th>{t("Dishes.Barcode", "Штрихкод")}</th>
+                <th>{t("Dishes.Name", "Название")}</th>
+                <th>{t("Dishes.Price", "Цена")}</th>
+                <th>{t("Dishes.Weight", "Вес")}</th>
+                <th>{t("Dishes.Unit", "Ед.")}</th>
+                <th>{t("Dishes.NonProduct", "НеП.")}</th>
+                <th>{t("Dishes.HiddenShort", "Скр.")}</th>
+                <th>{t("Dishes.Group", "Группа")}</th>
+                <th>{t("Dishes.Workshop", "Цех")}</th>
+                <th>{t("Dishes.Organization", "Предпр.")}</th>
+                <th>{t("Dishes.Type", "Тип")}</th>
+                <th>{t("Dishes.FiscalPrint", "ФП")}</th>
+                <th>{t("Dishes.Uktzed", "УКТЗ.")}</th>
+                <th>{t("Dishes.Delivery", "Дост.")}</th>
               </tr>
             </thead>
 
@@ -239,10 +308,10 @@ function buildDishesXml(sourceRows) {
                       className="dishes-calc-button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        onOpenCalc?.(dish.CodeBl);
+                        handleOpenCalc(dish.CodeBl);
                       }}
                     >
-                      Кальк.
+                      {t("Dishes.Calc", "Кальк.")}
                     </button>
                   </td>
 
@@ -454,7 +523,8 @@ function DishesToolbar({
   addLoading,
   saveLoading,
   onAddDish,
-  onSaveDishes
+  onSaveDishes,
+  t
 }) {
   return (
     <div className="module-toolbar dishes-toolbar">
@@ -465,7 +535,7 @@ function DishesToolbar({
             checked={Boolean(filterSkr)}
             onChange={(e) => onChangeSkr(e.target.checked)}
           />
-          Скрытые
+          {t("Dishes.ShowHidden", "Скрытые")}
         </label>
 
         <label className="toolbar-check">
@@ -474,18 +544,18 @@ function DishesToolbar({
             checked={Boolean(filterModif)}
             onChange={(e) => onChangeModif(e.target.checked)}
           />
-          Модификаторы
+          {t("Dishes.ShowModifiers", "Модификаторы")}
         </label>
 
         <label className="toolbar-field">
-          <span>Группа</span>
+          <span>{t("Dishes.Group", "Группа")}</span>
 
           <select
             className="toolbar-select"
             value={String(filterGroup ?? "%")}
             onChange={(e) => onChangeGroup(e.target.value)}
           >
-            <option value="%">Все</option>
+            <option value="%">{t("Dishes.AllGroups", "Все")}</option>
 
             {Array.isArray(groups) &&
               groups.map((group) => (
@@ -498,7 +568,7 @@ function DishesToolbar({
 
         {changedCount > 0 && (
           <span className="changed-info">
-            Изменено: {changedCount}
+            {t("Dishes.ChangedCountPrefix", "Изменено:")} {changedCount}
           </span>
         )}
       </div>
@@ -511,7 +581,9 @@ function DishesToolbar({
             disabled={addLoading}
             onClick={onAddDish}
           >
-            {addLoading ? "Добавление..." : "Добавить"}
+            {addLoading
+              ? t("Dishes.Adding", "Добавление...")
+              : t("Dishes.Add", "Добавить")}
           </button>
         )}
 
@@ -522,7 +594,9 @@ function DishesToolbar({
             disabled={changedCount === 0 || saveLoading}
             onClick={onSaveDishes}
           >
-            {saveLoading ? "Сохранение..." : "Сохранить"}
+            {saveLoading
+              ? t("Dishes.Saving", "Сохранение...")
+              : t("Dishes.Save", "Сохранить")}
           </button>
         )}
       </div>

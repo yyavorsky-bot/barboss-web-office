@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+
 const discountFields = [
   "ID",
   "Name",
@@ -8,15 +9,46 @@ const discountFields = [
 ];
 
 export default function DiscountPage({
+  t = (_, fallback = "") => fallback,
+  locale = "ru-RU",
   data,
   readOnly,
-  onSaveDiscount
+  onSaveDiscount,
+  onDirtyChange
 }) {
   const [rows, setRows] = useState([]);
   const [changedRows, setChangedRows] = useState({});
   const [selectedId, setSelectedId] = useState(null);
   const [error, setError] = useState("");
   const [saveLoading, setSaveLoading] = useState(false);
+
+  const changedCount = Object.keys(changedRows).length;
+  const isDirty = !readOnly && changedCount > 0;
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
+
+  useEffect(() => {
+    return () => {
+      onDirtyChange?.(false);
+    };
+  }, [onDirtyChange]);
+
+  useEffect(() => {
+    function handleBeforeUnload(event) {
+      if (!isDirty) return;
+
+      event.preventDefault();
+      event.returnValue = "";
+    }
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [isDirty]);
 
   useEffect(() => {
     setRows(Array.isArray(data) ? data : []);
@@ -107,8 +139,9 @@ export default function DiscountPage({
       await onSaveDiscount(xml);
 
       setChangedRows({});
+      onDirtyChange?.(false);
     } catch (err) {
-      setError(err.message || "Ошибка сохранения скидок");
+      setError(err.message || t("Discount.ErrorSave", "Ошибка сохранения скидок"));
     } finally {
       setSaveLoading(false);
     }
@@ -120,9 +153,9 @@ export default function DiscountPage({
         <div className="toolbar-left">
 
 
-          {Object.keys(changedRows).length > 0 && (
+          {changedCount > 0 && (
             <span className="changed-info">
-              Изменено: {Object.keys(changedRows).length}
+              {t("Discount.Changed", "Изменено")}: {changedCount}
             </span>
           )}
         </div>
@@ -132,10 +165,10 @@ export default function DiscountPage({
             <button
               type="button"
               className="toolbar-save-button discount-save-button"
-              disabled={Object.keys(changedRows).length === 0 || saveLoading}
+              disabled={changedCount === 0 || saveLoading}
               onClick={saveDiscount}
             >
-              {saveLoading ? "Сохранение..." : "Сохранить изменения"}
+              {saveLoading ? t("Discount.Saving", "Сохранение...") : t("Discount.SaveChanges", "Сохранить изменения")}
             </button>
           )}
         </div>
@@ -148,17 +181,24 @@ export default function DiscountPage({
       )}
 
       {rows.length === 0 && (
-        <div className="perem-empty discount-empty">Список скидок пуст.</div>
+        <div className="discount-empty">{t("Discount.Empty", "Список скидок пуст.")}</div>
       )}
 
       {rows.length > 0 && (
+        <section className="discount-table-panel">
           <div className="table-wrap discount-table-wrap">
-            <table className="data-table compact-table discount-table">
-            <thead>
+            <table className="data-table discount-table">
+              <colgroup>
+                <col className="discount-col-name" />
+                <col className="discount-col-percent" />
+                <col className="discount-col-bonus" />
+              </colgroup>
+
+              <thead>
               <tr>
-                <th>Название</th>
-                <th>Скидка, %</th>
-                <th>Бонусная</th>
+                <th>{t("Discount.Name", "Название")}</th>
+                <th>{t("Discount.DiscountPercent", "Скидка, %")}</th>
+                <th>{t("Discount.Bonus", "Бонусная")}</th>
               </tr>
             </thead>
 
@@ -178,6 +218,7 @@ export default function DiscountPage({
                       className="table-input"
                       type="text"
                       value={row.Name ?? ""}
+                      title={row.Name ?? ""}
                       disabled={readOnly}
                       onChange={(e) => updateField(row.ID, "Name", e.target.value)}
                     />
@@ -202,9 +243,10 @@ export default function DiscountPage({
                   </td>
                 </tr>
               ))}
-            </tbody>
-          </table>
-        </div>
+              </tbody>
+            </table>
+          </div>
+        </section>
       )}
     </div>
   );

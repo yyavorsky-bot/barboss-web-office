@@ -13,6 +13,13 @@ import {
   loadCategor
 } from "./api";
 import LoginPage from "./LoginPage";
+import {
+  getInitialLanguage,
+  getLanguageLocale,
+  loadTranslations,
+  normalizeLanguage,
+  persistLanguage
+} from "./i18n";
 import HomePage from "./HomePage";
 import barbossTitleIcon from "./assets/barboss-title-icon.png";
 import DishesPage from "./DishesPage";
@@ -420,6 +427,31 @@ export default function App() {
   const [ordersDate, setOrdersDate] = useState(new Date().toISOString().slice(0, 10));
   const [viewOrderId, setViewOrderId] = useState(null);
   const [viewSourceOrder, setViewSourceOrder] = useState(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [language, setLanguage] = useState(getInitialLanguage);
+  const [translations, setTranslations] = useState({});
+
+  const locale = useMemo(() => getLanguageLocale(language), [language]);
+
+  const t = useMemo(() => {
+    return (key, fallback = "") => translations[key] ?? fallback;
+  }, [translations]);
+
+  const currentMenuTitle = useMemo(() => {
+    const menuItem = findMenuItemByAction(menu, selectedAction);
+
+    return menuItem?.name ?? menuItem?.Name ?? "";
+  }, [menu, selectedAction]);
+
+  const displayedWorkTitle =
+    currentMenuTitle ||
+    workTitle ||
+    t("App.WorkArea", "Рабочая область");
+
+  const unsavedChangesMessage = t(
+    "App.UnsavedChangesWarning",
+    "Внимание! Вы не сохранили измененные данные!\nУверены, что хотите уйти?"
+  );
 
   const ordersWaiterOptions = useMemo(() => {
     const map = new Map();
@@ -446,6 +478,57 @@ export default function App() {
 
 useEffect(() => {
 }, [currentOrg]);
+
+async function applyLanguage(nextLanguage, request = fetchWithAuth) {
+  const safeLanguage = normalizeLanguage(nextLanguage);
+  const translationMap = await loadTranslations(safeLanguage, request);
+
+  setTranslations(translationMap);
+  setLanguage(safeLanguage);
+  persistLanguage(safeLanguage);
+}
+
+async function handleAppLanguageChange(event) {
+  const nextLanguage = normalizeLanguage(event.target.value);
+
+  if (nextLanguage === language) {
+    return;
+  }
+
+  try {
+    // Сначала загружаем оба набора данных. Язык переключаем только после
+    // успешной загрузки переводов формы и локализованного левого меню.
+    console.log("[language] change", {
+      from: language,
+      to: nextLanguage
+    });
+
+    const [translationMap, menuData] = await Promise.all([
+      loadTranslations(nextLanguage, fetchWithAuth),
+      menuRequest(accessToken, nextLanguage)
+    ]);
+
+    console.log("[language] applying menu", {
+      language: nextLanguage,
+      isArray: Array.isArray(menuData),
+      count: Array.isArray(menuData)
+        ? menuData.length
+        : Array.isArray(menuData?.menu)
+          ? menuData.menu.length
+          : 0
+    });
+
+    setTranslations(translationMap);
+    setMenu(Array.isArray(menuData?.menu) ? menuData.menu : menuData);
+    setLanguage(nextLanguage);
+    persistLanguage(nextLanguage);
+  } catch (err) {
+    window.alert(
+      err.message ||
+        t("App.TranslationLoadError", "Ошибка загрузки переводов")
+    );
+  }
+}
 
 async function loadGroupsForDishFilter({
   sklad = currentSklad,
@@ -1060,10 +1143,43 @@ async function loadCategories() {
     setWorkLoading(false);
   }
 }
+function findMenuItemByAction(items, targetAction) {
+  for (const item of Array.isArray(items) ? items : []) {
+    const action = item?.action ?? item?.Action ?? "";
+
+    if (
+      action &&
+      normalizeMenuActionKey(action) ===
+        normalizeMenuActionKey(targetAction)
+    ) {
+      return item;
+    }
+
+    const children = item?.items ?? item?.Items ?? [];
+    const found = findMenuItemByAction(children, targetAction);
+
+    if (found) {
+      return found;
+    }
+  }
+
+  return null;
+}
 
 function backToPrihList() {
+  const menuItem = findMenuItemByAction(
+    menu,
+    "wf_PrihList.php"
+  );
+
   setSelectedAction("wf_PrihList.php");
-  setWorkTitle("Приходные накладные");
+
+  setWorkTitle(
+    menuItem?.name ??
+    menuItem?.Name ??
+    t("PrihList.Title", "Приходные накладные")
+  );
+
   setPrihInvoiceId(null);
   setPrihInitialData(null);
   setPrihMode("edit");
@@ -1409,7 +1525,7 @@ async function loadDishes({
     modif = dishModif
   } = {}) {
     if (!sklad) {
-      throw new Error("Не выбран склад / подразделение");
+      throw new Error(t("App.WarehouseRequired", "Не выбран склад / подразделение"));
     }
     setSelectedAction("wf_Dishes.php");
     setWorkTitle("Список блюд");
@@ -1444,7 +1560,7 @@ async function loadDishes({
 
       setWorkData(data);
     } catch (err) {
-      setWorkError(err.message || "Ошибка загрузки списка блюд");
+      setWorkError(err.message || t("Dishes.LoadError", "Ошибка загрузки списка блюд"));
     } finally {
       setWorkLoading(false);
     }
@@ -1461,7 +1577,6 @@ async function loadPrihList({
   }
 
   setSelectedAction("wf_PrihList.php");
-  setWorkTitle("Приходные накладные");
   setWorkLoading(true);
   setWorkError("");
   setWorkData(null);
@@ -1785,6 +1900,17 @@ async function addDish({ sklad, group }) {
   }
 
   const actionName = normalizeMenuAction(item.action);
+
+  if (hasUnsavedChanges) {
+    const ok = window.confirm(unsavedChangesMessage);
+
+    if (!ok) {
+      return;
+    }
+
+    setHasUnsavedChanges(false);
+  }
+
   const url = buildMenuActionUrl(item.action);
 
   setSelectedAction(actionName);
@@ -1937,7 +2063,30 @@ async function addDish({ sklad, group }) {
       setTenant(loginData.tenant);
       setLicense(loginData.license);
 
-      const menuData = await menuRequest(loginData.accessToken);
+      const preferredLanguage = normalizeLanguage(
+        loginData.user?.lang ||
+          loginData.tenant?.defaultLang ||
+          getInitialLanguage()
+      );
+
+      try {
+        await applyLanguage(
+          preferredLanguage,
+          (url, options = {}) =>
+            fetch(url, {
+              ...options,
+              credentials: "include",
+              headers: {
+                ...(options.headers || {}),
+                Authorization: `Bearer ${loginData.accessToken}`
+              }
+            })
+        );
+      } catch (translationError) {
+        console.error("Translation loading error", translationError);
+      }
+
+      const menuData = await menuRequest(loginData.accessToken, preferredLanguage);
       setMenu(menuData);
 
       const skladsData = await loadPodrazd(loginData.accessToken);
@@ -1982,12 +2131,27 @@ async function addDish({ sklad, group }) {
     }
   }
 
+  function handleLogoutClick() {
+    if (hasUnsavedChanges) {
+      const ok = window.confirm(unsavedChangesMessage);
+
+      if (!ok) {
+        return;
+      }
+
+      setHasUnsavedChanges(false);
+    }
+
+    handleLogout();
+  }
+
   function handleLogout() {
   setAccessToken("");
   setUser(null);
   setTenant(null);
   setLicense(null);
   setMenu([]);
+  setTranslations({});
 
   setSelectedAction("");
   setWorkData(null);
@@ -2078,6 +2242,16 @@ async function saveDishes(xml) {
 }
 
   function openHome() {
+    if (hasUnsavedChanges) {
+      const ok = window.confirm(unsavedChangesMessage);
+
+      if (!ok) {
+        return;
+      }
+
+      setHasUnsavedChanges(false);
+    }
+
     setSelectedAction("");
     setWorkTitle("");
     setWorkData(null);
@@ -2136,15 +2310,15 @@ async function saveDishes(xml) {
       type="button"
       className="brand-home-button"
       onClick={openHome}
-      title="На главную"
+      title={t("App.Home", "На главную")}
     >
       <img src={barbossTitleIcon} alt="" />
       <span>BarBo$$ Web Office</span>
     </button>
 
-    <div className="top-period" aria-label="Период отчётов">
+    <div className="top-period" aria-label={t("App.ReportsPeriod", "Период отчётов")}>
       <label className="top-field top-date-field">
-        <span>С</span>
+        <span>{t("App.From", "С")}</span>
         <input
           type="date"
           value={reportDateFrom}
@@ -2156,18 +2330,18 @@ async function saveDishes(xml) {
               setReportDateTo(nextDate);
             }
           }}
-          title="Начальная дата периода"
+          title={t("App.StartDateTitle", "Начальная дата периода")}
         />
       </label>
 
       <label className="top-field top-date-field">
-        <span>По</span>
+        <span>{t("App.To", "По")}</span>
         <input
           type="date"
           value={reportDateTo}
           min={reportDateFrom || undefined}
           onChange={(e) => setReportDateTo(e.target.value)}
-          title="Конечная дата периода"
+          title={t("App.EndDateTitle", "Конечная дата периода")}
         />
       </label>
     </div>
@@ -2176,13 +2350,29 @@ async function saveDishes(xml) {
   <div className="top-right">
     {tenant?.multiOrg && organizations.length > 0 && (
       <label className="top-field top-select-field">
-        <span>Орг:</span>
+        <span>{t("App.OrganizationShort", "Орг:")}</span>
         <select
           value={currentOrg}
           onChange={(e) => {
-            setCurrentOrg(e.target.value);
+            const nextOrg = e.target.value;
+
+            if (nextOrg === currentOrg) {
+              return;
+            }
+
+            if (hasUnsavedChanges) {
+              const ok = window.confirm(unsavedChangesMessage);
+
+              if (!ok) {
+                return;
+              }
+
+              setHasUnsavedChanges(false);
+            }
+
+            setCurrentOrg(nextOrg);
           }}
-          title="Организация"
+          title={t("App.Organization", "Организация")}
         >
           {organizations.map((org) => {
             const code = org.ID;
@@ -2200,11 +2390,29 @@ async function saveDishes(xml) {
 
     {sklads.length > 0 && (
       <label className="top-field top-select-field">
-        <span>Склад:</span>
+        <span>{t("App.Warehouse", "Склад:")}</span>
         <select
           value={currentSklad}
-          onChange={(e) => setCurrentSklad(e.target.value)}
-          title="Склад / подразделение"
+          onChange={(e) => {
+            const nextSklad = e.target.value;
+
+            if (nextSklad === currentSklad) {
+              return;
+            }
+
+            if (hasUnsavedChanges) {
+              const ok = window.confirm(unsavedChangesMessage);
+
+              if (!ok) {
+                return;
+              }
+
+              setHasUnsavedChanges(false);
+            }
+
+            setCurrentSklad(nextSklad);
+          }}
+          title={t("App.WarehouseTitle", "Склад / подразделение")}
         >
           {sklads.map((sklad) => {
             const code = sklad.Code ?? sklad.ID;
@@ -2220,10 +2428,16 @@ async function saveDishes(xml) {
       </label>
     )}
 
-    <select className="top-language-select" defaultValue="RU" title="Язык">
-      <option value="RU">RU</option>
-      <option value="UA">UA</option>
-      <option value="EN">EN</option>
+    <select
+      className="top-language-select"
+      value={language}
+      onChange={handleAppLanguageChange}
+      title={t("App.Language", "Язык")}
+    >
+      <option value="uk">UK</option>
+      <option value="ru">RU</option>
+      <option value="ro">RO</option>
+      <option value="en">EN</option>
     </select>
 
     {displayedLicense && (
@@ -2238,8 +2452,8 @@ async function saveDishes(xml) {
 
     <span className="top-user">{user?.id}</span>
 
-    <button className="top-logout-button" onClick={handleLogout}>
-      Выход
+    <button className="top-logout-button" onClick={handleLogoutClick}>
+      {t("App.Logout", "Выход")}
     </button>
   </div>
 </header>
@@ -2247,10 +2461,10 @@ async function saveDishes(xml) {
 <aside className="side-menu">
   <div className="side-menu-heading">
     <span className="side-menu-heading-mark" aria-hidden="true" />
-    <span>Меню</span>
+    <span>{t("App.Menu", "Меню")}</span>
   </div>
 
-  <nav className="side-menu-scroll" aria-label="Главное меню">
+  <nav className="side-menu-scroll" aria-label={t("App.MainMenuAria", "Главное меню")}>
     {menu.map((item, index) => (
       <MenuItem
         key={`${item.name ?? item.Name}-${index}`}
@@ -2264,12 +2478,16 @@ async function saveDishes(xml) {
 
 <main className="work-area">
   {selectedAction &&
+    selectedAction !== "prih-invoice-card" &&
     selectedAction !== "spisan-tov-invoice-card" &&
     selectedAction !== "spisan-blud-invoice-card" &&
     selectedAction !== "dish-calc" &&
+    selectedAction !== "wf_Kassa.php" &&
+    selectedAction !== "wf_GroupsEdit.php" &&
+    selectedAction !== "wf_SpisanBludList.php" &&
     selectedAction !== "wf_SpisokZakazov.php" &&
     selectedAction !== "wf_SchetView.php" && (
-      <h2>{workTitle || "Рабочая область"}</h2>
+      <h2>{displayedWorkTitle}</h2>
     )}
   {!selectedAction && !workLoading && !workError && (
 <HomePage
@@ -2279,10 +2497,11 @@ async function saveDishes(xml) {
   organizationName={currentOrganizationName}
   skladName={currentSkladName}
   license={license}
+  t={t}
 />
   )}
 
-  {workLoading && <p>Загрузка...</p>}
+  {workLoading && <p>{t("App.Loading", "Загрузка...")}</p>}
 
   {workError && (
     <div className="login-error">
@@ -2294,6 +2513,7 @@ async function saveDishes(xml) {
     <DishesPage
       data={workData}
       onOpenCalc={openDishCalc}
+      t={t}
       groups={dishGroups}
       filterGroups={dishFilterGroups}
       cehs={cehList}
@@ -2339,6 +2559,7 @@ async function saveDishes(xml) {
         });
       }}
       onSaveDishes={saveDishes}
+      onDirtyChange={setHasUnsavedChanges}
     />
   )}
 
@@ -2348,37 +2569,31 @@ async function saveDishes(xml) {
     sourceOrder={viewSourceOrder}
     waiterOptions={ordersWaiterOptions}
     fetchWithAuth={fetchWithAuth}
+    t={t}
+    locale={locale}
     onBack={() => {
       setSelectedAction("wf_SpisokZakazov.php");
       setViewOrderId(null);
       setViewSourceOrder(null);
     }}
+    onDirtyChange={setHasUnsavedChanges}
   />
 )}
  
 {!workLoading && !workError && selectedAction === "dish-calc" && dishCalcId && (
-  <>
-    <div className="page-toolbar">
-      <button
-        type="button"
-       className="back-to-list-button prih-back-button"
-        onClick={() => {
-          setSelectedAction("wf_Dishes.php");
-          setWorkTitle("Список блюд");
-          setDishCalcId(null);
-          setWorkError("");
-        }}
-      >
-        ← К списку блюд
-      </button>
-    </div>
-
-    <DishCalcPage
-      dishId={dishCalcId}
-      currentSklad={currentSklad}
-      fetchWithAuth={fetchWithAuth}
-    />
-  </>
+  <DishCalcPage
+    dishId={dishCalcId}
+    currentSklad={currentSklad}
+    fetchWithAuth={fetchWithAuth}
+    t={t}
+    onBack={() => {
+      setSelectedAction("wf_Dishes.php");
+      setWorkTitle("Список блюд");
+      setDishCalcId(null);
+      setWorkError("");
+    }}
+    onDirtyChange={setHasUnsavedChanges}
+  />
 )}
   {!workLoading && !workError && workData && selectedAction === "wf_PrihList.php" && (
     <PrihListPage
@@ -2404,6 +2619,8 @@ onChangePost={async (nextPost) => {
       onChangeDate2={setPrihDate2}
       onOpenInvoice={openPrihInvoice}
       onCreateInvoice={createPrihInvoice}
+      t={t}
+      locale={locale}
       onApply={async () => {
         await loadPrihList({
           sklad: currentSklad,
@@ -2430,6 +2647,9 @@ onChangePost={async (nextPost) => {
       onReload={() => loadKassaPage(kassaDate)}
       onReceiveRevenue={receiveKassaRevenue}
       onLoadSupplierInvoices={loadSupplierInvoices}
+      onDirtyChange={setHasUnsavedChanges}
+      t={t}
+      locale={locale}
     />
   )}
 
@@ -2443,6 +2663,8 @@ onChangePost={async (nextPost) => {
       onDateChange={handleOrdersDateChange}
       onReload={() => loadOrdersDay(ordersDate)}
       onViewOrder={openSchetView}
+      t={t}
+      locale={locale}
     />
 )}
 
@@ -2455,6 +2677,9 @@ onChangePost={async (nextPost) => {
       currentSklad={currentSklad}
       fetchWithAuth={fetchWithAuth}
       onReload={() => loadPereuchetList({ sklad: currentSklad })}
+      onDirtyChange={setHasUnsavedChanges}
+      t={t}
+      locale={locale}
     />
   )}
 
@@ -2466,8 +2691,12 @@ onChangePost={async (nextPost) => {
   invoiceKind={invoiceKind}
   fetchWithAuth={fetchWithAuth}
   onBack={backToInvoiceList}
+  onDirtyChange={setHasUnsavedChanges}
+  t={t}
+  locale={locale}
 />
 )}
+
 {!workLoading &&
   !workError &&
   workData &&
@@ -2478,6 +2707,9 @@ onChangePost={async (nextPost) => {
       readOnly={Boolean(user?.readOnly)}
       onAddSupplier={() => addRefItem("Supplier")}
       onSaveSupplier={(xml) => saveRefItem("Supplier", xml)}
+      t={t}
+    locale={locale}
+    onDirtyChange={setHasUnsavedChanges}
     />
 )}
   {!workLoading && !workError && workData && selectedAction === "wf_CardsSirya.php" && (
@@ -2486,6 +2718,7 @@ onChangePost={async (nextPost) => {
     categories={siryaCategories}
     filterCat={siryaCat}
     onChangeCat={setSiryaCat}
+    t={t}
     onApply={async (selectedCategory) => {
       await loadCardsSirya({
         sklad: currentSklad,
@@ -2500,6 +2733,8 @@ onChangePost={async (nextPost) => {
     data={workData}
     onOpen={openSpisanTovInvoice}
   onNew={createSpisanTovInvoice}
+  t={t}
+  locale={locale}
 />
 )}
 
@@ -2512,6 +2747,8 @@ onChangePost={async (nextPost) => {
       currentSklad={currentSklad}
       fetchWithAuth={fetchWithAuth}
       onBack={backToSpisanTovList}
+      onDirtyChange={setHasUnsavedChanges}
+      t={t}
     />
   )}
 
@@ -2521,6 +2758,9 @@ onChangePost={async (nextPost) => {
   readOnly={Boolean(user?.readOnly)}
   onAddPersonal={() => addRefItem("Personal")}
   onSavePersonal={(xml) => saveRefItem("Personal", xml)}
+    t={t}
+    locale={locale}
+  onDirtyChange={setHasUnsavedChanges}
 />
 )}
 
@@ -2529,12 +2769,16 @@ onChangePost={async (nextPost) => {
   data={workData}
   onOpen={openSpisanBludInvoice}
   onNew={createSpisanBludInvoice}
+  t={t}
+  locale={locale}
 />)}
 {!workLoading && !workError && workData && selectedAction === "wf_PeremList.php" && (
 <PeremListPage
   data={workData}
   onOpen={openMoveInvoice}
   onNew={createMoveInvoice}
+  t={t}
+  locale={locale}
 />
 )}
 
@@ -2543,6 +2787,9 @@ onChangePost={async (nextPost) => {
     data={workData}
     readOnly={Boolean(user?.readOnly)}
     onSaveDiscount={(xml) => saveRefItem("Discount", xml)}
+    t={t}
+    locale={locale}
+    onDirtyChange={setHasUnsavedChanges}
   />
 )}
 {!workLoading && !workError && workData && selectedAction === "wf_Clients.php" && (
@@ -2552,6 +2799,9 @@ onChangePost={async (nextPost) => {
     readOnly={Boolean(user?.readOnly)}
     onAddCustomer={() => addRefItem("Customer")}
     onSaveCustomer={(xml) => saveRefItem("Customer", xml)}
+    t={t}
+    locale={locale}
+    onDirtyChange={setHasUnsavedChanges}
   />
 )}
 
@@ -2561,6 +2811,9 @@ onChangePost={async (nextPost) => {
     readOnly={Boolean(user?.readOnly)}
     onAddCategory={() => addRefItem("Categories")}
     onSaveCategory={(xml) => saveRefItem("Categories", xml)}
+    t={t}
+    locale={locale}
+    onDirtyChange={setHasUnsavedChanges}
   />
 )}
 
@@ -2570,6 +2823,9 @@ onChangePost={async (nextPost) => {
     readOnly={Boolean(user?.readOnly)}
     onAddFop={() => addRefItem("Tax")}
     onSaveFop={(xml) => saveRefItem("Tax", xml)}
+    t={t}
+    locale={locale}
+    onDirtyChange={setHasUnsavedChanges}
   />
 )}
 
@@ -2580,6 +2836,9 @@ onChangePost={async (nextPost) => {
     readOnly={Boolean(user?.readOnly)}
     onAddGroup={() => addRefItem("Groups")}
     onSaveGroup={(xml) => saveRefItem("Groups", xml)}
+    t={t}
+    locale={locale}
+    onDirtyChange={setHasUnsavedChanges}
   />
 )}
 
@@ -2590,6 +2849,8 @@ onChangePost={async (nextPost) => {
     filterCat={spisokTovarovCat}
     filterSkr={spisokTovarovSkr}
     readOnly={Boolean(user?.readOnly)}
+    onDirtyChange={setHasUnsavedChanges}
+    t={t}
     onChangeCat={setSpisokTovarovCat}
     onChangeSkr={setSpisokTovarovSkr}
     onAddTovar={async () => {
@@ -2619,11 +2880,14 @@ onChangePost={async (nextPost) => {
       try {
         data = JSON.parse(text);
       } catch {
-        throw new Error("Сервер вернул не JSON: " + text.substring(0, 300));
+        throw new Error(
+          t("SpisokTovarov.ServerInvalidJson", "Сервер вернул не JSON: {details}")
+            .replace("{details}", text.substring(0, 300))
+        );
       }
 
       if (!response.ok || data.status !== "success") {
-        throw new Error(data.error || "Ошибка сохранения списка сырья");
+        throw new Error(data.error || t("SpisokTovarov.SaveListError", "Ошибка сохранения списка сырья"));
       }
 
       return data;
@@ -2639,6 +2903,8 @@ onChangePost={async (nextPost) => {
       initialData={spisanBludInitialData}
       fetchWithAuth={fetchWithAuth}
       onBack={backToSpisanBludList}
+      onDirtyChange={setHasUnsavedChanges}
+      t={t}
     />
   )}
 
@@ -2675,7 +2941,7 @@ onChangePost={async (nextPost) => {
   )}
 
   {!workLoading && !workError && !workData && selectedAction && (
-    <p>Для выбранного раздела пока нет данных.</p>
+    <p>{t("App.NoData", "Для выбранного раздела пока нет данных.")}</p>
   )}
 </main>
      </div>
