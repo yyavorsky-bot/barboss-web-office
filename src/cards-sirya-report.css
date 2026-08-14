@@ -1,0 +1,574 @@
+.cards-sirya-report-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cards-sirya-report-error {
+  margin: 10px 0;
+  padding: 8px 10px;
+  border: 1px solid #d99;
+  border-radius: 7px;
+  background: #fff3f3;
+  color: #8b1f1f;
+}
+
+.cards-sirya-report-page {
+  min-width: 0;
+}
+
+.cards-sirya-report-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  margin-bottom: 10px;
+  background: #f9fafb;
+  box-shadow: 0 4px 10px rgba(30, 42, 60, 0.10);
+}
+
+
+.cards-sirya-report-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cards-sirya-report-actions .toolbar-button {
+  min-width: 70px;
+}
+
+.cards-sirya-report-sheet {
+  width: min(100%, 980px);
+  margin: 0 auto 18px;
+  padding: 16px 18px 20px;
+  border: 1px solid #d8dde5;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 6px 18px rgba(30, 42, 60, 0.07);
+}
+
+.cards-sirya-report-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  gap: 14px;
+  align-items: start;
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #1e2a3b;
+}
+
+.cards-sirya-report-kicker {
+  margin-bottom: 2px;
+  color: #657185;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.cards-sirya-report-header h1 {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.08;
+}
+
+.cards-sirya-report-period {
+  margin-top: 3px;
+  color: #566174;
+  font-size: 12px;
+}
+
+.cards-sirya-report-meta {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.cards-sirya-report-meta > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  background: #f4f6f9;
+  font-size: 12px;
+}
+
+.cards-sirya-report-meta span {
+  color: #657185;
+}
+
+.cards-sirya-report-meta strong {
+  text-align: right;
+}
+
+.cards-sirya-report-section {
+  margin-top: 15px;
+}
+
+.cards-sirya-report-section h2 {
+  margin: 0 0 5px;
+  font-size: 15px;
+}
+
+.cards-sirya-report-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #d8dde5;
+  border-radius: 7px;
+}
+
+.cards-sirya-report-table-wrap-small {
+  max-width: 640px;
+}
+
+.cards-sirya-report-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  font-size: 11px;
+}
+
+.cards-sirya-report-table th,
+.cards-sirya-report-table td {
+  padding: 3px 5px;
+  border-right: 1px solid #e4e8ee;
+  border-bottom: 1px solid #e4e8ee;
+  line-height: 1.12;
+  vertical-align: top;
+}
+
+.cards-sirya-report-table th:last-child,
+.cards-sirya-report-table td:last-child {
+  border-right: 0;
+}
+
+.cards-sirya-report-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #eef2f7;
+  font-weight: 700;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.cards-sirya-report-table .num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.cards-sirya-report-table tbody tr:nth-child(even) {
+  background: #fafbfc;
+}
+
+.cards-sirya-report-table tfoot td {
+  border-bottom: 0;
+  background: #f0f3f7;
+  font-weight: 700;
+}
+
+.cards-sirya-report-empty {
+  padding: 8px 10px;
+  border: 1px dashed #cbd2dc;
+  border-radius: 7px;
+  color: #657185;
+  background: #fafbfc;
+  font-size: 11px;
+}
+
+.report-link-row:hover {
+  background: #eef6ff !important;
+}
+
+.report-document-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #1769aa;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.print-only {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .cards-sirya-report-header {
+    grid-template-columns: 1fr;
+  }
+
+  .cards-sirya-report-sheet {
+    padding: 14px 12px 18px;
+  }
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 7mm;
+  }
+
+  /*
+   * Полный print-reset для SPA.
+   * Защищает отчеты карточек сырья от глобальных print-стилей
+   * других модулей, включая visibility:hidden и ограниченный overflow.
+   */
+  html,
+  body,
+  #root,
+  .app-shell,
+  .app-body,
+  .work-area {
+    width: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    visibility: visible !important;
+  }
+
+  body {
+    margin: 0 !important;
+    background: #fff !important;
+  }
+
+  #root,
+  .app-shell,
+  .app-body,
+  .work-area {
+    display: block !important;
+  }
+
+  .work-area {
+    padding: 0 !important;
+  }
+
+  .cards-sirya-report-page,
+  .cards-sirya-report-page * {
+    visibility: visible !important;
+  }
+
+  .cards-sirya-report-page {
+    display: block !important;
+    position: static !important;
+    width: auto !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  body {
+    background: #fff !important;
+  }
+
+  .no-print,
+  .top-bar,
+  .side-menu,
+  .module-toolbar,
+  .work-area-title {
+    display: none !important;
+  }
+
+  .print-only {
+    display: inline;
+  }
+
+  .cards-sirya-report-page,
+  .cards-sirya-report-sheet {
+    width: auto;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .cards-sirya-report-header {
+    display: block;
+    margin-bottom: 2mm;
+    padding-bottom: 1.2mm;
+    border-bottom-width: 1px;
+  }
+
+  .cards-sirya-report-kicker {
+    margin-bottom: 0;
+    font-size: 7.8pt;
+    line-height: 1;
+  }
+
+  .cards-sirya-report-header h1 {
+    font-size: 12pt;
+    line-height: 1;
+  }
+
+  .cards-sirya-report-period {
+    margin-top: 0.5mm;
+    font-size: 8.2pt;
+    line-height: 1;
+  }
+
+  .cards-sirya-report-meta {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1mm;
+    margin-top: 1mm;
+  }
+
+  .cards-sirya-report-meta > div {
+    min-width: 0;
+    gap: 1mm;
+    padding: 0.7mm 1mm;
+    border-radius: 0;
+    font-size: 8pt;
+    line-height: 1;
+  }
+
+  .cards-sirya-report-meta span,
+  .cards-sirya-report-meta strong {
+    white-space: nowrap;
+  }
+
+  .cards-sirya-report-section {
+    margin-top: 3.5mm;
+  }
+
+  .cards-sirya-report-section h2 {
+    margin-bottom: 1.2mm;
+    font-size: 10pt;
+  }
+
+  .cards-sirya-report-table-wrap,
+  .cards-sirya-report-table-wrap-small {
+    max-width: none;
+    overflow: visible;
+    border-radius: 0;
+  }
+
+  .cards-sirya-report-table {
+    table-layout: fixed;
+    font-size: 7.6pt;
+  }
+
+  .cards-sirya-report-table th,
+  .cards-sirya-report-table td {
+    padding: 0.7mm 1mm;
+    line-height: 1.05;
+    overflow-wrap: anywhere;
+  }
+
+  .cards-sirya-report-table thead th {
+    position: static;
+    white-space: normal;
+  }
+
+  .cards-sirya-report-table thead {
+    display: table-header-group;
+  }
+
+  .cards-sirya-report-table tfoot {
+    display: table-footer-group;
+  }
+
+  .cards-sirya-report-table tr {
+    break-inside: avoid;
+  }
+
+  .cards-sirya-report-table-prihod th:nth-child(1),
+  .cards-sirya-report-table-prihod td:nth-child(1) { width: 12%; }
+  .cards-sirya-report-table-prihod th:nth-child(2),
+  .cards-sirya-report-table-prihod td:nth-child(2) { width: 25%; }
+  .cards-sirya-report-table-prihod th:nth-child(3),
+  .cards-sirya-report-table-prihod td:nth-child(3) { width: 15%; }
+  .cards-sirya-report-table-prihod th:nth-child(4),
+  .cards-sirya-report-table-prihod td:nth-child(4) { width: 13%; }
+  .cards-sirya-report-table-prihod th:nth-child(5),
+  .cards-sirya-report-table-prihod td:nth-child(5) { width: 11%; }
+  .cards-sirya-report-table-prihod th:nth-child(6),
+  .cards-sirya-report-table-prihod td:nth-child(6) { width: 12%; }
+  .cards-sirya-report-table-prihod th:nth-child(7),
+  .cards-sirya-report-table-prihod td:nth-child(7) { width: 12%; }
+
+  .cards-sirya-report-table-rashod th:nth-child(1),
+  .cards-sirya-report-table-rashod td:nth-child(1) { width: 19%; }
+  .cards-sirya-report-table-rashod th:nth-child(2),
+  .cards-sirya-report-table-rashod td:nth-child(2) { width: 20%; }
+  .cards-sirya-report-table-rashod th:nth-child(3),
+  .cards-sirya-report-table-rashod td:nth-child(3) { width: 37%; }
+  .cards-sirya-report-table-rashod th:nth-child(4),
+  .cards-sirya-report-table-rashod td:nth-child(4) { width: 12%; }
+  .cards-sirya-report-table-rashod th:nth-child(5),
+  .cards-sirya-report-table-rashod td:nth-child(5) { width: 12%; }
+
+  .cards-sirya-report-empty {
+    padding: 1.5mm 2mm;
+    font-size: 8pt;
+  }
+}
+/* =========================================================
+   CardsSirya — report "Turnover"
+   ========================================================= */
+.cards-sirya-report-day-header td {
+  padding-top: 5px;
+  padding-bottom: 5px;
+  background: #e8edf4;
+  font-weight: 700;
+}
+
+.cards-sirya-report-opening-row td {
+  background: #f7f1df;
+  font-weight: 700;
+}
+
+.cards-sirya-report-day-total td {
+  border-top: 1px solid #aeb8c6;
+  background: #f1f4f8;
+  font-weight: 700;
+}
+
+.cards-sirya-report-period-total td {
+  border-top: 2px solid #7d8998;
+  border-bottom: 0;
+  background: #e7ecf3;
+  font-weight: 700;
+}
+
+.cards-sirya-report-table-oborot td:nth-child(1),
+.cards-sirya-report-table-oborot td:nth-child(2) {
+  white-space: nowrap;
+}
+
+@media print {
+  .cards-sirya-report-day-header td {
+    padding-top: 0.8mm;
+    padding-bottom: 0.8mm;
+  }
+
+  .cards-sirya-report-opening-row,
+  .cards-sirya-report-day-header,
+  .cards-sirya-report-day-total,
+  .cards-sirya-report-period-total {
+    break-inside: avoid;
+  }
+
+  .cards-sirya-report-table-oborot th:nth-child(1),
+  .cards-sirya-report-table-oborot td:nth-child(1) { width: 9%; }
+  .cards-sirya-report-table-oborot th:nth-child(2),
+  .cards-sirya-report-table-oborot td:nth-child(2) { width: 12%; }
+  .cards-sirya-report-table-oborot th:nth-child(3),
+  .cards-sirya-report-table-oborot td:nth-child(3) { width: 23%; }
+  .cards-sirya-report-table-oborot th:nth-child(4),
+  .cards-sirya-report-table-oborot td:nth-child(4) { width: 34%; }
+  .cards-sirya-report-table-oborot th:nth-child(5),
+  .cards-sirya-report-table-oborot td:nth-child(5) { width: 11%; }
+  .cards-sirya-report-table-oborot th:nth-child(6),
+  .cards-sirya-report-table-oborot td:nth-child(6) { width: 11%; }
+}
+
+/* =========================================================
+   CardsSirya — report "Raw material in dishes"
+   ========================================================= */
+.cards-sirya-report-header-simple {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.cards-sirya-in-dishes-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+.cards-sirya-in-dishes-columns .cards-sirya-report-section {
+  min-width: 0;
+  margin-top: 0;
+}
+
+.cards-sirya-report-table-in-dishes th:nth-child(1),
+.cards-sirya-report-table-in-dishes td:nth-child(1) {
+  width: 38%;
+}
+
+.cards-sirya-report-table-in-dishes th:nth-child(2),
+.cards-sirya-report-table-in-dishes td:nth-child(2) {
+  width: 27%;
+}
+
+.cards-sirya-report-table-in-dishes th:nth-child(3),
+.cards-sirya-report-table-in-dishes td:nth-child(3) {
+  width: 20%;
+}
+
+.cards-sirya-report-table-in-dishes th:nth-child(4),
+.cards-sirya-report-table-in-dishes td:nth-child(4) {
+  width: 15%;
+}
+
+.cards-sirya-report-table-in-dishes-complex th:nth-child(1),
+.cards-sirya-report-table-in-dishes-complex td:nth-child(1) {
+  width: 49%;
+}
+
+.cards-sirya-report-table-in-dishes-complex th:nth-child(2),
+.cards-sirya-report-table-in-dishes-complex td:nth-child(2) {
+  width: 24%;
+}
+
+.cards-sirya-report-table-in-dishes-complex th:nth-child(3),
+.cards-sirya-report-table-in-dishes-complex td:nth-child(3) {
+  width: 17%;
+}
+
+.cards-sirya-report-table-in-dishes-complex th:nth-child(4),
+.cards-sirya-report-table-in-dishes-complex td:nth-child(4) {
+  width: 10%;
+}
+
+.cards-sirya-report-table .checkbox-cell {
+  text-align: center;
+  white-space: nowrap;
+}
+
+.cards-sirya-report-checkbox {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  vertical-align: middle;
+  pointer-events: none;
+}
+
+@media (max-width: 860px) {
+  .cards-sirya-in-dishes-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media print {
+  .cards-sirya-in-dishes-sheet .cards-sirya-report-header {
+    margin-bottom: 2.5mm;
+  }
+
+  .cards-sirya-in-dishes-columns {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 3mm;
+  }
+
+  .cards-sirya-in-dishes-columns .cards-sirya-report-section {
+    margin-top: 0;
+  }
+
+  .cards-sirya-in-dishes-columns .cards-sirya-report-section h2 {
+    min-height: 2.2em;
+    margin-bottom: 1mm;
+  }
+
+  .cards-sirya-report-checkbox {
+    width: 3.2mm;
+    height: 3.2mm;
+  }
+}

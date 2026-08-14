@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { exportReportFile } from "./reportExport.js";
+import "./kassa-report.css";
 
 function formatMoney(value, locale = "ru-RU") {
   const num = Number(value || 0);
@@ -96,11 +98,788 @@ function attrsToXml(attrs) {
     .join(" ");
 }
 
+function formatReportDateParam(value) {
+  const inputDate = formatDateForInput(value);
+  if (!inputDate) return String(value || "");
+
+  const [year, month, day] = inputDate.split("-");
+  return `${day}.${month}.${year.slice(-2)}`;
+}
+
+function formatReportDateDisplay(value, locale = "ru-RU") {
+  const inputDate = formatDateForInput(value);
+  if (!inputDate) return String(value || "");
+
+  const [year, month, day] = inputDate.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+
+  return new Intl.DateTimeFormat(locale).format(date);
+}
+
+function sumReportRows(rows) {
+  return (Array.isArray(rows) ? rows : []).reduce(
+    (sum, row) => sum + Number(row?.Summ || 0),
+    0
+  );
+}
+
+function ReportTable({
+  rows,
+  columns,
+  totalLabel,
+  emptyLabel,
+  locale
+}) {
+  const safeRows = Array.isArray(rows) ? rows : [];
+  const total = sumReportRows(safeRows);
+
+  return (
+    <div className="kassa-report-table-wrap">
+      <table className="kassa-report-table">
+        <thead>
+          <tr>
+            {columns.map((column) => (
+              <th
+                key={column.key}
+                className={column.numeric ? "num" : ""}
+              >
+                {column.label}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {safeRows.length === 0 ? (
+            <tr>
+              <td colSpan={columns.length} className="kassa-report-empty">
+                {emptyLabel}
+              </td>
+            </tr>
+          ) : (
+            safeRows.map((row, index) => (
+              <tr key={`${index}-${row?.Summ ?? ""}`}>
+                {columns.map((column) => {
+                  const value = column.render
+                    ? column.render(row)
+                    : row?.[column.key];
+
+                  return (
+                    <td
+                      key={column.key}
+                      className={column.numeric ? "num" : ""}
+                    >
+                      {column.numeric
+                        ? formatMoney(value, locale)
+                        : value == null || value === ""
+                          ? "—"
+                          : value}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))
+          )}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colSpan={Math.max(columns.length - 1, 1)}>{totalLabel}</td>
+            <td className="num">{formatMoney(total, locale)}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  );
+}
+
+function KassaReportHeader({ title, report, locale, t, extraMeta = null }) {
+  return (
+    <header className="kassa-report-header">
+      <div className="kassa-report-heading">
+        <div className="kassa-report-kicker">
+          {t("KassaReport.CashReport", "Отчёт по кассе")}
+        </div>
+        <h1>{title}</h1>
+      </div>
+
+      <div className="kassa-report-meta">
+        <div>
+          <span>{t("KassaReport.Period", "Период")}</span>
+          <strong>
+            {formatReportDateDisplay(report?.FromDate, locale) || "—"}
+            {" — "}
+            {formatReportDateDisplay(report?.ToDate, locale) || "—"}
+          </strong>
+        </div>
+        <div>
+          <span>{t("KassaReport.PaymentType", "Тип оплаты")}</span>
+          <strong>{report?.TipOpl || "—"}</strong>
+        </div>
+        {extraMeta}
+      </div>
+    </header>
+  );
+}
+
+function KassaBriefReport({ report, locale, t, byArticles = false }) {
+  const prih = Array.isArray(report?.Prihod) ? report.Prihod : [];
+  const rashod = Array.isArray(report?.Rashod) ? report.Rashod : [];
+
+  const prihColumns = byArticles
+    ? [
+        {
+          key: "NamePrih",
+          label: t("KassaReport.Category", "Статья"),
+          render: (row) =>
+            row?.NamePrih || t("KassaReport.Uncategorized", "Без статьи")
+        },
+        {
+          key: "Summ",
+          label: t("KassaReport.Amount", "Сумма"),
+          numeric: true
+        }
+      ]
+    : [
+        {
+          key: "NameFrom",
+          label: t("KassaReport.Source", "От кого")
+        },
+        {
+          key: "Summ",
+          label: t("KassaReport.Amount", "Сумма"),
+          numeric: true
+        }
+      ];
+
+  const rashodColumns = byArticles
+    ? [
+        {
+          key: "NameZatr",
+          label: t("KassaReport.Category", "Статья"),
+          render: (row) =>
+            row?.NameZatr || t("KassaReport.Uncategorized", "Без статьи")
+        },
+        {
+          key: "Summ",
+          label: t("KassaReport.Amount", "Сумма"),
+          numeric: true
+        }
+      ]
+    : [
+        {
+          key: "NameTo",
+          label: t("KassaReport.Recipient", "Кому")
+        },
+        {
+          key: "Summ",
+          label: t("KassaReport.Amount", "Сумма"),
+          numeric: true
+        }
+      ];
+
+  return (
+    <>
+      <KassaReportHeader
+        title={
+          byArticles
+            ? t("KassaReport.BriefByArticlesTitle", "Касса — кратко по статьям")
+            : t("KassaReport.BriefTitle", "Касса — кратко")
+        }
+        report={report}
+        locale={locale}
+        t={t}
+      />
+
+      <div className="kassa-report-two-columns">
+        <section className="kassa-report-section">
+          <h2>{t("KassaReport.Income", "Приход")}</h2>
+          <ReportTable
+            rows={prih}
+            columns={prihColumns}
+            totalLabel={t("KassaReport.Total", "Итого")}
+            emptyLabel={t("KassaReport.NoData", "Нет данных")}
+            locale={locale}
+          />
+        </section>
+
+        <section className="kassa-report-section">
+          <h2>{t("KassaReport.Expense", "Расход")}</h2>
+          <ReportTable
+            rows={rashod}
+            columns={rashodColumns}
+            totalLabel={t("KassaReport.Total", "Итого")}
+            emptyLabel={t("KassaReport.NoData", "Нет данных")}
+            locale={locale}
+          />
+        </section>
+      </div>
+    </>
+  );
+}
+
+function KassaDaysReport({ report, locale, t }) {
+  const dates = Array.isArray(report?.Dates) ? report.Dates : [];
+
+  const daySummaries = useMemo(() => {
+    let openingBalance = Number(report?.Sald0 || 0);
+
+    return dates.map((day) => {
+      const prihod = Array.isArray(day?.prihod) ? day.prihod : [];
+      const rashod = Array.isArray(day?.rashod) ? day.rashod : [];
+      const prihodTotal = sumReportRows(prihod);
+      const rashodTotal = sumReportRows(rashod);
+      const closingBalance = openingBalance + prihodTotal - rashodTotal;
+
+      const summary = {
+        day,
+        prihod,
+        rashod,
+        openingBalance,
+        prihodTotal,
+        rashodTotal,
+        closingBalance
+      };
+
+      openingBalance = closingBalance;
+      return summary;
+    });
+  }, [dates, report?.Sald0]);
+
+  return (
+    <>
+      <KassaReportHeader
+        title={t("KassaReport.ByDaysTitle", "Касса — по дням")}
+        report={report}
+        locale={locale}
+        t={t}
+        extraMeta={
+          <div>
+            <span>{t("KassaReport.InitialBalance", "Сальдо начальное")}</span>
+            <strong>{formatMoney(report?.Sald0, locale)}</strong>
+          </div>
+        }
+      />
+
+      <div className="kassa-report-days">
+        {dates.length === 0 ? (
+          <div className="kassa-report-empty-card">
+            {t("KassaReport.NoData", "Нет данных")}
+          </div>
+        ) : (
+          daySummaries.map((summary, dayIndex) => {
+            const {
+              day,
+              prihod,
+              rashod,
+              openingBalance,
+              closingBalance
+            } = summary;
+
+            return (
+              <section
+                className="kassa-report-day"
+                key={`${day?.Date || "day"}-${dayIndex}`}
+              >
+                <h2>{formatReportDateDisplay(day?.Date, locale)}</h2>
+
+                <div className="kassa-report-day-columns">
+                  <div className="kassa-report-day-section">
+                    <h3>{t("KassaReport.Income", "Приход")}</h3>
+                    <ReportTable
+                      rows={prihod}
+                      columns={[
+                        {
+                          key: "Name",
+                          label: t("KassaReport.Source", "От кого")
+                        },
+                        {
+                          key: "StatyaPrih",
+                          label: t("KassaReport.Category", "Статья"),
+                          render: (row) =>
+                            row?.StatyaPrih ||
+                            t("KassaReport.Uncategorized", "Без статьи")
+                        },
+                        {
+                          key: "Rem",
+                          label: t("KassaReport.Note", "Примечание")
+                        },
+                        {
+                          key: "Summ",
+                          label: t("KassaReport.Amount", "Сумма"),
+                          numeric: true
+                        }
+                      ]}
+                      totalLabel={t("KassaReport.Total", "Итого")}
+                      emptyLabel={t("KassaReport.NoData", "Нет данных")}
+                      locale={locale}
+                    />
+                  </div>
+
+                  <div className="kassa-report-day-section">
+                    <h3>{t("KassaReport.Expense", "Расход")}</h3>
+                    <ReportTable
+                      rows={rashod}
+                      columns={[
+                        {
+                          key: "Komu",
+                          label: t("KassaReport.Recipient", "Кому")
+                        },
+                        {
+                          key: "StatyaZatr",
+                          label: t("KassaReport.Category", "Статья"),
+                          render: (row) =>
+                            row?.StatyaZatr ||
+                            t("KassaReport.Uncategorized", "Без статьи")
+                        },
+                        {
+                          key: "Rem",
+                          label: t("KassaReport.Note", "Примечание")
+                        },
+                        {
+                          key: "Summ",
+                          label: t("KassaReport.Amount", "Сумма"),
+                          numeric: true
+                        }
+                      ]}
+                      totalLabel={t("KassaReport.Total", "Итого")}
+                      emptyLabel={t("KassaReport.NoData", "Нет данных")}
+                      locale={locale}
+                    />
+                  </div>
+                </div>
+
+                <div className="kassa-report-day-summary">
+                  <div>
+                    <span>{t("KassaReport.InitialBalance", "Сальдо на начало")}</span>
+                    <strong>{formatMoney(openingBalance, locale)}</strong>
+                  </div>
+                  <div className="kassa-report-day-total">
+                    <span>{t("KassaReport.DayTotal", "Итог дня")}</span>
+                    <strong>{formatMoney(closingBalance, locale)}</strong>
+                  </div>
+                </div>
+              </section>
+            );
+          })
+        )}
+      </div>
+    </>
+  );
+}
+
+
+function buildKassaBriefExportModel(report, kind, t, locale) {
+  const prihod = Array.isArray(report?.Prihod) ? report.Prihod : [];
+  const rashod = Array.isArray(report?.Rashod) ? report.Rashod : [];
+  const byArticles = kind === "articles";
+
+  const title = byArticles
+    ? t(
+        "KassaReport.BriefByArticlesTitle",
+        "Касса — кратко по статьям"
+      )
+    : t("KassaReport.BriefTitle", "Касса — кратко");
+
+  const leftNameTitle = byArticles
+    ? t("KassaReport.Category", "Статья")
+    : t("KassaReport.Source", "От кого");
+
+  const rightNameTitle = byArticles
+    ? t("KassaReport.Category", "Статья")
+    : t("KassaReport.Recipient", "Кому");
+
+  const leftRows = prihod.map((row) => ({
+    Name: byArticles
+      ? row?.NamePrih ||
+        t("KassaReport.Uncategorized", "Без статьи")
+      : row?.NameFrom || "",
+    Amount: Number(row?.Summ || 0)
+  }));
+
+  const rightRows = rashod.map((row) => ({
+    Name: byArticles
+      ? row?.NameZatr ||
+        t("KassaReport.Uncategorized", "Без статьи")
+      : row?.NameTo || "",
+    Amount: Number(row?.Summ || 0)
+  }));
+
+  return {
+    layout: "twoColumns",
+    title,
+    fileName: `Kassa_${
+      byArticles ? "BriefByArticles" : "Brief"
+    }_${formatDateForInput(report?.FromDate) || "report"}_${
+      formatDateForInput(report?.ToDate) || "report"
+    }`,
+    orientation: "portrait",
+    locale,
+    meta: [
+      {
+        label: t("KassaReport.Period", "Период"),
+        value:
+          `${formatReportDateDisplay(report?.FromDate, locale)} — ` +
+          `${formatReportDateDisplay(report?.ToDate, locale)}`
+      },
+      {
+        label: t("KassaReport.PaymentType", "Тип оплаты"),
+        value: report?.TipOpl || "—"
+      }
+    ],
+    groups: [
+      {
+        title: "",
+        left: {
+          title: t("KassaReport.Income", "Приход"),
+          columns: [
+            {
+              key: "Name",
+              title: leftNameTitle,
+              type: "text",
+              width: 38
+            },
+            {
+              key: "Amount",
+              title: t("KassaReport.Amount", "Сумма"),
+              type: "number",
+              decimals: 2,
+              width: 16
+            }
+          ],
+          rows: leftRows,
+          footerRows: [
+            {
+              label: t("KassaReport.Total", "Итого"),
+              values: {
+                Amount: sumReportRows(prihod)
+              }
+            }
+          ]
+        },
+        right: {
+          title: t("KassaReport.Expense", "Расход"),
+          columns: [
+            {
+              key: "Name",
+              title: rightNameTitle,
+              type: "text",
+              width: 38
+            },
+            {
+              key: "Amount",
+              title: t("KassaReport.Amount", "Сумма"),
+              type: "number",
+              decimals: 2,
+              width: 16
+            }
+          ],
+          rows: rightRows,
+          footerRows: [
+            {
+              label: t("KassaReport.Total", "Итого"),
+              values: {
+                Amount: sumReportRows(rashod)
+              }
+            }
+          ]
+        },
+        summary: []
+      }
+    ]
+  };
+}
+
+function buildKassaDaysExportModel(report, t, locale) {
+  const dates = Array.isArray(report?.Dates) ? report.Dates : [];
+  const groups = [];
+
+  let openingBalance = Number(report?.Sald0 || 0);
+
+  for (const day of dates) {
+    const prihod = Array.isArray(day?.prihod) ? day.prihod : [];
+    const rashod = Array.isArray(day?.rashod) ? day.rashod : [];
+
+    const prihodTotal = sumReportRows(prihod);
+    const rashodTotal = sumReportRows(rashod);
+    const closingBalance =
+      openingBalance + prihodTotal - rashodTotal;
+
+    groups.push({
+      title: formatReportDateDisplay(day?.Date, locale),
+      left: {
+        title: t("KassaReport.Income", "Приход"),
+        columns: [
+          {
+            key: "Name",
+            title: t("KassaReport.Source", "От кого"),
+            type: "text",
+            width: 26
+          },
+          {
+            key: "Category",
+            title: t("KassaReport.Category", "Статья"),
+            type: "text",
+            width: 24
+          },
+          {
+            key: "Note",
+            title: t("KassaReport.Note", "Примечание"),
+            type: "text",
+            width: 30
+          },
+          {
+            key: "Amount",
+            title: t("KassaReport.Amount", "Сумма"),
+            type: "number",
+            decimals: 2,
+            width: 15
+          }
+        ],
+        rows: prihod.map((row) => ({
+          Name: row?.Name || "",
+          Category:
+            row?.StatyaPrih ||
+            t("KassaReport.Uncategorized", "Без статьи"),
+          Note: row?.Rem || "",
+          Amount: Number(row?.Summ || 0)
+        })),
+        footerRows: [
+          {
+            label: t("KassaReport.Total", "Итого"),
+            values: {
+              Amount: prihodTotal
+            }
+          }
+        ]
+      },
+      right: {
+        title: t("KassaReport.Expense", "Расход"),
+        columns: [
+          {
+            key: "Name",
+            title: t("KassaReport.Recipient", "Кому"),
+            type: "text",
+            width: 26
+          },
+          {
+            key: "Category",
+            title: t("KassaReport.Category", "Статья"),
+            type: "text",
+            width: 24
+          },
+          {
+            key: "Note",
+            title: t("KassaReport.Note", "Примечание"),
+            type: "text",
+            width: 30
+          },
+          {
+            key: "Amount",
+            title: t("KassaReport.Amount", "Сумма"),
+            type: "number",
+            decimals: 2,
+            width: 15
+          }
+        ],
+        rows: rashod.map((row) => ({
+          Name: row?.Komu || "",
+          Category:
+            row?.StatyaZatr ||
+            t("KassaReport.Uncategorized", "Без статьи"),
+          Note: row?.Rem || "",
+          Amount: Number(row?.Summ || 0)
+        })),
+        footerRows: [
+          {
+            label: t("KassaReport.Total", "Итого"),
+            values: {
+              Amount: rashodTotal
+            }
+          }
+        ]
+      },
+      summary: [
+        {
+          label: t(
+            "KassaReport.InitialBalance",
+            "Сальдо на начало"
+          ),
+          value: openingBalance,
+          type: "number",
+          decimals: 2
+        },
+        {
+          label: t("KassaReport.DayTotal", "Итог дня"),
+          value: closingBalance,
+          type: "number",
+          decimals: 2
+        }
+      ]
+    });
+
+    openingBalance = closingBalance;
+  }
+
+  return {
+    layout: "twoColumns",
+    title: t("KassaReport.ByDaysTitle", "Касса — по дням"),
+    fileName:
+      `Kassa_ByDays_${formatDateForInput(report?.FromDate) || "report"}_` +
+      `${formatDateForInput(report?.ToDate) || "report"}`,
+    orientation: "portrait",
+    locale,
+    meta: [
+      {
+        label: t("KassaReport.Period", "Период"),
+        value:
+          `${formatReportDateDisplay(report?.FromDate, locale)} — ` +
+          `${formatReportDateDisplay(report?.ToDate, locale)}`
+      },
+      {
+        label: t("KassaReport.PaymentType", "Тип оплаты"),
+        value: report?.TipOpl || "—"
+      },
+      {
+        label: t(
+          "KassaReport.InitialBalance",
+          "Сальдо начальное"
+        ),
+        value: formatMoney(report?.Sald0, locale)
+      }
+    ],
+    groups
+  };
+}
+
+function buildKassaExportModel(report, kind, t, locale) {
+  if (kind === "days") {
+    return buildKassaDaysExportModel(report, t, locale);
+  }
+
+  return buildKassaBriefExportModel(
+    report,
+    kind,
+    t,
+    locale
+  );
+}
+
+function KassaReportView({
+  kind,
+  report,
+  loading,
+  error,
+  onBack,
+  onExport,
+  exportLoading,
+  locale,
+  t
+}) {
+  useEffect(() => {
+    const styleElement = document.createElement("style");
+    styleElement.dataset.kassaReportPrintPage = "true";
+    styleElement.textContent =
+      "@media print { @page { size: A4 portrait; margin: 8mm; } }";
+    document.head.appendChild(styleElement);
+
+    return () => {
+      styleElement.remove();
+    };
+  }, []);
+
+  return (
+    <div className="kassa-report-page">
+      <div className="module-toolbar kassa-report-toolbar no-print">
+        <div className="toolbar-left">
+          <button type="button" className="toolbar-button" onClick={onBack}>
+            {t("KassaReport.Back", "Назад")}
+          </button>
+        </div>
+
+        <div className="toolbar-right kassa-report-actions">
+          <button
+            type="button"
+            className="toolbar-button"
+            onClick={() => onExport?.("xlsx")}
+            disabled={
+              loading ||
+              Boolean(error) ||
+              !report ||
+              Boolean(exportLoading)
+            }
+          >
+            {t("Common.Excel", "Excel")}
+          </button>
+
+          <button
+            type="button"
+            className="toolbar-button"
+            onClick={() => onExport?.("docx")}
+            disabled={
+              loading ||
+              Boolean(error) ||
+              !report ||
+              Boolean(exportLoading)
+            }
+          >
+            {t("Common.Word", "Word")}
+          </button>
+
+          <button
+            type="button"
+            className="toolbar-button primary"
+            onClick={() => window.print()}
+            disabled={
+              loading ||
+              Boolean(error) ||
+              !report ||
+              Boolean(exportLoading)
+            }
+          >
+            {t("KassaReport.Print", "Печать")}
+          </button>
+        </div>
+      </div>
+
+      <div className="kassa-report-scroll">
+        {loading ? (
+          <div className="kassa-report-status">
+            {t("KassaReport.Loading", "Загрузка отчёта...")}
+          </div>
+        ) : error ? (
+          <div className="kassa-report-status error-box">{error}</div>
+        ) : report ? (
+          <article className="kassa-report-sheet">
+            {kind === "brief" && (
+              <KassaBriefReport report={report} locale={locale} t={t} />
+            )}
+            {kind === "articles" && (
+              <KassaBriefReport
+                report={report}
+                locale={locale}
+                t={t}
+                byArticles
+              />
+            )}
+            {kind === "days" && (
+              <KassaDaysReport report={report} locale={locale} t={t} />
+            )}
+          </article>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 export default function KassaPage({
   data,
   currentOrg = 0,
   kassaDate,
   currentValut,
+  dateFrom,
+  dateTo,
+  language = "ru",
+  fetchWithAuth,
+  onReportViewChange,
   onDateChange,
   onValutChange,
   onReload,
@@ -124,6 +903,11 @@ export default function KassaPage({
   const [invoiceSupplier, setInvoiceSupplier] = useState(null);
   const [invoiceTargetRowId, setInvoiceTargetRowId] = useState(null);
   const [saveError, setSaveError] = useState("");
+  const [reportKind, setReportKind] = useState("");
+  const [reportData, setReportData] = useState(null);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [reportError, setReportError] = useState("");
+  const [reportExportLoading, setReportExportLoading] = useState(false);
 
   const orgId = Number(currentOrg || 0);
   const valutId = Number(currentValut || 0);
@@ -155,6 +939,17 @@ export default function KassaPage({
       window.removeEventListener("beforeunload", handleBeforeUnload);
     };
   }, [isDirty]);
+
+
+  useEffect(() => {
+    onReportViewChange?.(Boolean(reportKind));
+  }, [reportKind, onReportViewChange]);
+
+  useEffect(() => {
+    return () => {
+      onReportViewChange?.(false);
+    };
+  }, [onReportViewChange]);
 
   const prihRows = Array.isArray(data?.prih) ? data.prih : [];
 
@@ -653,6 +1448,144 @@ function buildKassaXml() {
     closeSupplierInvoices();
   }
 
+async function openKassaReport(kind) {
+  if (reportLoading) return;
+
+  const endpoints = {
+    brief: "wr_KassKratko.php",
+    articles: "wr_KassKratkoPoStatyam.php",
+    days: "wr_KassPoDnyam.php"
+  };
+
+  const endpoint = endpoints[kind];
+  if (!endpoint) return;
+
+  const d1 = formatReportDateParam(dateFrom);
+  const d2 = formatReportDateParam(dateTo);
+
+  if (!d1 || !d2) {
+    setReportKind(kind);
+    setReportData(null);
+    setReportError(
+      t("KassaReport.PeriodRequired", "Укажите период отчёта")
+    );
+    return;
+  }
+
+  setReportKind(kind);
+  setReportData(null);
+  setReportError("");
+  setReportLoading(true);
+
+  try {
+    const url = new URL(`https://webback.bar-boss.com/${endpoint}`);
+    url.searchParams.set("Org", String(orgId));
+    url.searchParams.set("d1", d1);
+    url.searchParams.set("d2", d2);
+    url.searchParams.set("Lang", String(language || "ru"));
+    url.searchParams.set("Valut", String(valutId));
+
+    console.log("[KassaReport] request", {
+      kind,
+      dateFrom,
+      dateTo,
+      d1,
+      d2,
+      orgId,
+      valutId,
+      language,
+      url: url.toString()
+    });
+
+    const response = fetchWithAuth
+      ? await fetchWithAuth(url.toString(), { method: "GET" })
+      : await fetch(url.toString(), { method: "GET", credentials: "include" });
+
+    const text = await response.text();
+    let json;
+
+    try {
+      json = JSON.parse(text);
+    } catch {
+      throw new Error(
+        t("KassaReport.InvalidResponse", "Сервер вернул некорректный ответ отчёта")
+      );
+    }
+
+    if (!response.ok || json?.status === "error") {
+      throw new Error(
+        json?.message ||
+          json?.error ||
+          t("KassaReport.LoadError", "Ошибка загрузки отчёта")
+      );
+    }
+
+    const reportObject = Array.isArray(json) ? json[0] : json;
+
+    if (!reportObject || typeof reportObject !== "object") {
+      throw new Error(
+        t("KassaReport.LoadError", "Ошибка загрузки отчёта")
+      );
+    }
+
+    setReportData(reportObject);
+  } catch (err) {
+    setReportError(
+      err?.message || t("KassaReport.LoadError", "Ошибка загрузки отчёта")
+    );
+  } finally {
+    setReportLoading(false);
+  }
+}
+
+
+async function exportKassaReport(format) {
+  if (
+    !reportData ||
+    !reportKind ||
+    reportLoading ||
+    reportExportLoading
+  ) {
+    return;
+  }
+
+  const reportModel = buildKassaExportModel(
+    reportData,
+    reportKind,
+    t,
+    locale
+  );
+
+  setReportExportLoading(true);
+
+  try {
+    await exportReportFile({
+      fetchWithAuth,
+      reportModel,
+      format,
+      errorMessage: t(
+        "Report.ExportError",
+        "Ошибка экспорта отчёта."
+      )
+    });
+  } catch (err) {
+    window.alert(
+      err?.message ||
+        t("Report.ExportError", "Ошибка экспорта отчёта.")
+    );
+  } finally {
+    setReportExportLoading(false);
+  }
+}
+
+function closeKassaReport() {
+  setReportKind("");
+  setReportData(null);
+  setReportError("");
+  setReportLoading(false);
+  setReportExportLoading(false);
+}
+
 async function saveChanges() {
   if (!canEdit || !hasChanges || saving) return;
 
@@ -688,6 +1621,22 @@ async function saveChanges() {
     setSaving(false);
   }
 }
+  if (reportKind) {
+    return (
+      <KassaReportView
+        kind={reportKind}
+        report={reportData}
+        loading={reportLoading}
+        error={reportError}
+        onBack={closeKassaReport}
+        onExport={exportKassaReport}
+        exportLoading={reportExportLoading}
+        t={t}
+        locale={locale}
+      />
+    );
+  }
+
   return (
     <div className="kassa-page kassa-editor-page">
       <div className="kassa-toolbar kassa-main-toolbar">
@@ -739,6 +1688,35 @@ async function saveChanges() {
             disabled={!canEdit || !hasChanges || saving}
           >
             {saving ? t("Kassa.Saving", "Сохранение...") : t("Kassa.Save", "Сохранить")}
+          </button>
+        </div>
+
+        <div className="kassa-report-buttons" role="group" aria-label={t("KassaReport.Reports", "Отчёты кассы")}>
+          <button
+            type="button"
+            className="small-action-button kassa-report-open-button"
+            onClick={() => openKassaReport("brief")}
+            disabled={saving || receivingRevenue || reportLoading}
+          >
+            {t("KassaReport.BriefButton", "Кратко")}
+          </button>
+
+          <button
+            type="button"
+            className="small-action-button kassa-report-open-button"
+            onClick={() => openKassaReport("articles")}
+            disabled={saving || receivingRevenue || reportLoading}
+          >
+            {t("KassaReport.BriefByArticlesButton", "Кратко по статьям")}
+          </button>
+
+          <button
+            type="button"
+            className="small-action-button kassa-report-open-button"
+            onClick={() => openKassaReport("days")}
+            disabled={saving || receivingRevenue || reportLoading}
+          >
+            {t("KassaReport.ByDaysButton", "По дням")}
           </button>
         </div>
 
@@ -807,7 +1785,23 @@ async function saveChanges() {
           <div className="kassa-invoice-header">
             <div>
               <strong>{t("Kassa.UnpaidInvoices", "Неоплаченные накладные")}</strong>
-              <span>{invoiceSupplier.Name}</span>
+              <span
+                className="kassa-invoice-supplier"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  width: "fit-content",
+                  marginTop: "4px",
+                  padding: "3px 10px",
+                  border: "1px solid #b9cdec",
+                  borderRadius: "999px",
+                  background: "#eaf2ff",
+                  color: "#174f96",
+                  fontWeight: 700
+                }}
+              >
+                {invoiceSupplier.Name}
+              </span>
             </div>
 
             <button

@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { exportReportFile } from "./reportExport.js";
+import "./pereuchet-report.css";
 
 function formatDateForInput(value) {
   if (!value) return "";
@@ -128,6 +130,543 @@ function findDateRow(rows, dateValue) {
   return rows.find((row) => formatDateForInput(row.Date) === date) || null;
 }
 
+
+const PEREUCHET_SHORT_THRESHOLD = 0.1;
+
+const PEREUCHET_REPORT_TOTAL_COLUMNS = [
+  { key: "Сальдо", digits: 3 },
+  { key: "Поступило", digits: 3 },
+  { key: "Перемещено", digits: 3 },
+  { key: "Реализовано", digits: 3 },
+  { key: "Списано", digits: 3 },
+  { key: "__prepared", digits: 3 },
+  { key: "Остаток", digits: 3 },
+  { key: "Факт", digits: 3 },
+  { key: "РазнВес", digits: 3 },
+  { key: "РазнСеб", digits: 2 },
+  { key: "РазницаПр", digits: 2 }
+];
+
+function finiteNumber(value) {
+  const number = Number(value ?? 0);
+  return Number.isFinite(number) ? number : 0;
+}
+
+function hasOwn(row, field) {
+  return Boolean(row) && Object.prototype.hasOwnProperty.call(row, field);
+}
+
+function getPreparedQuantity(row) {
+  return finiteNumber(row?.["ВГотовых"] ?? row?.["ВБлюдах"] ?? 0);
+}
+
+function getCalculatedWeightDifference(row) {
+  const canCalculate =
+    hasOwn(row, "Остаток") &&
+    hasOwn(row, "Факт") &&
+    (hasOwn(row, "ВГотовых") || hasOwn(row, "ВБлюдах"));
+
+  if (canCalculate) {
+    return finiteNumber(row["Остаток"]) -
+      (finiteNumber(row["Факт"]) + getPreparedQuantity(row));
+  }
+
+  return finiteNumber(row?.["РазнВес"]);
+}
+
+function getDisplayedWeightDifference(row) {
+  if (hasOwn(row, "РазнВес")) {
+    return finiteNumber(row["РазнВес"]);
+  }
+
+  return getCalculatedWeightDifference(row);
+}
+
+function formatReportDate(value, locale = "ru-RU") {
+  const normalized = formatDateForInput(value);
+
+  if (!normalized) {
+    return String(value || "");
+  }
+
+  const [year, month, day] = normalized.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+
+  if (Number.isNaN(date.getTime())) {
+    return normalized;
+  }
+
+  return new Intl.DateTimeFormat(locale).format(date);
+}
+
+function groupPereuchetReportRows(rows, emptyCategoryName) {
+  const groups = [];
+  const groupMap = new Map();
+
+  rows.forEach((row) => {
+    const category = String(row?.Category || "").trim() || emptyCategoryName;
+
+    if (!groupMap.has(category)) {
+      const group = { category, rows: [] };
+      groupMap.set(category, group);
+      groups.push(group);
+    }
+
+    groupMap.get(category).rows.push(row);
+  });
+
+  return groups;
+}
+
+function sumPereuchetReportColumn(rows, key) {
+  return rows.reduce((sum, row) => {
+    if (key === "__prepared") {
+      return sum + getPreparedQuantity(row);
+    }
+
+    if (key === "РазнВес") {
+      return sum + getDisplayedWeightDifference(row);
+    }
+
+    return sum + finiteNumber(row?.[key]);
+  }, 0);
+}
+
+
+function getPereuchetVisibleRows(report, variant) {
+  const allRows = Array.isArray(report?.Pereuchet) ? report.Pereuchet : [];
+
+  if (variant !== "brief") {
+    return allRows;
+  }
+
+  return allRows.filter(
+    (row) =>
+      Math.abs(getCalculatedWeightDifference(row)) >
+      PEREUCHET_SHORT_THRESHOLD
+  );
+}
+
+function buildPereuchetExportModel(report, variant, t, locale) {
+  const visibleRows = getPereuchetVisibleRows(report, variant);
+  const modeTitle =
+    variant === "brief"
+      ? t("Pereuchet.Report.BriefMode", "Кратко")
+      : t("Pereuchet.Report.ExpandedMode", "Развернуто");
+
+  const reportTitle = t(
+    "Pereuchet.Report.Title",
+    "Результаты переучета"
+  );
+
+  const exportRows = visibleRows.map((row) => ({
+    Category:
+      String(row?.Category || "").trim() ||
+      t("Pereuchet.Report.NoCategory", "Без категории"),
+    NameTov: row?.NameTov || "",
+    EdIzm: row?.EdIzm || "",
+    Price: finiteNumber(row?.Price),
+    Saldo: finiteNumber(row?.["Сальдо"]),
+    Received: finiteNumber(row?.["Поступило"]),
+    Moved: finiteNumber(row?.["Перемещено"]),
+    Sold: finiteNumber(row?.["Реализовано"]),
+    WrittenOff: finiteNumber(row?.["Списано"]),
+    Prepared: getPreparedQuantity(row),
+    Balance: finiteNumber(row?.["Остаток"]),
+    Actual: finiteNumber(row?.["Факт"]),
+    WeightDifference: getDisplayedWeightDifference(row),
+    CostDifference: finiteNumber(row?.["РазнСеб"]),
+    SaleDifference: finiteNumber(row?.["РазницаПр"])
+  }));
+
+  const fileDate =
+    formatDateForInput(report?.ToDate || report?.FromDate) || "report";
+
+  return {
+    title: `${reportTitle} — ${modeTitle}`,
+    fileName: `Pereuchet_${
+      variant === "brief" ? "Brief" : "Expanded"
+    }_${fileDate}`,
+    orientation: "landscape",
+    locale,
+    meta: [
+      {
+        label: t("Common.Period", "Период"),
+        value:
+          `${formatReportDate(report?.FromDate, locale)} — ` +
+          `${formatReportDate(report?.ToDate, locale)}`
+      },
+      {
+        label: t("Common.Warehouse", "Склад"),
+        value: report?.["Склад"] || "—"
+      },
+      {
+        label: t("Pereuchet.Report.Rows", "Позиций"),
+        value: String(visibleRows.length)
+      }
+    ],
+    columns: [
+      {
+        key: "Category",
+        title: t("Pereuchet.Report.Category", "Категория"),
+        type: "text",
+        width: 22
+      },
+      {
+        key: "NameTov",
+        title: t("Pereuchet.Report.RawMaterial", "Сырье"),
+        type: "text",
+        width: 34
+      },
+      {
+        key: "EdIzm",
+        title: t("Pereuchet.Report.Unit", "Ед."),
+        type: "text",
+        width: 8
+      },
+      {
+        key: "Price",
+        title: t("Pereuchet.Report.Price", "Цена"),
+        type: "number",
+        decimals: 2,
+        width: 12
+      },
+      {
+        key: "Saldo",
+        title: t("Pereuchet.Report.Opening", "Сальдо"),
+        type: "number",
+        decimals: 3,
+        width: 13
+      },
+      {
+        key: "Received",
+        title: t("Pereuchet.Report.Received", "Поступило"),
+        type: "number",
+        decimals: 3,
+        width: 13
+      },
+      {
+        key: "Moved",
+        title: t("Pereuchet.Report.Moved", "Перемещено"),
+        type: "number",
+        decimals: 3,
+        width: 13
+      },
+      {
+        key: "Sold",
+        title: t("Pereuchet.Report.Sold", "Реализовано"),
+        type: "number",
+        decimals: 3,
+        width: 13
+      },
+      {
+        key: "WrittenOff",
+        title: t("Pereuchet.Report.WrittenOff", "Списано"),
+        type: "number",
+        decimals: 3,
+        width: 13
+      },
+      {
+        key: "Prepared",
+        title: t("Pereuchet.Report.InPrepared", "В готовых"),
+        type: "number",
+        decimals: 3,
+        width: 13
+      },
+      {
+        key: "Balance",
+        title: t("Pereuchet.Report.Balance", "Остаток"),
+        type: "number",
+        decimals: 3,
+        width: 13
+      },
+      {
+        key: "Actual",
+        title: t("Pereuchet.Report.Actual", "Факт"),
+        type: "number",
+        decimals: 3,
+        width: 13
+      },
+      {
+        key: "WeightDifference",
+        title: t(
+          "Pereuchet.Report.WeightDifference",
+          "Разн. вес"
+        ),
+        type: "number",
+        decimals: 3,
+        width: 13
+      },
+      {
+        key: "CostDifference",
+        title: t(
+          "Pereuchet.Report.CostDifference",
+          "Разн. себ."
+        ),
+        type: "number",
+        decimals: 2,
+        width: 13
+      },
+      {
+        key: "SaleDifference",
+        title: t(
+          "Pereuchet.Report.SaleDifference",
+          "Разн. продажная"
+        ),
+        type: "number",
+        decimals: 2,
+        width: 16
+      }
+    ],
+    rows: exportRows,
+    footerRows: [
+      {
+        label: t("Pereuchet.Report.GrandTotal", "Итого"),
+        values: {
+          Saldo: sumPereuchetReportColumn(visibleRows, "Сальдо"),
+          Received: sumPereuchetReportColumn(
+            visibleRows,
+            "Поступило"
+          ),
+          Moved: sumPereuchetReportColumn(
+            visibleRows,
+            "Перемещено"
+          ),
+          Sold: sumPereuchetReportColumn(
+            visibleRows,
+            "Реализовано"
+          ),
+          WrittenOff: sumPereuchetReportColumn(
+            visibleRows,
+            "Списано"
+          ),
+          Prepared: sumPereuchetReportColumn(
+            visibleRows,
+            "__prepared"
+          ),
+          Balance: sumPereuchetReportColumn(
+            visibleRows,
+            "Остаток"
+          ),
+          Actual: sumPereuchetReportColumn(
+            visibleRows,
+            "Факт"
+          ),
+          WeightDifference: sumPereuchetReportColumn(
+            visibleRows,
+            "РазнВес"
+          ),
+          CostDifference: sumPereuchetReportColumn(
+            visibleRows,
+            "РазнСеб"
+          ),
+          SaleDifference: sumPereuchetReportColumn(
+            visibleRows,
+            "РазницаПр"
+          )
+        }
+      }
+    ]
+  };
+}
+
+function PereuchetResultsReport({
+  report,
+  variant,
+  onBack,
+  onExport,
+  exportLoading,
+  t,
+  locale
+}) {
+  const visibleRows = useMemo(
+    () => getPereuchetVisibleRows(report, variant),
+    [report, variant]
+  );
+
+  const groups = useMemo(
+    () => groupPereuchetReportRows(
+      visibleRows,
+      t("Pereuchet.Report.NoCategory", "Без категории")
+    ),
+    [visibleRows, t]
+  );
+
+  const modeTitle = variant === "brief"
+    ? t("Pereuchet.Report.BriefMode", "Кратко")
+    : t("Pereuchet.Report.ExpandedMode", "Развернуто");
+
+  return (
+    <div className="pereuchet-report-page">
+      <div className="module-toolbar pereuchet-report-toolbar no-print">
+        <div className="toolbar-left">
+          <button type="button" className="toolbar-button" onClick={onBack}>
+            {t("Common.Back", "Назад")}
+          </button>
+        </div>
+
+        <div className="toolbar-right pereuchet-report-actions">
+          <button
+            type="button"
+            className="toolbar-button"
+            disabled={Boolean(exportLoading)}
+            onClick={() => onExport?.("xlsx")}
+          >
+            {t("Common.Excel", "Excel")}
+          </button>
+
+          <button
+            type="button"
+            className="toolbar-button"
+            disabled={Boolean(exportLoading)}
+            onClick={() => onExport?.("docx")}
+          >
+            {t("Common.Word", "Word")}
+          </button>
+
+          <button
+            type="button"
+            className="toolbar-button primary"
+            disabled={Boolean(exportLoading)}
+            onClick={() => window.print()}
+          >
+            {t("Common.Print", "Печать")}
+          </button>
+        </div>
+      </div>
+
+      <article className="pereuchet-report-sheet">
+        <header className="pereuchet-report-header">
+          <div>
+            <div className="pereuchet-report-kicker">{modeTitle}</div>
+            <h1>{t("Pereuchet.Report.Title", "Результаты переучета")}</h1>
+            <div className="pereuchet-report-period">
+              {t("Common.Period", "Период")}: {formatReportDate(report?.FromDate, locale)} — {formatReportDate(report?.ToDate, locale)}
+            </div>
+          </div>
+
+          <div className="pereuchet-report-meta">
+            <div>
+              <span>{t("Common.Warehouse", "Склад")}</span>
+              <strong>{report?.["Склад"] || "—"}</strong>
+            </div>
+            <div>
+              <span>{t("Pereuchet.Report.Rows", "Позиций")}</span>
+              <strong>{visibleRows.length}</strong>
+            </div>
+          </div>
+        </header>
+
+ 
+        {visibleRows.length === 0 ? (
+          <div className="pereuchet-report-empty">
+            {t("Pereuchet.Report.NoRows", "Нет позиций, соответствующих условиям отчета.")}
+          </div>
+        ) : (
+          <div className="pereuchet-report-table-wrap">
+            <table className="pereuchet-report-table">
+              <colgroup>
+                <col className="pereuchet-report-col-name" />
+                <col className="pereuchet-report-col-unit" />
+                <col className="pereuchet-report-col-price" />
+                {PEREUCHET_REPORT_TOTAL_COLUMNS.map((column) => (
+                  <col key={column.key} className="pereuchet-report-col-number" />
+                ))}
+              </colgroup>
+
+              <thead>
+                <tr>
+                  <th>{t("Pereuchet.Report.RawMaterial", "Сырье")}</th>
+                  <th>{t("Pereuchet.Report.Unit", "Ед.")}</th>
+                  <th className="num">{t("Pereuchet.Report.Price", "Цена")}</th>
+                  <th className="num">{t("Pereuchet.Report.Opening", "Сальдо")}</th>
+                  <th className="num">{t("Pereuchet.Report.Received", "Поступило")}</th>
+                  <th className="num">{t("Pereuchet.Report.Moved", "Перемещено")}</th>
+                  <th className="num">{t("Pereuchet.Report.Sold", "Реализовано")}</th>
+                  <th className="num">{t("Pereuchet.Report.WrittenOff", "Списано")}</th>
+                  <th className="num">{t("Pereuchet.Report.InPrepared", "В готовых")}</th>
+                  <th className="num">{t("Pereuchet.Report.Balance", "Остаток")}</th>
+                  <th className="num">{t("Pereuchet.Report.Actual", "Факт")}</th>
+                  <th className="num">{t("Pereuchet.Report.WeightDifference", "Разн. вес")}</th>
+                  <th className="num">{t("Pereuchet.Report.CostDifference", "Разн. себ.")}</th>
+                  <th className="num">{t("Pereuchet.Report.SaleDifference", "Разн. продажная")}</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {groups.map((group) => (
+                  <Fragment key={group.category}>
+                    <tr className="pereuchet-report-category-row">
+                      <td colSpan="14">{group.category}</td>
+                    </tr>
+
+                    {group.rows.map((row, index) => {
+                      const hasSignificantDifference =
+                        Math.abs(getCalculatedWeightDifference(row)) > PEREUCHET_SHORT_THRESHOLD;
+
+                      return (
+                        <tr
+                          key={`${row.IdTov ?? "tov"}-${index}`}
+                          className={hasSignificantDifference ? "pereuchet-report-difference-row" : ""}
+                        >
+                          <td title={row.NameTov || ""}>{row.NameTov || "—"}</td>
+                          <td>{row.EdIzm || ""}</td>
+                          <td className="num">{formatNumber(row.Price, 2, locale)}</td>
+                          <td className="num">{formatNumber(row["Сальдо"], 3, locale)}</td>
+                          <td className="num">{formatNumber(row["Поступило"], 3, locale)}</td>
+                          <td className="num">{formatNumber(row["Перемещено"], 3, locale)}</td>
+                          <td className="num">{formatNumber(row["Реализовано"], 3, locale)}</td>
+                          <td className="num">{formatNumber(row["Списано"], 3, locale)}</td>
+                          <td className="num">{formatNumber(getPreparedQuantity(row), 3, locale)}</td>
+                          <td className="num">{formatNumber(row["Остаток"], 3, locale)}</td>
+                          <td className="num">{formatNumber(row["Факт"], 3, locale)}</td>
+                          <td className="num difference">{formatNumber(getDisplayedWeightDifference(row), 3, locale)}</td>
+                          <td className="num difference">{formatNumber(row["РазнСеб"], 2, locale)}</td>
+                          <td className="num difference">{formatNumber(row["РазницаПр"], 2, locale)}</td>
+                        </tr>
+                      );
+                    })}
+
+                    <tr className="pereuchet-report-category-total">
+                      <td colSpan="3">
+                        {t("Pereuchet.Report.CategoryTotal", "Итого по категории")}
+                      </td>
+                      {PEREUCHET_REPORT_TOTAL_COLUMNS.map((column) => (
+                        <td key={column.key} className="num">
+                          {formatNumber(
+                            sumPereuchetReportColumn(group.rows, column.key),
+                            column.digits,
+                            locale
+                          )}
+                        </td>
+                      ))}
+                    </tr>
+                  </Fragment>
+                ))}
+              </tbody>
+
+              <tfoot>
+                <tr>
+                  <td colSpan="3">{t("Pereuchet.Report.GrandTotal", "Итого")}</td>
+                  {PEREUCHET_REPORT_TOTAL_COLUMNS.map((column) => (
+                    <td key={column.key} className="num">
+                      {formatNumber(
+                        sumPereuchetReportColumn(visibleRows, column.key),
+                        column.digits,
+                        locale
+                      )}
+                    </td>
+                  ))}
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        )}
+      </article>
+    </div>
+  );
+}
+
 function SearchableSelect({
   value,
   options,
@@ -232,6 +771,13 @@ export default function PereuchetPage({
   const [pfError, setPfError] = useState("");
   const [pfIdPer, setPfIdPer] = useState(null);
 
+  const [reportData, setReportData] = useState(null);
+  const [reportVariant, setReportVariant] = useState("brief");
+  const [reportLoading, setReportLoading] = useState("");
+  const [reportError, setReportError] = useState("");
+  const [reportReturnMode, setReportReturnMode] = useState("list");
+  const [reportExportLoading, setReportExportLoading] = useState(false);
+
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
 
@@ -258,6 +804,12 @@ export default function PereuchetPage({
     setPfChanged(false);
     setPfError("");
     setPfIdPer(null);
+    setReportData(null);
+    setReportVariant("brief");
+    setReportLoading("");
+    setReportError("");
+    setReportReturnMode("list");
+    setReportExportLoading(false);
 
     if (normalized.length > 0) {
       setHeaderDate(formatDateForInput(normalized[0].Date));
@@ -279,6 +831,7 @@ export default function PereuchetPage({
   }, [rows, selectedPerId, headerDate]);
 
   const canOpenPf = Boolean(selectedPerRow?.ID);
+  const canOpenReport = Number(selectedPerRow?.ID || 0) > 0;
 
   const listChanged = useMemo(
     () => rows.some((row) => row._changed || row._deleted) || deletedRows.length > 0,
@@ -696,6 +1249,99 @@ export default function PereuchetPage({
     }
   }
 
+  async function openResultsReport(variant) {
+    const idPer = Number(selectedPerRow?.ID || 0);
+
+    if (!idPer) {
+      setReportError(
+        t("Pereuchet.Report.SelectStocktake", "Сначала выберите переучет из списка.")
+      );
+      return;
+    }
+
+    if (
+      (perChanged || pfChanged) &&
+      !confirmDiscardChanges(perChanged || pfChanged)
+    ) {
+      return;
+    }
+
+    try {
+      setReportLoading(variant);
+      setReportError("");
+      setSaveError("");
+
+      const result = await loadJson(
+        `https://webback.bar-boss.com/wr_PereuchetRazv.php?IdPer=${encodeURIComponent(idPer)}`,
+        t("Pereuchet.Report.RequestName", "Результаты переучета")
+      );
+
+      const reportObject = Array.isArray(result) ? result[0] : result;
+
+      if (!reportObject || typeof reportObject !== "object") {
+        throw new Error(
+          t("Pereuchet.Report.InvalidResponse", "Сервер не вернул данные отчета.")
+        );
+      }
+
+      setReportData(reportObject);
+      setReportVariant(variant);
+      setReportReturnMode(activeMode === "report" ? "list" : activeMode);
+      setActiveMode("report");
+    } catch (err) {
+      setReportError(
+        err.message ||
+          t("Pereuchet.Report.LoadError", "Ошибка загрузки результатов переучета")
+      );
+    } finally {
+      setReportLoading("");
+    }
+  }
+
+
+  async function exportResultsReport(format) {
+    if (
+      !reportData ||
+      reportExportLoading ||
+      reportLoading
+    ) {
+      return;
+    }
+
+    const reportModel = buildPereuchetExportModel(
+      reportData,
+      reportVariant,
+      t,
+      locale
+    );
+
+    setReportExportLoading(true);
+
+    try {
+      await exportReportFile({
+        fetchWithAuth,
+        reportModel,
+        format,
+        errorMessage: t(
+          "Report.ExportError",
+          "Ошибка экспорта отчёта."
+        )
+      });
+    } catch (err) {
+      window.alert(
+        err?.message ||
+          t("Report.ExportError", "Ошибка экспорта отчёта.")
+      );
+    } finally {
+      setReportExportLoading(false);
+    }
+  }
+
+  function closeResultsReport() {
+    setActiveMode(reportReturnMode || "list");
+    setReportError("");
+  }
+
   async function openPer() {
     if (isDirty && !confirmDiscardChanges(true)) {
       return;
@@ -816,6 +1462,20 @@ export default function PereuchetPage({
     }
   }
 
+  if (activeMode === "report" && reportData) {
+    return (
+      <PereuchetResultsReport
+        report={reportData}
+        variant={reportVariant}
+        onBack={closeResultsReport}
+        onExport={exportResultsReport}
+        exportLoading={reportExportLoading}
+        t={t}
+        locale={locale}
+      />
+    );
+  }
+
   return (
     <div className="pereuchet-page">
       <div className="module-toolbar pereuchet-toolbar">
@@ -848,6 +1508,31 @@ export default function PereuchetPage({
           >
             {pfLoading ? t("Pereuchet.Loading", "Загрузка...") : t("Pereuchet.SemiFinished", "Полуфабрикаты")}
           </button>
+
+
+          <button
+            type="button"
+            className="small-action-button pereuchet-report-button pereuchet-report-brief-button"
+            onClick={() => openResultsReport("brief")}
+            disabled={!canOpenReport || Boolean(reportLoading) || saving}
+            title={!canOpenReport ? t("Pereuchet.DateNotCreatedTitle", "Для этой даты переучет еще не создан") : ""}
+          >
+            {reportLoading === "brief"
+              ? t("Pereuchet.Loading", "Загрузка...")
+              : t("Pereuchet.Report.Brief", "Кратко")}
+          </button>
+
+          <button
+            type="button"
+            className="small-action-button pereuchet-report-button pereuchet-report-expanded-button"
+            onClick={() => openResultsReport("expanded")}
+            disabled={!canOpenReport || Boolean(reportLoading) || saving}
+            title={!canOpenReport ? t("Pereuchet.DateNotCreatedTitle", "Для этой даты переучет еще не создан") : ""}
+          >
+            {reportLoading === "expanded"
+              ? t("Pereuchet.Loading", "Загрузка...")
+              : t("Pereuchet.Report.Expanded", "Развернуто")}
+          </button>
         </div>
 
         <div className="toolbar-right">
@@ -867,6 +1552,7 @@ export default function PereuchetPage({
       {saveError && <div className="login-error">{saveError}</div>}
       {perError && <div className="login-error">{perError}</div>}
       {pfError && <div className="login-error">{pfError}</div>}
+      {reportError && <div className="login-error">{reportError}</div>}
 
       <div className="pereuchet-layout">
         <section className="pereuchet-list-panel">

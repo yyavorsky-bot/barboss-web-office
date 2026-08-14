@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { exportReportFile } from "./reportExport.js";
+import "./spisan-tov-report.css";
 
 function normalizeDate(value) {
   if (!value) return "";
@@ -17,6 +19,39 @@ function formatMoney(value) {
 
 function roundMoney(value) {
   return Math.round(Number(value || 0) * 100) / 100;
+}
+
+
+function formatReportDate(value, locale = "ru-RU") {
+  if (!value) return "";
+
+  const parts = String(value).slice(0, 10).split("-");
+  if (parts.length !== 3) return String(value);
+
+  const year = Number(parts[0]);
+  const month = Number(parts[1]);
+  const day = Number(parts[2]);
+
+  const date = new Date(year, month - 1, day);
+
+  if (Number.isNaN(date.getTime())) {
+    return String(value);
+  }
+
+  return date.toLocaleDateString(locale);
+}
+
+function formatReportNumber(value, locale = "ru-RU", digits = 3) {
+  const number = Number(value ?? 0);
+
+  return Number(number || 0).toLocaleString(locale, {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits
+  });
+}
+
+function formatReportMoney(value, locale = "ru-RU") {
+  return formatReportNumber(value, locale, 2);
 }
 
 function makeTempId() {
@@ -169,16 +204,158 @@ function SearchableSelect({
   );
 }
 
+
+function SpisanTovPrintReport({
+  report,
+  onBack,
+  onExport,
+  exportLoading,
+  locale,
+  t
+}) {
+  const rows = Array.isArray(report?.rows) ? report.rows : [];
+
+  return (
+    <div className="spisan-tov-report-page">
+      <div className="spisan-tov-report-toolbar no-print">
+        <button
+          type="button"
+          className="spisan-tov-report-button"
+          onClick={onBack}
+        >
+          {t("Common.Back", "Назад")}
+        </button>
+
+        <div className="spisan-tov-report-toolbar-right">
+          <button
+            type="button"
+            className="spisan-tov-report-button"
+            disabled={Boolean(exportLoading)}
+            onClick={() => onExport?.("xlsx")}
+          >
+            {t("Common.Excel", "Excel")}
+          </button>
+
+          <button
+            type="button"
+            className="spisan-tov-report-button"
+            disabled={Boolean(exportLoading)}
+            onClick={() => onExport?.("docx")}
+          >
+            {t("Common.Word", "Word")}
+          </button>
+
+          <button
+            type="button"
+            className="spisan-tov-report-button primary"
+            disabled={Boolean(exportLoading)}
+            onClick={() => window.print()}
+          >
+            {t("Common.Print", "Печать")}
+          </button>
+        </div>
+      </div>
+
+      <article className="spisan-tov-report-sheet">
+        <header className="spisan-tov-report-header">
+          <h1>
+            {report?.title || t("SpisanTovInvoice.ReportTitle", "Накладная списания сырья")}
+          </h1>
+
+          <div className="spisan-tov-report-meta">
+            <div>
+              <span>{t("SpisanTovInvoice.Date", "Дата")}</span>
+              <strong>{formatReportDate(report?.date, locale)}</strong>
+            </div>
+
+            <div>
+              <span>{t("SpisanTovInvoice.Expenses", "Затраты")}</span>
+              <strong>{report?.expense || "—"}</strong>
+            </div>
+
+            {report?.note ? (
+              <div className="wide">
+                <span>{t("SpisanTovInvoice.Note", "Примечание")}</span>
+                <strong>{report.note}</strong>
+              </div>
+            ) : null}
+          </div>
+        </header>
+
+        <div className="spisan-tov-report-table-wrap">
+          <table className="spisan-tov-report-table">
+            <colgroup>
+              <col className="col-index" />
+              <col className="col-name" />
+              <col className="col-qty" />
+              <col className="col-price" />
+              <col className="col-sum" />
+            </colgroup>
+
+            <thead>
+              <tr>
+                <th>№</th>
+                <th>{t("SpisanTovInvoice.RawMaterial", "Сырьё")}</th>
+                <th className="num">{t("SpisanTovInvoice.Quantity", "Кол-во")}</th>
+                <th className="num">{t("SpisanTovInvoice.Price", "Цена")}</th>
+                <th className="num">{t("SpisanTovInvoice.Amount", "Сумма")}</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {rows.length === 0 ? (
+                <tr>
+                  <td colSpan="5" className="empty">
+                    {t("SpisanTovInvoice.EmptyRows", "Строки не добавлены.")}
+                  </td>
+                </tr>
+              ) : (
+                rows.map((row, index) => (
+                  <tr key={`${row.ID || "row"}-${index}`}>
+                    <td className="center">{index + 1}</td>
+                    <td>{row.Name || "—"}</td>
+                    <td className="num">
+                      {formatReportNumber(row.Kolvo, locale, 3)}
+                    </td>
+                    <td className="num">
+                      {formatReportMoney(row.Price, locale)}
+                    </td>
+                    <td className="num">
+                      {formatReportMoney(row.Summ, locale)}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+
+            <tfoot>
+              <tr>
+                <td colSpan="4">{t("Common.Total", "Итого")}</td>
+                <td className="num">
+                  {formatReportMoney(report?.total, locale)}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </article>
+    </div>
+  );
+}
+
 export default function SpisanTovInvoicePage({
   initialData,
   currentSklad,
   fetchWithAuth,
   onBack,
   onDirtyChange,
-  t = (key, fallback = "") => fallback
+  t = (key, fallback = "") => fallback,
+  locale = "ru-RU"
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [printReport, setPrintReport] = useState(null);
+  const [exportLoading, setExportLoading] = useState(false);
 
   const [header, setHeader] = useState(null);
   const [rows, setRows] = useState([]);
@@ -422,6 +599,135 @@ ${deletedXml}
 </SpisanTov>`;
   }
 
+
+  function getExpenseName() {
+    const expense = zatrList.find(
+      (item) => Number(item.ID || 0) === Number(header?.IDzatr || 0)
+    );
+
+    return expense?.Name || "";
+  }
+
+  function buildPrintReport() {
+    const reportTitle = t(
+      "SpisanTovInvoice.ReportTitle",
+      "Накладная списания сырья"
+    );
+
+    return {
+      title: `${reportTitle}${header?.Nakl ? ` № ${header.Nakl}` : ""}`,
+      date: header?.DatP || "",
+      expense: getExpenseName(),
+      note: header?.Rem || "",
+      total: totalSumm,
+      rows: rows.map((row) => ({
+        ID: Number(row.CodeSpi || 0),
+        Name: row.Name || "",
+        Kolvo: Number(row.Kolvo || 0),
+        Price: Number(row.Price || 0),
+        Summ: Number(row.Summ || 0)
+      }))
+    };
+  }
+
+  function buildExportReport(report) {
+    return {
+      title: report.title,
+      fileName: `SpisanTov_${String(header?.Nakl || header?.ID || "report")}`,
+      orientation: "portrait",
+      locale,
+      meta: [
+        {
+          label: t("SpisanTovInvoice.Date", "Дата"),
+          value: formatReportDate(report.date, locale)
+        },
+        {
+          label: t("SpisanTovInvoice.Expenses", "Затраты"),
+          value: report.expense || "—"
+        },
+        ...(report.note
+          ? [
+              {
+                label: t("SpisanTovInvoice.Note", "Примечание"),
+                value: report.note
+              }
+            ]
+          : [])
+      ],
+      columns: [
+        { key: "No", title: "№", type: "integer", width: 6 },
+        {
+          key: "Name",
+          title: t("SpisanTovInvoice.RawMaterial", "Сырьё"),
+          type: "text",
+          width: 44
+        },
+        {
+          key: "Kolvo",
+          title: t("SpisanTovInvoice.Quantity", "Кол-во"),
+          type: "number",
+          decimals: 3,
+          width: 14
+        },
+        {
+          key: "Price",
+          title: t("SpisanTovInvoice.Price", "Цена"),
+          type: "number",
+          decimals: 2,
+          width: 14
+        },
+        {
+          key: "Summ",
+          title: t("SpisanTovInvoice.Amount", "Сумма"),
+          type: "number",
+          decimals: 2,
+          width: 16
+        }
+      ],
+      rows: report.rows.map((row, index) => ({
+        No: index + 1,
+        Name: row.Name,
+        Kolvo: row.Kolvo,
+        Price: row.Price,
+        Summ: row.Summ
+      })),
+      footerRows: [
+        {
+          label: t("Common.Total", "Итого"),
+          values: {
+            Summ: Number(report.total || 0)
+          }
+        }
+      ]
+    };
+  }
+
+  function handleOpenPrintPreview() {
+    setPrintReport(buildPrintReport());
+  }
+
+  async function handleExport(format) {
+    if (!printReport || exportLoading) return;
+
+    setExportLoading(true);
+
+    try {
+      await exportReportFile({
+        fetchWithAuth,
+        reportModel: buildExportReport(printReport),
+        format,
+        errorMessage: t("Report.ExportError", "Ошибка экспорта отчёта.")
+      });
+    } catch (err) {
+      window.alert(
+        err?.message ||
+          t("Report.ExportError", "Ошибка экспорта отчёта.")
+      );
+    } finally {
+      setExportLoading(false);
+    }
+  }
+
   async function handleSave() {
     if (Number(header?.IDzatr || 0) <= 0) {
       alert(t("SpisanTovInvoice.ExpenseRequired", "!!! Выберите статью затрат."));
@@ -468,6 +774,20 @@ ${deletedXml}
     }
   }
 
+
+  if (printReport) {
+    return (
+      <SpisanTovPrintReport
+        report={printReport}
+        onBack={() => setPrintReport(null)}
+        onExport={handleExport}
+        exportLoading={exportLoading}
+        locale={locale}
+        t={t}
+      />
+    );
+  }
+
   if (loading) {
     return <p>{t("SpisanTovInvoice.Loading", "Загрузка накладной...")}</p>;
   }
@@ -501,6 +821,15 @@ ${deletedXml}
           onClick={handleSave}
         >
           {t("SpisanTovInvoice.Save", "Сохранить")}
+        </button>
+
+        <button
+          type="button"
+          className="toolbar-button"
+          disabled={isDirty || rows.length === 0}
+          onClick={handleOpenPrintPreview}
+        >
+          {t("Common.Print", "Печать")}
         </button>
       </div>
 

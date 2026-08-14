@@ -1,17 +1,38 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
-function normalizeSearchText(value, locale) {
+function normalizeSearchText(value) {
   return String(value ?? "")
     .trim()
-    .toLocaleLowerCase(locale);
+    .toLocaleLowerCase("ru-RU");
+}
+
+
+function normalizeDateInputValue(value) {
+  const text = String(value ?? "").trim();
+
+  if (!text || text === "0") {
+    return "";
+  }
+
+  const isoMatch = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+
+  if (isoMatch) {
+    return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+  }
+
+  const localMatch = text.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})/);
+
+  if (localMatch) {
+    return `${localMatch[3]}-${String(localMatch[2]).padStart(2, "0")}-${String(localMatch[1]).padStart(2, "0")}`;
+  }
+
+  return "";
 }
 
 function SupplierSearch({
   posts,
   value,
-  onChange,
-  t = (key, fallback = "") => fallback,
-  locale = "ru-RU"
+  onChange
 }) {
   const rootRef = useRef(null);
   const postList = Array.isArray(posts) ? posts : [];
@@ -24,11 +45,9 @@ function SupplierSearch({
     [postList, value]
   );
 
-  const allText = t("Common.All", "Все");
-
   const selectedText =
     String(value ?? "%") === "%"
-      ? allText
+      ? "Все"
       : selectedPost?.Name ?? "";
 
   const [text, setText] = useState(selectedText);
@@ -53,8 +72,8 @@ function SupplierSearch({
     };
   }, [selectedText]);
 
-  const searchText = normalizeSearchText(text, locale);
-  const selectedSearchText = normalizeSearchText(selectedText, locale);
+  const searchText = normalizeSearchText(text);
+  const selectedSearchText = normalizeSearchText(selectedText);
 
   // Пока в поле находится полное название выбранного поставщика,
   // при открытии показываем весь список. После ввода букв фильтруем с начала строки.
@@ -66,19 +85,19 @@ function SupplierSearch({
   const filteredPosts = useMemo(() => {
     return [...postList]
       .filter((post) =>
-        normalizeSearchText(post.Name, locale).startsWith(prefix)
+        normalizeSearchText(post.Name).startsWith(prefix)
       )
       .sort((a, b) =>
         String(a.Name ?? "").localeCompare(
           String(b.Name ?? ""),
-          locale
+          "ru"
         )
       );
-  }, [postList, prefix, locale]);
+  }, [postList, prefix]);
 
   const showAllOption =
     prefix === "" ||
-    normalizeSearchText(allText, locale).startsWith(prefix);
+    normalizeSearchText("Все").startsWith(prefix);
 
   function choose(postValue, postName) {
     setText(postName);
@@ -104,14 +123,14 @@ function SupplierSearch({
 
     event.preventDefault();
 
-    if (showAllOption && prefix === normalizeSearchText(allText, locale)) {
-      choose("%", allText);
+    if (showAllOption && prefix === normalizeSearchText("Все")) {
+      choose("%", "Все");
       return;
     }
 
     const exactPost = filteredPosts.find(
       (post) =>
-        normalizeSearchText(post.Name, locale) === prefix
+        normalizeSearchText(post.Name) === prefix
     );
 
     if (exactPost) {
@@ -132,7 +151,7 @@ function SupplierSearch({
       <input
         type="text"
         value={text}
-        placeholder={t("PrihList.SupplierSearchPlaceholder", "Начните вводить поставщика")}
+        placeholder="Начните вводить поставщика"
         autoComplete="off"
         onFocus={(event) => {
           setOpen(true);
@@ -143,7 +162,7 @@ function SupplierSearch({
           setOpen(true);
         }}
         onKeyDown={handleKeyDown}
-        aria-label={t("PrihList.SupplierSearchAria", "Поиск поставщика")}
+        aria-label="Поиск поставщика"
         aria-expanded={open}
       />
 
@@ -155,10 +174,10 @@ function SupplierSearch({
               className="searchable-select-option muted"
               onMouseDown={(event) => {
                 event.preventDefault();
-                choose("%", allText);
+                choose("%", "Все");
               }}
             >
-              {allText}
+              Все
             </button>
           )}
 
@@ -178,7 +197,7 @@ function SupplierSearch({
 
           {!showAllOption && filteredPosts.length === 0 && (
             <div className="searchable-select-empty">
-              {t("PrihList.SupplierNotFound", "Поставщик не найден")}
+              Поставщик не найден
             </div>
           )}
         </div>
@@ -194,40 +213,96 @@ export default function PrihListPage({
   filterPost,
   date1,
   date2,
+  pfMode = false,
+  selectedInvoiceId,
+  onSelectInvoice,
   onChangePost,
   onChangeDate1,
   onChangeDate2,
+  onChangePf,
   onOpenInvoice,
   onCreateInvoice,
+  onCreateProduction,
+  onCreateZach,
   onApply,
-  t = (key, fallback = "") => fallback,
-  locale = "ru-RU"
+  t = (key, fallback = "") => fallback
 }) {
   const rows = Array.isArray(data) ? data : [];
-  const [selectedId, setSelectedId] = useState(null);
+  const listRootRef = useRef(null);
+  const [selectedId, setSelectedId] = useState(
+    Number(selectedInvoiceId || 0) || null
+  );
+
+  const displayDate1 = normalizeDateInputValue(
+    date1 || period?.Date1
+  );
+  const displayDate2 = normalizeDateInputValue(
+    date2 || period?.Date2
+  );
+
+  useEffect(() => {
+    const targetId = Number(selectedInvoiceId || 0);
+
+    if (!targetId) {
+      return;
+    }
+
+    setSelectedId(targetId);
+
+    const frameId = window.requestAnimationFrame(() => {
+      const row = listRootRef.current?.querySelector(
+        `[data-invoice-id="${targetId}"]`
+      );
+
+      row?.scrollIntoView({
+        block: "nearest",
+        inline: "nearest"
+      });
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [selectedInvoiceId, rows]);
+
+  function selectInvoice(invoiceId) {
+    const numericId = Number(invoiceId || 0) || null;
+
+    setSelectedId(numericId);
+    onSelectInvoice?.(numericId);
+  }
 
   return (
-    <div className="prih-list-page">
+    <div className="prih-list-page" ref={listRootRef}>
       <div className="module-toolbar prih-list-toolbar">
         <div className="toolbar-left">
           <label className="toolbar-field prih-post-field">
-            <span>{t("Common.Supplier", "Поставщик")}</span>
+            <span>Поставщик</span>
 
             <SupplierSearch
               posts={posts}
               value={String(filterPost ?? "%")}
               onChange={onChangePost}
-              t={t}
-              locale={locale}
             />
           </label>
 
+          <label className="toolbar-check prih-pf-toggle">
+            <input
+              type="checkbox"
+              checked={Boolean(pfMode)}
+              onChange={(event) => onChangePf?.(event.target.checked)}
+            />
+            <span>
+              {t("PrihList.PfModeLine1", "Зачистки и")}
+              <br />
+              {t("PrihList.PfModeLine2", "производство")}
+            </span>
+          </label>
+
           <label className="toolbar-field">
-            <span>{t("Common.DateFrom", "с")}</span>
+            <span>с</span>
             <input
               className="toolbar-date"
               type="date"
-              value={date1 || period?.Date1 || ""}
+              value={displayDate1}
               onChange={(event) =>
                 onChangeDate1?.(event.target.value)
               }
@@ -235,12 +310,12 @@ export default function PrihListPage({
           </label>
 
           <label className="toolbar-field">
-            <span>{t("Common.DateTo", "по")}</span>
+            <span>по</span>
             <input
               className="toolbar-date"
               type="date"
-              value={date2 || period?.Date2 || ""}
-              min={date1 || period?.Date1 || undefined}
+              value={displayDate2}
+              min={displayDate1 || undefined}
               onChange={(event) =>
                 onChangeDate2?.(event.target.value)
               }
@@ -253,25 +328,49 @@ export default function PrihListPage({
             type="button"
             className="toolbar-save-button prih-apply-button"
             onClick={onApply}
-            title={t("PrihList.ApplyDateRangeTitle", "Применить выбранный интервал дат")}
+            title="Применить выбранный интервал дат"
           >
-            {t("Common.Apply", "Применить")}
+            Применить
           </button>
 
-          {onCreateInvoice && (
+          {!pfMode && onCreateInvoice && (
             <button
               type="button"
               className="prih-create-button"
               onClick={onCreateInvoice}
             >
-              + {t("PrihList.NewInvoice", "Новая накладная")}
+              + Новая накладная
             </button>
+          )}
+
+          {pfMode && (
+            <>
+              <button
+                type="button"
+                className="prih-create-button prih-create-special-button"
+                onClick={onCreateProduction}
+              >
+                {t("PrihList.NewProductionLine1", "Новая накл.")}
+                <br />
+                {t("PrihList.NewProductionLine2", "производства")}
+              </button>
+
+              <button
+                type="button"
+                className="prih-create-button prih-create-special-button"
+                onClick={onCreateZach}
+              >
+                {t("PrihList.NewZachLine1", "Новая")}
+                <br />
+                {t("PrihList.NewZachLine2", "зачистка")}
+              </button>
+            </>
           )}
         </div>
       </div>
 
       {rows.length === 0 && (
-        <p className="prih-list-empty">{t("PrihList.EmptyMessage", "Приходные накладные не найдены.")}</p>
+        <p className="prih-list-empty">Приходные накладные не найдены.</p>
       )}
 
       {rows.length > 0 && (
@@ -291,15 +390,15 @@ export default function PrihListPage({
             </colgroup>
             <thead>
               <tr>
-                <th>{t("Common.InvoiceNumber", "Номер")}</th>
-                <th>{t("Common.Date", "Дата")}</th>
-                <th>{t("Common.Amount", "Сумма")}</th>
-                <th>{t("Common.Supplier", "Поставщик")}</th>
-                <th>{t("PrihList.Payment", "Оплата")}</th>
-                <th>{t("PrihList.CreatedBy", "Создал")}</th>
-                <th>{t("PrihList.UpdatedBy", "Изменил")}</th>
-                <th>{t("PrihList.Paid", "Оплачено")}</th>
-                <th>{t("PrihList.Return", "Возврат")}</th>
+                <th>Номер</th>
+                <th>Дата</th>
+                <th>Сумма</th>
+                <th>Поставщик</th>
+                <th>Оплата</th>
+                <th>Создал</th>
+                <th>Изменил</th>
+                <th>Оплачено</th>
+                <th>Возврат</th>
                 <th></th>
               </tr>
             </thead>
@@ -308,12 +407,13 @@ export default function PrihListPage({
               {rows.map((row) => (
                 <tr
                   key={row.ID}
+                  data-invoice-id={Number(row.ID || 0)}
                   className={
-                    selectedId === row.ID
+                    Number(selectedId) === Number(row.ID)
                       ? "selected-row"
                       : ""
                   }
-                  onClick={() => setSelectedId(row.ID)}
+                  onClick={() => selectInvoice(row.ID)}
                 >
                   <td>{row.Invoice}</td>
                   <td>{row.DateP}</td>
@@ -336,10 +436,11 @@ export default function PrihListPage({
                       className="small-action-button prih-open-button"
                       onClick={(event) => {
                         event.stopPropagation();
-                        onOpenInvoice?.(row.ID);
+                        selectInvoice(row.ID);
+                        onOpenInvoice?.(row);
                       }}
                     >
-                      {t("Common.Open", "Открыть")}
+                      Открыть
                     </button>
                   </td>
                 </tr>

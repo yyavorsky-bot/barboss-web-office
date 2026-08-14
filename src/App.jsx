@@ -45,6 +45,7 @@ import PereuchetPage from "./PereuchetPage";
 import OrdersDayPage from "./OrdersDayPage";
 import SchetViewPage from "./SchetViewPage";
 import "./styles.css";
+import "./prih-invoice-report.css";
 
 function normalizeMenuActionKey(action) {
   return String(action || "")
@@ -378,6 +379,90 @@ function buildLicenseWarningMessage(status) {
     : `Внимание! До окончания лицензии осталось ${status.daysLeft} дня.`;
 }
 
+
+function normalizeDateInputValue(value) {
+  const text = String(value ?? "").trim();
+
+  if (!text || text === "0") {
+    return "";
+  }
+
+  const isoMatch = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+
+  if (isoMatch) {
+    return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+  }
+
+  const localMatch = text.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})/);
+
+  if (localMatch) {
+    return `${localMatch[3]}-${String(localMatch[2]).padStart(2, "0")}-${String(localMatch[1]).padStart(2, "0")}`;
+  }
+
+  return "";
+}
+
+function resolvePrihListPeriod(data, requestDate1, requestDate2, items) {
+  const periodValue =
+    data?.period ??
+    data?.Period ??
+    {};
+
+  const source = Array.isArray(periodValue)
+    ? periodValue[0] ?? {}
+    : periodValue;
+
+  const itemDates = (Array.isArray(items) ? items : [])
+    .map((row) =>
+      normalizeDateInputValue(
+        row?.DateP ??
+        row?.dateP ??
+        row?.Date ??
+        row?.date
+      )
+    )
+    .filter(Boolean)
+    .sort();
+
+  const requestedDate1 = normalizeDateInputValue(requestDate1);
+  const requestedDate2 = normalizeDateInputValue(requestDate2);
+
+  const date1 =
+    normalizeDateInputValue(
+      source.Date1 ??
+      source.date1 ??
+      source.FromDate ??
+      source.fromDate ??
+      data?.Date1 ??
+      data?.date1 ??
+      data?.FromDate ??
+      data?.fromDate
+    ) ||
+    requestedDate1 ||
+    itemDates[0] ||
+    "";
+
+  const date2 =
+    normalizeDateInputValue(
+      source.Date2 ??
+      source.date2 ??
+      source.ToDate ??
+      source.toDate ??
+      data?.Date2 ??
+      data?.date2 ??
+      data?.ToDate ??
+      data?.toDate
+    ) ||
+    requestedDate2 ||
+    itemDates[itemDates.length - 1] ||
+    date1;
+
+  return {
+    Date1: date1,
+    Date2: date2
+  };
+}
+
 export default function App() {
   const [accessToken, setAccessToken] = useState("");
   const [user, setUser] = useState(null);
@@ -407,15 +492,22 @@ export default function App() {
   const [prihDate1, setPrihDate1] = useState("");
   const [prihDate2, setPrihDate2] = useState("");
   const [prihPeriod, setPrihPeriod] = useState(null);
+  const [prihPfMode, setPrihPfMode] = useState(false);
   const [siryaCategories, setSiryaCategories] = useState([]);
   const [siryaCat, setSiryaCat] = useState("0");
   const [spisokTovarovCat, setSpisokTovarovCat] = useState("0");
   const [spisokTovarovSkr, setSpisokTovarovSkr] = useState(0);
   const [dishCalcId, setDishCalcId] = useState(null);
+  const [dishSelectedId, setDishSelectedId] = useState(null);
   const [prihInvoiceId, setPrihInvoiceId] = useState(null);
+  const [prihSelectedInvoiceId, setPrihSelectedInvoiceId] = useState(null);
+  const [peremSelectedInvoiceId, setPeremSelectedInvoiceId] = useState(null);
+  const [spisanTovSelectedInvoiceId, setSpisanTovSelectedInvoiceId] = useState(null);
+  const [spisanBludSelectedInvoiceId, setSpisanBludSelectedInvoiceId] = useState(null);
   const [discountOptions, setDiscountOptions] = useState([]);
   const [prihInitialData, setPrihInitialData] = useState(null);
   const [prihMode, setPrihMode] = useState("edit");
+  const [prihWasSaved, setPrihWasSaved] = useState(false);
   const [invoiceKind, setInvoiceKind] = useState("prih");
   const [spisanInitialData, setSpisanInitialData] = useState(null);
   const [spisanBludInitialData, setSpisanBludInitialData] = useState(null);
@@ -428,6 +520,7 @@ export default function App() {
   const [viewOrderId, setViewOrderId] = useState(null);
   const [viewSourceOrder, setViewSourceOrder] = useState(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isPrihPrintPreviewOpen, setIsPrihPrintPreviewOpen] = useState(false);
   const [language, setLanguage] = useState(getInitialLanguage);
   const [translations, setTranslations] = useState({});
 
@@ -477,7 +570,47 @@ export default function App() {
 
 
 useEffect(() => {
+  if (
+    normalizeMenuActionKey(selectedAction).toLowerCase() === "wf_kassa.php" &&
+    accessToken
+  ) {
+    loadKassaPage(kassaDate);
+  }
+  // Здесь намеренно реагируем только на смену организации.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [currentOrg]);
+
+useEffect(() => {
+  const actionName = normalizeMenuActionKey(selectedAction).toLowerCase();
+
+  if (
+    actionName !== "wf_prihlist.php" ||
+    !currentSklad ||
+    !accessToken
+  ) {
+    return;
+  }
+
+  console.log("[language] reload prih list", {
+    language,
+    selectedAction,
+    sklad: currentSklad,
+    post: prihPost,
+    d1: prihDate1 || 0,
+    d2: prihDate2 || 0
+  });
+
+  loadPrihList({
+    sklad: currentSklad,
+    post: prihPost,
+    d1: prihDate1 || 0,
+    d2: prihDate2 || 0,
+    lang: language,
+    pf: prihPfMode ? 1 : 0
+  });
+  // Перезагрузка нужна только при фактическом изменении языка.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [language]);
 
 async function applyLanguage(nextLanguage, request = fetchWithAuth) {
   const safeLanguage = normalizeLanguage(nextLanguage);
@@ -522,6 +655,7 @@ async function handleAppLanguageChange(event) {
     setMenu(Array.isArray(menuData?.menu) ? menuData.menu : menuData);
     setLanguage(nextLanguage);
     persistLanguage(nextLanguage);
+
   } catch (err) {
     window.alert(
       err.message ||
@@ -575,6 +709,8 @@ function openMoveInvoice(nakl) {
   }
 
   setInvoiceKind("move");
+  setPrihWasSaved(false);
+  setPeremSelectedInvoiceId(Number(nakl.ID));
   setPrihInvoiceId(Number(nakl.ID));
   setPrihInitialData(null);
   setPrihMode("edit");
@@ -609,8 +745,15 @@ async function createPrihInvoice() {
       throw new Error("Сервер не вернул ID новой накладной");
     }
 
+    setInvoiceKind("prih");
+    setPrihWasSaved(false);
     setPrihInvoiceId(Number(invoice.ID));
-    setPrihInitialData(invoice);
+    setPrihSelectedInvoiceId(Number(invoice.ID));
+    setPrihInitialData({
+      ...invoice,
+      pf: false,
+      zach: false
+    });
     setPrihMode("new");
     setSelectedAction("prih-invoice-card");
     setWorkTitle("Новая приходная накладная");
@@ -618,12 +761,79 @@ async function createPrihInvoice() {
     alert(err.message || "Ошибка создания приходной накладной");
   }
 }
+
+async function createPrihSpecialInvoice(kind) {
+  const isPf = kind === "pf";
+  const isZach = kind === "zach";
+
+  try {
+    const url = new URL("https://webback.bar-boss.com/wf_PrihNew.php");
+    url.searchParams.set("Sklad", String(currentSklad || ""));
+    url.searchParams.set("pf", isPf ? "1" : "0");
+    url.searchParams.set("zach", isZach ? "1" : "0");
+
+    const response = await fetchWithAuth(url.toString(), { method: "GET" });
+    const text = await response.text();
+
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      throw new Error(
+        (isPf ? "Новая накладная производства" : "Новая зачистка") +
+          " вернула не JSON: " +
+          text.substring(0, 500)
+      );
+    }
+
+    if (!response.ok || data?.status === "error") {
+      throw new Error(
+        data?.error ||
+          data?.message ||
+          (isPf
+            ? "Ошибка создания накладной производства"
+            : "Ошибка создания накладной зачистки")
+      );
+    }
+
+    const invoice = Array.isArray(data) ? data[0] : data;
+
+    if (!invoice || !invoice.ID) {
+      throw new Error("Сервер не вернул ID новой накладной");
+    }
+
+    setInvoiceKind(isPf ? "pf" : "zach");
+    setPrihWasSaved(false);
+    setPrihInvoiceId(Number(invoice.ID));
+    setPrihSelectedInvoiceId(Number(invoice.ID));
+    setPrihInitialData({
+      ...invoice,
+      pf: isPf,
+      zach: isZach
+    });
+    setPrihMode("new");
+    setSelectedAction("prih-invoice-card");
+    setWorkTitle(
+      isPf ? "Новая накладная производства ПФ" : "Новая накладная зачистки"
+    );
+    setWorkError("");
+  } catch (err) {
+    alert(
+      err.message ||
+        (isPf
+          ? "Ошибка создания накладной производства"
+          : "Ошибка создания накладной зачистки")
+    );
+  }
+}
+
 function openSpisanTovInvoice(spisan) {
   if (!spisan?.ID) {
     setWorkError("Не найден ID накладной списания");
     return;
   }
 
+  setSpisanTovSelectedInvoiceId(Number(spisan.ID));
   setSpisanInitialData(spisan);
   setSelectedAction("spisan-tov-invoice-card");
   setWorkTitle("Накладная списания");
@@ -782,7 +992,7 @@ async function loadKassaPage(date = kassaDate) {
         `https://webback.bar-boss.com/wf_KassaPrih.php?Date=${apiDate}`
       ),
       fetchWithAuth(
-        `https://webback.bar-boss.com/wf_KassaRashod.php?Date=${apiDate}`
+        `https://webback.bar-boss.com/wf_KassaRashod.php?Date=${apiDate}&Org=${encodeURIComponent(String(getCurrentOrgCode()))}`
       ),
       fetchWithAuth("https://webback.bar-boss.com/wf_Valuts.php"),
       fetchWithAuth("https://webback.bar-boss.com/wf_CliKass.php"),
@@ -988,6 +1198,8 @@ async function createMoveInvoice() {
     };
 
     setInvoiceKind("move");
+    setPrihWasSaved(false);
+    setPeremSelectedInvoiceId(Number(invoice.ID));
     setPrihInvoiceId(Number(invoice.ID));
     setPrihInitialData(moveInvoice);
     setPrihMode("new");
@@ -1033,6 +1245,7 @@ async function createSpisanTovInvoice() {
       items: Array.isArray(invoice.items) ? invoice.items : []
     };
 
+    setSpisanTovSelectedInvoiceId(Number(invoice.ID));
     setSpisanInitialData(normalizedInvoice);
     setSelectedAction("spisan-tov-invoice-card");
     setWorkTitle("Новое списание сырья");
@@ -1056,6 +1269,7 @@ function openSpisanBludInvoice(spisan) {
     return;
   }
 
+  setSpisanBludSelectedInvoiceId(Number(spisan.ID));
   setSpisanBludInitialData(spisan);
   setSelectedAction("spisan-blud-invoice-card");
   setWorkTitle("Накладная списания блюд");
@@ -1097,6 +1311,7 @@ async function createSpisanBludInvoice() {
       items: Array.isArray(invoice.items) ? invoice.items : []
     };
 
+    setSpisanBludSelectedInvoiceId(Number(invoice.ID));
     setSpisanBludInitialData(normalizedInvoice);
     setSelectedAction("spisan-blud-invoice-card");
     setWorkTitle("Новое списание блюд");
@@ -1106,19 +1321,36 @@ async function createSpisanBludInvoice() {
   }
 }
 
-function openPrihInvoice(invoiceId) {
+function openPrihInvoice(invoiceOrId) {
+  const row =
+    invoiceOrId && typeof invoiceOrId === "object"
+      ? invoiceOrId
+      : null;
+  const invoiceId = Number(row?.ID ?? invoiceOrId ?? 0);
 
   if (!invoiceId) {
     setWorkError("Не найден ID приходной накладной");
     return;
   }
 
-  setInvoiceKind("prih");
-  setPrihInvoiceId(Number(invoiceId));
+  const isPf = parseBooleanFlag(row?.pf ?? row?.Pf ?? 0);
+  const isZach = parseBooleanFlag(row?.zach ?? row?.Zach ?? 0);
+  const kind = isPf ? "pf" : isZach ? "zach" : "prih";
+
+  setInvoiceKind(kind);
+  setPrihWasSaved(false);
+  setPrihSelectedInvoiceId(invoiceId);
+  setPrihInvoiceId(invoiceId);
   setPrihInitialData(null);
   setPrihMode("edit");
   setSelectedAction("prih-invoice-card");
-  setWorkTitle("Приходная накладная");
+  setWorkTitle(
+    kind === "pf"
+      ? "Накладная производства ПФ"
+      : kind === "zach"
+        ? "Накладная зачистки"
+        : "Приходная накладная"
+  );
   setWorkError("");
 }
 
@@ -1166,14 +1398,18 @@ function findMenuItemByAction(items, targetAction) {
   return null;
 }
 
-function backToPrihList() {
+async function backToPrihList(forceReload = false) {
   const menuItem = findMenuItemByAction(
     menu,
     "wf_PrihList.php"
   );
 
-  setSelectedAction("wf_PrihList.php");
+  const shouldReload =
+    Boolean(forceReload) ||
+    prihMode === "new" ||
+    prihWasSaved;
 
+  setSelectedAction("wf_PrihList.php");
   setWorkTitle(
     menuItem?.name ??
     menuItem?.Name ??
@@ -1183,18 +1419,35 @@ function backToPrihList() {
   setPrihInvoiceId(null);
   setPrihInitialData(null);
   setPrihMode("edit");
+  setPrihWasSaved(false);
   setWorkError("");
+
+  // При простом просмотре существующей накладной workData уже актуален —
+  // лишний запрос не нужен. Новую или реально сохранённую накладную
+  // перечитываем, чтобы список сразу отражал изменения базы.
+  if (!shouldReload) {
+    return;
+  }
+
+  await loadPrihList({
+    sklad: currentSklad,
+    post: prihPost,
+    d1: prihDate1 || 0,
+    d2: prihDate2 || 0,
+    pf: prihPfMode ? 1 : 0,
+    lang: language
+  });
 }
 
-function backToInvoiceList() {
+async function backToInvoiceList() {
   if (invoiceKind === "move") {
-    loadPeremList({
+    await loadPeremList({
       sklad: currentSklad
     });
     return;
   }
 
-  backToPrihList();
+  await backToPrihList();
 }
 
 async function loadPeremList(options = {}) {
@@ -1230,7 +1483,8 @@ function openDishCalc(dishId) {
     return;
   }
 
-  setDishCalcId(dishId);
+  setDishSelectedId(Number(dishId));
+  setDishCalcId(Number(dishId));
   setSelectedAction("dish-calc");
   setWorkTitle("Калькуляционная карта");
   setWorkError("");
@@ -1570,7 +1824,9 @@ async function loadPrihList({
   sklad = currentSklad,
   post = "%",
   d1 = 0,
-  d2 = 0
+  d2 = 0,
+  lang = language,
+  pf = prihPfMode ? 1 : 0
 } = {}) {
   if (!sklad) {
     throw new Error("Не выбран склад / подразделение");
@@ -1607,6 +1863,11 @@ setPostavList(Array.isArray(postavData) ? postavData : []);
     url.searchParams.set("Post", post);
     url.searchParams.set("d1", d1);
     url.searchParams.set("d2", d2);
+    url.searchParams.set("pf", String(Number(pf) ? 1 : 0));
+    url.searchParams.set("lang", normalizeLanguage(lang));
+
+    console.log("[prih-list] request", url.toString());
+    url.searchParams.set("lang", normalizeLanguage(lang));
 
     const response = await fetchWithAuth(url.toString(), {
       method: "GET"
@@ -1625,11 +1886,25 @@ setPostavList(Array.isArray(postavData) ? postavData : []);
       throw new Error(data.error || "Ошибка загрузки приходных накладных");
     }
 
+    const items = Array.isArray(data?.items)
+      ? data.items
+      : Array.isArray(data)
+        ? data
+        : [];
+
+    const period = resolvePrihListPeriod(
+      data,
+      d1,
+      d2,
+      items
+    );
+
     setPrihPost(post);
-    setPrihPeriod(data.period ?? null);
-    setPrihDate1(data.period?.Date1 ?? "");
-    setPrihDate2(data.period?.Date2 ?? "");
-    setWorkData(Array.isArray(data.items) ? data.items : []);
+    setPrihPfMode(Boolean(Number(pf)));
+    setPrihPeriod(period);
+    setPrihDate1(period.Date1);
+    setPrihDate2(period.Date2);
+    setWorkData(items);
 
   } catch (err) {
     setWorkError(err.message || "Ошибка загрузки приходных накладных");
@@ -1794,6 +2069,89 @@ async function addSpisokTovarov({
   }
 
   return newItem;
+}
+
+async function startSebestRecalc({ date, otobr = 0 } = {}) {
+  const userId = String(user?.id ?? "").trim();
+  const startDate = String(date ?? "").trim();
+
+  if (!userId) {
+    throw new Error(
+      t("SpisokTovarov.RecalcUserMissing", "Не определён пользователь для запуска пересчёта")
+    );
+  }
+
+  if (!startDate) {
+    throw new Error(
+      t("SpisokTovarov.RecalcDateMissing", "Не указана дата начала пересчёта")
+    );
+  }
+
+  const response = await fetchWithAuth(
+    "https://webback.bar-boss.com/wr_Sebest.php",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        User: userId,
+        Date: startDate,
+        Otobr: otobr ? 1 : 0
+      })
+    }
+  );
+
+  const text = await response.text();
+  let data;
+
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error(
+      t("SpisokTovarov.RecalcInvalidJson", "Запуск пересчёта вернул не JSON: {details}")
+        .replace("{details}", text.substring(0, 300))
+    );
+  }
+
+  if (!response.ok || data?.status !== "success") {
+    throw new Error(
+      data?.error ||
+        t("SpisokTovarov.RecalcStartError", "Не удалось запустить пересчёт себестоимости")
+    );
+  }
+
+  return data;
+}
+
+async function checkSebestRecalc() {
+  const response = await fetchWithAuth(
+    "https://webback.bar-boss.com/wr_SebestCheck.php",
+    {
+      method: "GET"
+    }
+  );
+
+  const text = await response.text();
+  let data;
+
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error(
+      t("SpisokTovarov.RecalcCheckInvalidJson", "Проверка пересчёта вернула не JSON: {details}")
+        .replace("{details}", text.substring(0, 300))
+    );
+  }
+
+  if (!response.ok || data?.status !== "success") {
+    throw new Error(
+      data?.error ||
+        t("SpisokTovarov.RecalcCheckError", "Не удалось проверить состояние пересчёта")
+    );
+  }
+
+  return data;
 }
 
 async function fetchWithAuth(url, options = {}) {
@@ -1968,11 +2326,13 @@ async function addDish({ sklad, group }) {
   }
 
   if (actionName === "wf_PrihList.php") {
+  setPrihPfMode(false);
   await loadPrihList({
-    Sklad:currentSklad,
+    sklad: currentSklad,
     post: "%",
     d1: 0,
-    d2: 0
+    d2: 0,
+    pf: 0
   });
   return;
   }
@@ -2411,6 +2771,31 @@ async function saveDishes(xml) {
             }
 
             setCurrentSklad(nextSklad);
+
+            if (
+              normalizeMenuActionKey(selectedAction).toLowerCase() ===
+              "wf_dishes.php"
+            ) {
+              loadDishes({
+                sklad: nextSklad,
+                skr: dishSkr,
+                group: dishGroup,
+                modif: dishModif
+              });
+            }
+
+            if (
+              normalizeMenuActionKey(selectedAction).toLowerCase() ===
+              "wf_prihlist.php"
+            ) {
+              loadPrihList({
+                sklad: nextSklad,
+                post: prihPost,
+                d1: prihDate1 || 0,
+                d2: prihDate2 || 0,
+                pf: prihPfMode ? 1 : 0
+              });
+            }
           }}
           title={t("App.WarehouseTitle", "Склад / подразделение")}
         >
@@ -2476,7 +2861,9 @@ async function saveDishes(xml) {
   </nav>
 </aside>
 
-<main className="work-area">
+<main
+  className={`work-area${isPrihPrintPreviewOpen ? " prih-invoice-report-active" : ""}`}
+>
   {selectedAction &&
     selectedAction !== "prih-invoice-card" &&
     selectedAction !== "spisan-tov-invoice-card" &&
@@ -2487,7 +2874,7 @@ async function saveDishes(xml) {
     selectedAction !== "wf_SpisanBludList.php" &&
     selectedAction !== "wf_SpisokZakazov.php" &&
     selectedAction !== "wf_SchetView.php" && (
-      <h2>{displayedWorkTitle}</h2>
+      <h2 className="work-area-title">{displayedWorkTitle}</h2>
     )}
   {!selectedAction && !workLoading && !workError && (
 <HomePage
@@ -2512,6 +2899,12 @@ async function saveDishes(xml) {
   {!workLoading && !workError && workData && selectedAction === "wf_Dishes.php" && (
     <DishesPage
       data={workData}
+      selectedDishId={dishSelectedId}
+      currentSklad={currentSklad}
+      podrazd={sklads}
+      fetchWithAuth={fetchWithAuth}
+      dateFrom={reportDateFrom}
+      dateTo={reportDateTo}
       onOpenCalc={openDishCalc}
       t={t}
       groups={dishGroups}
@@ -2603,6 +2996,9 @@ async function saveDishes(xml) {
       filterPost={prihPost}
       date1={prihDate1}
       date2={prihDate2}
+      pfMode={prihPfMode}
+      selectedInvoiceId={prihSelectedInvoiceId}
+      onSelectInvoice={setPrihSelectedInvoiceId}
 onChangePost={async (nextPost) => {
     const postValue = String(nextPost ?? "%");
 
@@ -2612,13 +3008,28 @@ onChangePost={async (nextPost) => {
       sklad: currentSklad,
       post: postValue,
       d1: prihDate1 || 0,
-      d2: prihDate2 || 0
+      d2: prihDate2 || 0,
+      pf: prihPfMode ? 1 : 0
     });
   }}
       onChangeDate1={setPrihDate1}
       onChangeDate2={setPrihDate2}
+      onChangePf={async (checked) => {
+        const nextPf = Boolean(checked);
+        setPrihPfMode(nextPf);
+
+        await loadPrihList({
+          sklad: currentSklad,
+          post: prihPost,
+          d1: prihDate1 || 0,
+          d2: prihDate2 || 0,
+          pf: nextPf ? 1 : 0
+        });
+      }}
       onOpenInvoice={openPrihInvoice}
       onCreateInvoice={createPrihInvoice}
+      onCreateProduction={() => createPrihSpecialInvoice("pf")}
+      onCreateZach={() => createPrihSpecialInvoice("zach")}
       t={t}
       locale={locale}
       onApply={async () => {
@@ -2626,7 +3037,8 @@ onChangePost={async (nextPost) => {
           sklad: currentSklad,
           post: prihPost,
           d1: prihDate1 || 0,
-          d2: prihDate2 || 0
+          d2: prihDate2 || 0,
+          pf: prihPfMode ? 1 : 0
         });
       }}
     />
@@ -2641,6 +3053,10 @@ onChangePost={async (nextPost) => {
       currentOrg={currentOrg}
       kassaDate={kassaDate}
       currentValut={currentValut}
+      dateFrom={reportDateFrom}
+      dateTo={reportDateTo}
+      language={language}
+      fetchWithAuth={fetchWithAuth}
       onDateChange={handleKassaDateChange}
       onValutChange={handleKassaValutChange}
       onSave={saveKassaPage}
@@ -2689,9 +3105,14 @@ onChangePost={async (nextPost) => {
   initialInvoice={prihInitialData}
   mode={prihMode}
   invoiceKind={invoiceKind}
+  currentSklad={currentSklad}
+  login={String(user?.id ?? "")}
   fetchWithAuth={fetchWithAuth}
   onBack={backToInvoiceList}
+  onSaved={() => setPrihWasSaved(true)}
+  onDeletePFCompleted={() => backToPrihList(true)}
   onDirtyChange={setHasUnsavedChanges}
+  onPrintPreviewChange={setIsPrihPrintPreviewOpen}
   t={t}
   locale={locale}
 />
@@ -2712,25 +3133,37 @@ onChangePost={async (nextPost) => {
     onDirtyChange={setHasUnsavedChanges}
     />
 )}
-  {!workLoading && !workError && workData && selectedAction === "wf_CardsSirya.php" && (
-  <CardsSiryaPage
-    data={workData}
-    categories={siryaCategories}
-    filterCat={siryaCat}
-    onChangeCat={setSiryaCat}
-    t={t}
-    onApply={async (selectedCategory) => {
-      await loadCardsSirya({
-        sklad: currentSklad,
-        cat: selectedCategory || "0"
-      });
-    }}
-  />
+{!workLoading &&
+  !workError &&
+  workData &&
+  selectedAction === "wf_CardsSirya.php" && (
+    <CardsSiryaPage
+      data={workData}
+      categories={siryaCategories}
+      filterCat={siryaCat}
+      onChangeCat={setSiryaCat}
+      onApply={async (selectedCategory) => {
+        await loadCardsSirya({
+          sklad: currentSklad,
+          cat: selectedCategory || "0"
+        });
+      }}
+      fetchWithAuth={fetchWithAuth}
+      accessToken={accessToken}
+      sklad={currentSklad}
+      org={getCurrentOrgCode()}
+      dateFrom={reportDateFrom}
+      dateTo={reportDateTo}
+      language={language}
+      locale={locale}
+      t={t}
+    />
   )}
 
 {!workLoading && !workError && workData && selectedAction === "wf_SpisanTovList.php" && (
   <SpisanTovListPage
     data={workData}
+    selectedInvoiceId={spisanTovSelectedInvoiceId}
     onOpen={openSpisanTovInvoice}
   onNew={createSpisanTovInvoice}
   t={t}
@@ -2767,6 +3200,7 @@ onChangePost={async (nextPost) => {
 {!workLoading && !workError && workData && selectedAction === "wf_SpisanBludList.php" && (
 <SpisanBludListPage
   data={workData}
+  selectedInvoiceId={spisanBludSelectedInvoiceId}
   onOpen={openSpisanBludInvoice}
   onNew={createSpisanBludInvoice}
   t={t}
@@ -2775,6 +3209,7 @@ onChangePost={async (nextPost) => {
 {!workLoading && !workError && workData && selectedAction === "wf_PeremList.php" && (
 <PeremListPage
   data={workData}
+  selectedInvoiceId={peremSelectedInvoiceId}
   onOpen={openMoveInvoice}
   onNew={createMoveInvoice}
   t={t}
@@ -2848,6 +3283,9 @@ onChangePost={async (nextPost) => {
     categories={siryaCategories}
     filterCat={spisokTovarovCat}
     filterSkr={spisokTovarovSkr}
+    recalcDate={reportDateFrom}
+    onStartSebest={startSebestRecalc}
+    onCheckSebest={checkSebestRecalc}
     readOnly={Boolean(user?.readOnly)}
     onDirtyChange={setHasUnsavedChanges}
     t={t}

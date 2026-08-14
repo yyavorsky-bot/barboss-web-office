@@ -1,0 +1,248 @@
+.spisan-tov-report-page {
+  min-height: calc(100dvh - 122px);
+  padding: 0 4% 24px;
+}
+
+.spisan-tov-report-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 12px;
+  padding: 8px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #f9fafb;
+}
+
+.spisan-tov-report-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.spisan-tov-report-button {
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid #c7d2cf;
+  border-radius: 7px;
+  background: #f8faf9;
+  color: #365f5b;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.spisan-tov-report-button.primary {
+  background: #365f5b;
+  border-color: #365f5b;
+  color: #fff;
+}
+
+.spisan-tov-report-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.spisan-tov-report-sheet {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 18mm 14mm;
+  background: #fff;
+  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.08);
+}
+
+.spisan-tov-report-header h1 {
+  margin: 0 0 14px;
+  font-size: 22px;
+  line-height: 1.25;
+  text-align: center;
+}
+
+.spisan-tov-report-meta {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 6px 18px;
+  margin-bottom: 16px;
+}
+
+.spisan-tov-report-meta > div {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 8px;
+}
+
+.spisan-tov-report-meta > div.wide {
+  grid-column: 1 / -1;
+}
+
+.spisan-tov-report-meta span {
+  color: #4b5563;
+}
+
+.spisan-tov-report-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 12px;
+}
+
+.spisan-tov-report-table th,
+.spisan-tov-report-table td {
+  border: 1px solid #aeb4ba;
+  padding: 5px 7px;
+  vertical-align: top;
+}
+
+.spisan-tov-report-table th {
+  background: #f3f4f6;
+  font-weight: 700;
+  text-align: left;
+}
+
+.spisan-tov-report-table .num {
+  text-align: right;
+}
+
+.spisan-tov-report-table .center {
+  text-align: center;
+}
+
+.spisan-tov-report-table .empty {
+  padding: 18px;
+  text-align: center;
+  color: #6b7280;
+}
+
+.spisan-tov-report-table tfoot td {
+  font-weight: 700;
+}
+
+.spisan-tov-report-table .col-index {
+  width: 6%;
+}
+
+.spisan-tov-report-table .col-name {
+  width: 46%;
+}
+
+.spisan-tov-report-table .col-qty {
+  width: 15%;
+}
+
+.spisan-tov-report-table .col-price {
+  width: 15%;
+}
+
+.spisan-tov-report-table .col-sum {
+  width: 18%;
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+
+  /*
+   * Полный print-reset для SPA.
+   * Другие загруженные report-CSS могут содержать
+   * body * { visibility: hidden !important; }.
+   * Поэтому восстанавливаем и цепочку контейнеров приложения,
+   * и сам текущий отчёт.
+   */
+  html,
+  body,
+  #root,
+  .app-shell,
+  .app-body,
+  .work-area {
+    width: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    visibility: visible !important;
+  }
+
+  body {
+    margin: 0 !important;
+    background: #ffffff !important;
+  }
+
+  #root,
+  .app-shell,
+  .app-body,
+  .work-area {
+    display: block !important;
+  }
+
+  .top-bar,
+  .side-menu,
+  .module-toolbar,
+  .work-area-title,
+  .no-print {
+    display: none !important;
+  }
+
+  .work-area {
+    padding: 0 !important;
+  }
+
+  .spisan-tov-report-page,
+  .spisan-tov-report-page * {
+    visibility: visible !important;
+  }
+
+  .spisan-tov-report-page {
+    display: block !important;
+    position: static !important;
+    width: auto !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  .spisan-tov-report-sheet {
+    display: block !important;
+    width: auto !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+  }
+
+  .spisan-tov-report-table {
+    width: 100% !important;
+    table-layout: fixed;
+    font-size: 9pt;
+  }
+
+  .spisan-tov-report-table th,
+  .spisan-tov-report-table td {
+    padding: 0.8mm 1.2mm !important;
+    line-height: 1.05 !important;
+    vertical-align: top;
+  }
+
+  .spisan-tov-report-table th {
+    background: transparent !important;
+  }
+
+  .spisan-tov-report-table thead {
+    display: table-header-group;
+  }
+
+  .spisan-tov-report-table tfoot {
+    display: table-footer-group;
+  }
+
+  .spisan-tov-report-table tr {
+    break-inside: avoid;
+  }
+}
+

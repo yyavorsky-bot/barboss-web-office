@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 function formatDate(value, locale) {
   if (!value) return "";
@@ -34,29 +34,92 @@ function formatQty(value) {
 
 export default function SpisanTovListPage({
   data,
+  selectedInvoiceId = null,
   onOpen,
   onNew,
   t = (key, fallback = "") => fallback,
   locale = "ru-RU"
 }) {
   const [selectedId, setSelectedId] = useState(null);
+  const listWrapRef = useRef(null);
+  const selectedRowRef = useRef(null);
 
   const rows = Array.isArray(data) ? data : [];
 
   useEffect(() => {
-    if (rows.length > 0) {
-      setSelectedId((prevSelectedId) => {
-        const exists = rows.some((row) => row.ID === prevSelectedId);
-
-        return exists ? prevSelectedId : rows[0].ID;
-      });
-    } else {
+    if (rows.length === 0) {
       setSelectedId(null);
+      return;
     }
-  }, [data]);
+
+    const restoredId = selectedInvoiceId
+      ? Number(selectedInvoiceId)
+      : null;
+
+    setSelectedId((prevSelectedId) => {
+      if (
+        restoredId !== null &&
+        rows.some((row) => Number(row.ID) === restoredId)
+      ) {
+        return restoredId;
+      }
+
+      const previousId = prevSelectedId
+        ? Number(prevSelectedId)
+        : null;
+
+      if (
+        previousId !== null &&
+        rows.some((row) => Number(row.ID) === previousId)
+      ) {
+        return previousId;
+      }
+
+      return Number(rows[0].ID);
+    });
+  }, [data, selectedInvoiceId]);
+
+  useEffect(() => {
+    if (
+      !selectedInvoiceId ||
+      Number(selectedId) !== Number(selectedInvoiceId)
+    ) {
+      return;
+    }
+
+    let secondFrame = 0;
+
+    const firstFrame = window.requestAnimationFrame(() => {
+      secondFrame = window.requestAnimationFrame(() => {
+        const row = selectedRowRef.current;
+        const tableWrap = listWrapRef.current;
+
+        if (!row || !tableWrap) {
+          return;
+        }
+
+        const rowRect = row.getBoundingClientRect();
+        const wrapRect = tableWrap.getBoundingClientRect();
+        const centeredTop =
+          tableWrap.scrollTop +
+          (rowRect.top - wrapRect.top) -
+          (tableWrap.clientHeight - rowRect.height) / 2;
+
+        tableWrap.scrollTop = Math.max(0, centeredTop);
+      });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(firstFrame);
+
+      if (secondFrame) {
+        window.cancelAnimationFrame(secondFrame);
+      }
+    };
+  }, [data, selectedInvoiceId, selectedId]);
 
   const selectedNakl =
-    rows.find((row) => row.ID === selectedId) ??
+    rows.find((row) => Number(row.ID) === Number(selectedId)) ??
     rows[0] ??
     null;
 
@@ -67,7 +130,7 @@ export default function SpisanTovListPage({
   function openRow(row) {
     if (!row) return;
 
-    setSelectedId(row.ID);
+    setSelectedId(Number(row.ID));
     onOpen?.(row);
   }
 
@@ -96,7 +159,7 @@ export default function SpisanTovListPage({
         )}
 
         {rows.length > 0 && (
-        <div className="table-wrap spisan-tov-list-wrap">
+        <div className="table-wrap spisan-tov-list-wrap" ref={listWrapRef}>
           <table className="data-table spisan-tov-list-table">
             <colgroup>
               <col className="spisan-tov-col-date" />
@@ -120,8 +183,13 @@ export default function SpisanTovListPage({
               {rows.map((row) => (
                 <tr
                   key={row.ID}
-                  className={row.ID === selectedNakl?.ID ? "selected-row" : ""}
-                  onClick={() => setSelectedId(row.ID)}
+                  ref={
+                    Number(row.ID) === Number(selectedId)
+                      ? selectedRowRef
+                      : null
+                  }
+                  className={Number(row.ID) === Number(selectedNakl?.ID) ? "selected-row" : ""}
+                  onClick={() => setSelectedId(Number(row.ID))}
                 >
                   <td>{formatDate(row.DatP, locale)}</td>
                   <td>{row.Nakl}</td>

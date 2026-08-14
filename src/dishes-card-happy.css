@@ -1,0 +1,546 @@
+/*
+ * =========================================================
+ * Dishes — Карточка блюда / Счастливые часы
+ * Отдельный файл.
+ * =========================================================
+ */
+
+/* Верхняя панель Списка блюд: единый стиль служебных кнопок. */
+.dishes-toolbar .dishes-print-menu-button,
+.dishes-toolbar .dishes-dish-card-button,
+.dishes-toolbar .dishes-happy-button {
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid rgba(78, 139, 130, 0.36);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #315f5a;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.dishes-toolbar .dishes-print-menu-button:hover:not(:disabled),
+.dishes-toolbar .dishes-dish-card-button:hover:not(:disabled),
+.dishes-toolbar .dishes-happy-button:hover:not(:disabled) {
+  background: #ffffff;
+}
+
+.dishes-toolbar .dishes-print-menu-button.is-active {
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px rgba(49, 95, 90, 0.18);
+}
+
+.dishes-toolbar .dishes-copy-button.dishes-toolbar-multiline-button,
+.dishes-toolbar .dishes-dish-card-button.dishes-toolbar-multiline-button,
+.dishes-toolbar .dishes-happy-button.dishes-toolbar-multiline-button {
+  height: 40px;
+  min-width: 88px;
+  padding: 3px 9px;
+  line-height: 1.02;
+}
+
+.dishes-toolbar-two-line {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  white-space: nowrap;
+}
+
+/* =========================================================
+ * Карточка блюда — отчет
+ * ========================================================= */
+
+.dish-card-report-page {
+  width: 100%;
+  min-width: 0;
+}
+
+.dish-card-report-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #f9fafb;
+  box-shadow: 0 4px 10px rgba(30, 42, 60, 0.10);
+}
+
+.dish-card-report-toolbar strong {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: center;
+  color: #1f2937;
+  font-size: 15px;
+}
+
+
+.dish-card-report-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.dish-card-report-toolbar button {
+  min-height: 30px;
+  padding: 3px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 5px;
+  background: #ffffff;
+  color: #1f2937;
+  cursor: pointer;
+}
+
+.dish-card-report-toolbar button:hover:not(:disabled) {
+  background: #f1f5f9;
+}
+
+.dish-card-report-toolbar button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.dish-card-report-error {
+  margin-bottom: 10px;
+}
+
+.dish-card-report-loading {
+  padding: 16px;
+  color: #64748b;
+}
+
+.dish-card-report-sheet {
+  width: min(100%, 1100px);
+  margin: 0 auto 20px;
+  padding: 14px 28px 18px;
+  border: 1px solid #d8dde5;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.dish-card-report-sheet h1 {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.15;
+  color: #111827;
+}
+
+.dish-card-report-period {
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.dish-card-report-day {
+  margin-top: 14px;
+}
+
+.dish-card-report-day h2 {
+  margin: 0 0 4px;
+  padding: 3px 6px;
+  border-radius: 4px;
+  background: #eef2f7;
+  font-size: 13px;
+  color: #334155;
+}
+
+.dish-card-report-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #d8dde5;
+  border-radius: 5px;
+}
+
+.dish-card-report-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #ffffff;
+  font-size: 11px;
+}
+
+.dish-card-report-table th,
+.dish-card-report-table td {
+  padding: 2px 5px;
+  border-right: 1px solid #e4e8ee;
+  border-bottom: 1px solid #e4e8ee;
+  line-height: 1.1;
+  vertical-align: top;
+}
+
+.dish-card-report-table th:last-child,
+.dish-card-report-table td:last-child {
+  border-right: 0;
+}
+
+.dish-card-report-table thead th {
+  background: #f4f6f9;
+  font-weight: 700;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.dish-card-report-table .num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.dish-card-report-table tbody tr:nth-child(even) {
+  background: #fafbfc;
+}
+
+.dish-card-report-table tfoot td {
+  border-bottom: 0;
+  border-top: 1px solid #94a3b8;
+  background: #eef2f7;
+  font-weight: 700;
+}
+
+.dish-card-report-empty {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 6px;
+  color: #64748b;
+  background: #fafbfc;
+}
+
+/* =========================================================
+ * Счастливые часы — компактная форма
+ * ========================================================= */
+
+.dishes-happy-page {
+  width: min(100%, 900px);
+  margin: 0 auto;
+  min-width: 0;
+}
+
+.dishes-happy-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding: 9px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #f7faf9;
+}
+
+.dishes-happy-toolbar-left,
+.dishes-happy-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dishes-happy-toolbar-left {
+  flex: 1 1 auto;
+}
+
+.dishes-happy-toolbar-left strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #315f5a;
+}
+
+.dishes-happy-toolbar button {
+  min-height: 30px;
+  padding: 3px 10px;
+  border: 1px solid rgba(78, 139, 130, 0.36);
+  border-radius: 8px;
+  background: #ffffff;
+  color: #315f5a;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.dishes-happy-toolbar button:hover:not(:disabled) {
+  background: #f8fffd;
+}
+
+.dishes-happy-toolbar button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.dishes-happy-toolbar .dishes-happy-add-button {
+  width: 34px;
+  padding: 0;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.dishes-happy-toolbar .dishes-happy-save-button {
+  border-color: #26715f;
+  background: #26715f;
+  color: #ffffff;
+}
+
+.dishes-happy-toolbar .dishes-happy-save-button:hover:not(:disabled) {
+  background: #2f806d;
+}
+
+.dishes-happy-error {
+  margin-bottom: 10px;
+}
+
+.dishes-happy-loading {
+  padding: 14px;
+  color: #64748b;
+}
+
+.dishes-happy-card {
+  overflow-x: auto;
+  border: 1px solid #d8dde5;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.dishes-happy-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.dishes-happy-table th,
+.dishes-happy-table td {
+  padding: 4px 6px;
+  border-right: 1px solid #e4e8ee;
+  border-bottom: 1px solid #e4e8ee;
+  line-height: 1.1;
+  vertical-align: middle;
+}
+
+.dishes-happy-table th:last-child,
+.dishes-happy-table td:last-child {
+  border-right: 0;
+}
+
+.dishes-happy-table thead th {
+  background: #eef2f7;
+  color: #334155;
+  font-weight: 700;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.dishes-happy-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.dishes-happy-table tbody tr.changed-row td {
+  background: #fff7ed;
+}
+
+.dishes-happy-table input[type="time"],
+.dishes-happy-table input[type="number"],
+.dishes-happy-table select {
+  width: 100%;
+  height: 28px;
+  padding: 2px 5px;
+  border: 1px solid #cbd5e1;
+  border-radius: 5px;
+  background: #ffffff;
+  font: inherit;
+}
+
+.dishes-happy-table th:nth-child(1),
+.dishes-happy-table td:nth-child(1),
+.dishes-happy-table th:nth-child(2),
+.dishes-happy-table td:nth-child(2) {
+  width: 105px;
+}
+
+.dishes-happy-table th:nth-child(3),
+.dishes-happy-table td:nth-child(3) {
+  width: 190px;
+}
+
+.dishes-happy-table th:nth-child(4),
+.dishes-happy-table td:nth-child(4),
+.dishes-happy-table th:nth-child(5),
+.dishes-happy-table td:nth-child(5) {
+  width: 110px;
+}
+
+.dishes-happy-table th:nth-child(6),
+.dishes-happy-table td:nth-child(6) {
+  width: 80px;
+  text-align: center;
+}
+
+
+.dishes-happy-table th:nth-child(7),
+.dishes-happy-table td:nth-child(7) {
+  width: 38px;
+  min-width: 38px;
+  max-width: 38px;
+  text-align: center;
+}
+
+.dishes-happy-delete-head,
+.dishes-happy-delete-cell {
+  padding-left: 3px !important;
+  padding-right: 3px !important;
+}
+
+.dishes-happy-delete-button {
+  width: 25px;
+  height: 25px;
+  padding: 0;
+  border: 1px solid #fecaca;
+  border-radius: 5px;
+  background: #fee2e2;
+  color: #991b1b;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.dishes-happy-delete-button:hover:not(:disabled) {
+  background: #fecaca;
+}
+
+.dishes-happy-delete-button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.dishes-happy-table input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+}
+
+.dishes-happy-empty {
+  padding: 12px !important;
+  text-align: center;
+  color: #64748b;
+}
+
+/* =========================================================
+ * Печать карточки блюда
+ * ========================================================= */
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 8mm 12mm;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .dish-card-report-page,
+  .dish-card-report-page * {
+    visibility: visible !important;
+  }
+
+  .dish-card-report-page {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  .dish-card-report-toolbar,
+  .dish-card-report-error,
+  .dish-card-report-loading {
+    display: none !important;
+  }
+
+  .dish-card-report-sheet {
+    width: auto;
+    max-width: none;
+    margin: 0;
+    padding: 0 2mm;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .dish-card-report-sheet h1 {
+    font-size: 15pt;
+  }
+
+  .dish-card-report-period {
+    font-size: 8.5pt;
+  }
+
+  .dish-card-report-day {
+    margin-top: 3mm;
+    break-inside: auto;
+  }
+
+  .dish-card-report-day h2 {
+    padding: 0.7mm 1mm;
+    border-radius: 0;
+    font-size: 9pt;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .dish-card-report-table-wrap {
+    overflow: visible;
+    border-radius: 0;
+  }
+
+  .dish-card-report-table {
+    table-layout: fixed;
+    font-size: 7.8pt;
+  }
+
+  .dish-card-report-table th,
+  .dish-card-report-table td {
+    padding: 0.65mm 1mm;
+    line-height: 1.05;
+    overflow-wrap: anywhere;
+  }
+
+  .dish-card-report-table thead {
+    display: table-header-group;
+  }
+
+  .dish-card-report-table tfoot {
+    display: table-footer-group;
+  }
+
+  .dish-card-report-table tr {
+    break-inside: avoid;
+  }
+
+  .dish-card-report-table th:nth-child(1),
+  .dish-card-report-table td:nth-child(1) { width: 8%; }
+
+  .dish-card-report-table th:nth-child(2),
+  .dish-card-report-table td:nth-child(2) { width: 17%; }
+
+  .dish-card-report-table th:nth-child(3),
+  .dish-card-report-table td:nth-child(3) { width: 29%; }
+
+  .dish-card-report-table th:nth-child(4),
+  .dish-card-report-table td:nth-child(4) { width: 10%; }
+
+  .dish-card-report-table th:nth-child(5),
+  .dish-card-report-table td:nth-child(5) { width: 12%; }
+
+  .dish-card-report-table th:nth-child(6),
+  .dish-card-report-table td:nth-child(6) { width: 10%; }
+
+  .dish-card-report-table th:nth-child(7),
+  .dish-card-report-table td:nth-child(7) { width: 14%; }
+}

@@ -1,0 +1,513 @@
+/*
+ * =========================================================
+ * DishCalc — печать калькуляционных / технологических карточек
+ * Отдельный файл. Не содержит глобального body * visibility:hidden.
+ * =========================================================
+ */
+
+.dish-calc-editor-page .dish-calc-editor-header {
+  min-width: 0;
+}
+
+.dish-calc-editor-page .dish-calc-editor-controls {
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: 132px 142px minmax(170px, 1fr) auto auto;
+}
+
+.dish-calc-editor-page .dish-calc-editor-controls > * {
+  min-width: 0;
+}
+
+.dish-calc-save-status-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  min-width: 0;
+}
+
+.dish-calc-save-status-cell .save-success-message {
+  min-height: 18px;
+  padding: 0 5px;
+  font-size: 11px;
+}
+
+.dish-calc-print-button {
+  min-width: 86px;
+  height: 34px;
+  border: 0;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #6f8fa8 0%, #4d6f89 100%);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 5px 12px rgba(53, 89, 116, 0.18);
+}
+
+.dish-calc-print-button:hover:not(:disabled),
+.dish-calc-print-button.is-active {
+  filter: brightness(1.05);
+  box-shadow: 0 8px 16px rgba(53, 89, 116, 0.23);
+}
+
+.dish-calc-print-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+  box-shadow: none;
+}
+
+.dish-calc-print-menu {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: -2px 4% 10px;
+  padding: 8px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.dish-calc-print-menu button {
+  min-height: 31px;
+  padding: 4px 11px;
+  border: 1px solid #bfd0cc;
+  border-radius: 6px;
+  background: #eef7f4;
+  color: #315f5a;
+  font-size: 12.5px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.dish-calc-print-menu button:hover:not(:disabled) {
+  border-color: #87aaa2;
+  background: #e2f1ed;
+}
+
+.dish-calc-print-menu button:disabled {
+  opacity: 0.42;
+  cursor: default;
+}
+
+.dish-calc-print-menu-status {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.dish-calc-print-menu-error {
+  color: #a12626;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.calc-card-report-page {
+  min-width: 0;
+}
+
+.calc-card-report-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 35;
+  margin-bottom: 10px;
+  background: #f9fafb;
+  box-shadow: 0 4px 10px rgba(30, 42, 60, 0.1);
+}
+
+.calc-card-report-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.calc-card-report-error {
+  margin-bottom: 10px;
+}
+
+.calc-card-report-loading {
+  padding: 24px;
+  color: #64748b;
+  text-align: center;
+}
+
+.calc-card-report-sheet {
+  width: min(100%, 850px);
+  margin: 0 auto 20px;
+  padding: 18px 24px 28px;
+  box-sizing: border-box;
+  border: 1px solid #d7dce3;
+  border-radius: 8px;
+  background: #fff;
+  color: #111;
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+  box-shadow: 0 5px 16px rgba(30, 42, 60, 0.07);
+}
+
+.calc-card-report-sheet h1 {
+  margin: 0 0 14px;
+  font-size: 18px;
+  line-height: 1.15;
+  text-align: center;
+}
+
+.calc-card-report-line {
+  display: inline-block;
+  min-width: 90px;
+  font-weight: 400;
+}
+
+.calc-card-report-dish-line {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr) max-content;
+  gap: 10px;
+  align-items: end;
+  margin-bottom: 5px;
+  font-size: 15px;
+}
+
+.calc-card-report-dish-line strong {
+  min-width: 0;
+}
+
+.calc-card-report-date {
+  text-decoration: underline;
+  white-space: nowrap;
+}
+
+.calc-card-report-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 13.5px;
+}
+
+.calc-card-report-table th,
+.calc-card-report-table td {
+  padding: 1px 5px;
+  border: 0;
+  line-height: 1.16;
+  vertical-align: top;
+}
+
+.calc-card-report-table th {
+  font-weight: 400;
+  text-align: left;
+}
+
+.calc-card-report-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.calc-card-report-table thead .num {
+  text-align: center;
+  white-space: normal;
+}
+
+.calc-card-col-no {
+  width: 46px;
+  text-align: center !important;
+}
+
+/* Наименования сырья/продуктов всегда читаем слева. */
+.calc-card-report-table th:nth-child(2),
+.calc-card-report-table td:nth-child(2) {
+  text-align: left !important;
+}
+
+/* Номер строки — по центру, независимо от общего класса num. */
+.calc-card-report-table tbody td:first-child {
+  text-align: center !important;
+}
+
+.calc-card-report-table-cost th:nth-child(2),
+.calc-card-report-table-cost td:nth-child(2) {
+  width: 46%;
+}
+
+.calc-card-report-table-expanded th:nth-child(2),
+.calc-card-report-table-expanded td:nth-child(2) {
+  width: 51%;
+}
+
+.calc-card-report-table-tech th:nth-child(2),
+.calc-card-report-table-tech td:nth-child(2) {
+  width: 68%;
+}
+
+.calc-card-report-table-tech th:nth-child(3),
+.calc-card-report-table-tech th:nth-child(4),
+.calc-card-report-table-tech td:nth-child(3),
+.calc-card-report-table-tech td:nth-child(4) {
+  width: 13%;
+}
+
+.calc-card-approval-head th:last-child,
+.calc-card-approval-line th {
+  text-align: center;
+}
+
+.calc-card-approval-line th {
+  padding-top: 0;
+  padding-bottom: 2px;
+}
+
+.calc-card-report-summary {
+  margin-top: 5px;
+}
+
+.calc-card-report-summary > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 125px;
+  gap: 12px;
+  padding: 1px 5px;
+  font-size: 14px;
+}
+
+.calc-card-report-summary strong {
+  text-align: right;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+.calc-card-technology-text {
+  margin: 34px 0 30px 88px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: pre-wrap;
+}
+
+.calc-card-report-signature {
+  display: flex;
+  align-items: end;
+  gap: 16px;
+  margin-top: 20px;
+  font-size: 14px;
+}
+
+.calc-card-report-signature-tech {
+  margin-top: 34px;
+}
+
+.calc-card-report-approval {
+  display: grid;
+  grid-template-columns: max-content max-content 190px;
+  gap: 34px;
+  align-items: end;
+  margin-top: 42px;
+  font-size: 14px;
+}
+
+.calc-card-sign-line {
+  white-space: nowrap;
+}
+
+@media (max-width: 1350px) {
+  .dish-calc-editor-page .dish-calc-editor-controls {
+    grid-template-columns: 132px 142px minmax(170px, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .dish-calc-editor-page .dish-calc-editor-controls {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .calc-card-report-dish-line {
+    grid-template-columns: 1fr;
+    gap: 3px;
+  }
+
+  .calc-card-report-date {
+    justify-self: start;
+  }
+}
+
+@media (max-width: 620px) {
+  .dish-calc-editor-page .dish-calc-editor-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .dish-calc-print-menu {
+    margin-left: 10px;
+    margin-right: 10px;
+  }
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm 12mm;
+  }
+
+  /*
+   * Scoped print-reset: действует только когда открыт этот отчёт.
+   * Это важно для SPA — никакого глобального body * visibility:hidden.
+   */
+  body:has(.calc-card-report-page),
+  body:has(.calc-card-report-page) #root,
+  body:has(.calc-card-report-page) .app-shell,
+  body:has(.calc-card-report-page) .app-body,
+  body:has(.calc-card-report-page) .work-area {
+    width: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    visibility: visible !important;
+  }
+
+  body:has(.calc-card-report-page) {
+    margin: 0 !important;
+    background: #fff !important;
+  }
+
+  body:has(.calc-card-report-page) #root,
+  body:has(.calc-card-report-page) .app-shell,
+  body:has(.calc-card-report-page) .app-body,
+  body:has(.calc-card-report-page) .work-area {
+    display: block !important;
+  }
+
+  body:has(.calc-card-report-page) .top-bar,
+  body:has(.calc-card-report-page) .side-menu,
+  body:has(.calc-card-report-page) .module-toolbar,
+  body:has(.calc-card-report-page) .work-area-title,
+  body:has(.calc-card-report-page) .no-print {
+    display: none !important;
+  }
+
+  body:has(.calc-card-report-page) .work-area {
+    padding: 0 !important;
+  }
+
+  .calc-card-report-page,
+  .calc-card-report-page * {
+    visibility: visible !important;
+  }
+
+  .calc-card-report-page {
+    display: block !important;
+    position: static !important;
+    width: auto !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  .calc-card-report-sheet {
+    width: auto !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    font-size: 10.5pt;
+  }
+
+  .calc-card-report-sheet h1 {
+    margin-bottom: 4mm;
+    font-size: 13pt;
+  }
+
+  .calc-card-report-dish-line {
+    margin-bottom: 1mm;
+    font-size: 10.5pt;
+  }
+
+  .calc-card-report-table {
+    font-size: 10pt;
+  }
+
+  .calc-card-report-table th,
+  .calc-card-report-table td {
+    padding: 0.35mm 1mm;
+    line-height: 1.1;
+  }
+
+  .calc-card-report-table tr {
+    break-inside: avoid;
+  }
+
+  .calc-card-report-summary {
+    margin-top: 1mm;
+  }
+
+  .calc-card-report-summary > div {
+    grid-template-columns: minmax(0, 1fr) 28mm;
+    padding: 0.3mm 1mm;
+    font-size: 10.5pt;
+  }
+
+  .calc-card-report-summary strong {
+    font-size: 10.5pt;
+  }
+
+  .calc-card-technology-text {
+    margin: 10mm 0 10mm 18mm;
+    font-size: 10.5pt;
+  }
+
+  .calc-card-report-signature {
+    margin-top: 6mm;
+    font-size: 10.5pt;
+  }
+
+  .calc-card-report-signature-tech {
+    margin-top: 10mm;
+  }
+
+  .calc-card-report-approval {
+    grid-template-columns: max-content max-content 45mm;
+    gap: 10mm;
+    margin-top: 14mm;
+    font-size: 10.5pt;
+  }
+}
+
+
+/* =========================================================
+   2026-08-14 — редактор калькуляции при 125%.
+   Этот файл загружается после общего styles.css, поэтому здесь
+   намеренно повторяем финальное правило: flex-wrap по ширине
+   контейнера, а не media-query по ширине viewport.
+   ========================================================= */
+.dish-calc-editor-page .dish-calc-editor-header {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.dish-calc-editor-page .dish-calc-editor-controls {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.dish-calc-editor-page .dish-calc-editor-controls > * {
+  min-width: 0;
+}
+
+.dish-calc-editor-page .dish-calc-editor-controls .calc-field {
+  flex: 1 1 220px;
+  max-width: 330px;
+}
+
+.dish-calc-editor-page .dish-calc-editor-controls .calc-info {
+  flex: 1 1 190px;
+  max-width: 310px;
+}
+
+.dish-calc-editor-page .dish-calc-save-status-cell,
+.dish-calc-editor-page .dish-calc-print-button {
+  flex: 0 0 auto;
+}

@@ -1,0 +1,406 @@
+/*
+ * =========================================================
+ * Dishes — Печать меню / отчеты списка блюд
+ * Отдельный файл: не смешиваем с общим styles.css.
+ * =========================================================
+ */
+
+.dishes-print-menu-button.is-active {
+  border-color: #64748b;
+  background: #eef2f7;
+}
+
+.dishes-print-menu-panel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: -2px 0 10px;
+  padding: 9px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #f8fafc;
+}
+
+.dishes-print-menu-option {
+  min-height: 30px;
+  padding: 4px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 5px;
+  background: #f2f8f6;
+  color: #315f5a;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dishes-print-menu-option:hover {
+  border-color: #8fb2aa;
+  background: #e7f2ef;
+}
+
+.dishes-menu-report-page {
+  width: 100%;
+  min-width: 0;
+}
+
+/*
+ * Same proven pattern as cards-sirya-report.css:
+ * the page itself does not own scrolling; .work-area remains the scroll container.
+ */
+.dishes-menu-report-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #f9fafb;
+  box-shadow: 0 4px 10px rgba(30, 42, 60, 0.10);
+}
+
+.dishes-menu-report-scroll {
+  min-width: 0;
+  overflow: visible;
+}
+
+.dishes-menu-report-toolbar strong {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: center;
+  font-size: 15px;
+  color: #1f2937;
+}
+
+
+.dishes-menu-report-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.dishes-menu-report-toolbar button {
+  min-height: 30px;
+  padding: 3px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 5px;
+  background: #ffffff;
+  color: #1f2937;
+  cursor: pointer;
+}
+
+.dishes-menu-report-toolbar button:hover:not(:disabled) {
+  background: #f1f5f9;
+}
+
+.dishes-menu-report-toolbar button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.dishes-menu-report-loading,
+.dishes-menu-report-empty {
+  padding: 20px 12px;
+  color: #64748b;
+  text-align: center;
+}
+
+.dishes-menu-report-error {
+  margin-bottom: 10px;
+}
+
+.dishes-menu-report-sheet {
+  width: min(1100px, 100%);
+  margin: 0 auto;
+  padding: 18px 22px 28px;
+  border: 1px solid #d8dde5;
+  border-radius: 5px;
+  background: #ffffff;
+  color: #111827;
+}
+
+.dishes-menu-report-sheet h1 {
+  margin: 0 0 18px;
+  font-size: 20px;
+  line-height: 1.25;
+  text-align: center;
+}
+
+.dishes-menu-report-group {
+  margin: 0 0 12px;
+  break-inside: avoid-page;
+}
+
+.dishes-menu-report-group h2 {
+  margin: 0 0 4px;
+  padding: 3px 6px;
+  border-bottom: 1px solid #b8c0cc;
+  background: #eef2f6;
+  font-size: 14px;
+  line-height: 1.12;
+}
+
+.dishes-menu-report-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+  font-size: 13px;
+}
+
+.dishes-menu-report-table th,
+.dishes-menu-report-table td {
+  padding: 2px 5px;
+  border: 1px solid #cfd5dd;
+  line-height: 1.10;
+  vertical-align: top;
+  text-align: left;
+}
+
+.dishes-menu-report-table th {
+  background: #f5f7fa;
+  font-weight: 600;
+}
+
+.dishes-menu-report-table th.num,
+.dishes-menu-report-table td.num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+
+/* Short current / average prices: two equal tables per group. */
+.dishes-menu-report-short-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  align-items: start;
+  min-width: 0;
+}
+
+.dishes-menu-report-short-table {
+  min-width: 0;
+  table-layout: fixed;
+}
+
+.dishes-menu-report-short-table th:first-child,
+.dishes-menu-report-short-table td:first-child {
+  width: 58%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.dishes-menu-report-short-table th:nth-child(2),
+.dishes-menu-report-short-table td:nth-child(2),
+.dishes-menu-report-short-table th:nth-child(3),
+.dishes-menu-report-short-table td:nth-child(3),
+.dishes-menu-report-short-table th:nth-child(4),
+.dishes-menu-report-short-table td:nth-child(4) {
+  width: 14%;
+}
+
+/* Expanded average prices: real two-column grid, always two columns on screen. */
+.dishes-menu-report-expanded-groups {
+  min-width: 0;
+}
+
+.dishes-menu-report-expanded-group {
+  min-width: 0;
+}
+
+.dishes-menu-report-expanded-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 14px;
+  align-items: start;
+  min-width: 0;
+}
+
+.dishes-menu-report-expanded-grid > .dishes-menu-report-expanded-dish {
+  min-width: 0;
+}
+
+.dishes-menu-report-expanded-dish {
+  margin: 0;
+  min-width: 0;
+  break-inside: avoid-page;
+}
+
+.dishes-menu-report-dish-head th:first-child,
+.dishes-menu-report-dish-head td:first-child {
+  width: 58%;
+}
+
+.dishes-menu-report-composition {
+  margin-top: -1px;
+  margin-left: 10px;
+  width: calc(100% - 10px);
+  font-size: 11px;
+}
+
+.dishes-menu-report-composition th:first-child,
+.dishes-menu-report-composition td:first-child {
+  width: 70%;
+}
+
+.dishes-menu-report-date-list,
+.dishes-menu-report-pf-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dishes-menu-report-dates-table th:first-child,
+.dishes-menu-report-dates-table td:first-child {
+  width: 50%;
+}
+
+.dishes-menu-report-pf-table th:first-child,
+.dishes-menu-report-pf-table td:first-child {
+  width: 48%;
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+
+  /*
+   * Print-reset для SPA.
+   * Не скрываем весь body через visibility:
+   * скрытые visibility-элементы продолжают участвовать в раскладке
+   * и в Firefox могут давать пустую первую страницу.
+   */
+  html,
+  body,
+  #root,
+  .app-shell,
+  .app-body,
+  .work-area {
+    width: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    visibility: visible !important;
+  }
+
+  body {
+    margin: 0 !important;
+    background: #ffffff !important;
+  }
+
+  #root,
+  .app-shell,
+  .app-body,
+  .work-area {
+    display: block !important;
+  }
+
+  .top-bar,
+  .side-menu,
+  .module-toolbar,
+  .work-area-title,
+  .no-print,
+  .dishes-menu-report-toolbar,
+  .dishes-menu-report-error,
+  .dishes-menu-report-loading {
+    display: none !important;
+  }
+
+  .work-area {
+    padding: 0 !important;
+  }
+
+  .dishes-menu-report-page,
+  .dishes-menu-report-page * {
+    visibility: visible !important;
+  }
+
+  .dishes-menu-report-page {
+    display: block !important;
+    position: static !important;
+    width: auto !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  .dishes-menu-report-scroll {
+    overflow: visible !important;
+  }
+
+  /* Развернутый отчет: группа может быть выше одной страницы.
+     Нельзя запрещать разрыв всей группы — Firefox переносит ее целиком
+     и оставляет первую страницу пустой. */
+  .dishes-menu-report-expanded-group {
+    break-inside: auto !important;
+    page-break-inside: auto !important;
+  }
+
+  .dishes-menu-report-expanded-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 3mm !important;
+  }
+
+  /* Само отдельное блюдо с его составом стараемся не разрывать. */
+  .dishes-menu-report-expanded-dish {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  .dishes-menu-report-short-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 3mm !important;
+  }
+
+  .dishes-menu-report-sheet {
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+
+  .dishes-menu-report-sheet h1 {
+    margin-bottom: 12px;
+    font-size: 16pt;
+  }
+
+  .dishes-menu-report-group {
+    margin-bottom: 14px;
+  }
+
+  .dishes-menu-report-group h2 {
+    background: #eeeeee !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .dishes-menu-report-table {
+    font-size: 9.5pt;
+  }
+
+  .dishes-menu-report-table th,
+  .dishes-menu-report-table td {
+    padding: 3px 5px;
+  }
+
+  .dishes-menu-report-composition {
+    font-size: 9pt;
+  }
+}
+

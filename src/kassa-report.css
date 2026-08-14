@@ -1,0 +1,522 @@
+/*
+ * =========================================================
+ * Kassa — печатные отчёты
+ * Кратко / Кратко по статьям / По дням
+ * =========================================================
+ */
+
+.kassa-report-buttons {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.kassa-report-open-button {
+  white-space: nowrap;
+}
+
+.work-area.kassa-report-active {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.kassa-report-page {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+.kassa-report-toolbar {
+  position: relative;
+  z-index: 30;
+  flex: 0 0 auto;
+  margin-bottom: 10px;
+  background: #f9fafb;
+  box-shadow: 0 4px 10px rgba(30, 42, 60, 0.10);
+}
+
+
+.kassa-report-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.kassa-report-actions .toolbar-button {
+  min-width: 70px;
+}
+
+.kassa-report-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding-bottom: 18px;
+}
+
+.kassa-report-sheet {
+  width: min(100%, 860px);
+  margin: 0 auto;
+  padding: 16px 18px 20px;
+  box-sizing: border-box;
+  border: 1px solid #d8dde5;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 6px 18px rgba(30, 42, 60, 0.07);
+}
+
+.kassa-report-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 16px;
+  align-items: start;
+  margin-bottom: 14px;
+  padding-bottom: 9px;
+  border-bottom: 2px solid #365f5b;
+}
+
+.kassa-report-kicker {
+  margin-bottom: 2px;
+  color: #60736f;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.kassa-report-heading h1 {
+  margin: 0;
+  color: #244a46;
+  font-size: 20px;
+  line-height: 1.1;
+}
+
+.kassa-report-meta {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.kassa-report-meta > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 7px;
+  border-radius: 6px;
+  background: #f2f6f5;
+  font-size: 12px;
+}
+
+.kassa-report-meta span {
+  color: #6a7976;
+}
+
+.kassa-report-meta strong {
+  min-width: 0;
+  color: #2f4945;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.kassa-report-two-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.kassa-report-section,
+.kassa-report-day-section {
+  min-width: 0;
+}
+
+.kassa-report-section h2,
+.kassa-report-day h2,
+.kassa-report-day-section h3 {
+  margin: 0;
+  color: #344f4b;
+}
+
+.kassa-report-section h2 {
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+.kassa-report-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid #cfd8d5;
+  border-radius: 7px;
+}
+
+.kassa-report-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  background: #ffffff;
+  font-size: 11px;
+}
+
+.kassa-report-table th,
+.kassa-report-table td {
+  padding: 4px 6px;
+  border-right: 1px solid #dfe5e3;
+  border-bottom: 1px solid #dfe5e3;
+  line-height: 1.16;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.kassa-report-table th:last-child,
+.kassa-report-table td:last-child {
+  border-right: 0;
+}
+
+.kassa-report-table thead th {
+  background: #e8f0ee;
+  color: #344f4b;
+  font-weight: 800;
+  text-align: left;
+}
+
+.kassa-report-table tbody tr:nth-child(even) td {
+  background: #fafcfb;
+}
+
+.kassa-report-table .num {
+  width: 112px;
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.kassa-report-table tfoot td {
+  border-top: 2px solid #7a918c;
+  border-bottom: 0;
+  background: #e8efed;
+  font-weight: 800;
+}
+
+.kassa-report-empty {
+  padding: 12px !important;
+  color: #657185;
+  text-align: center !important;
+}
+
+.kassa-report-days {
+  display: grid;
+  gap: 14px;
+}
+
+.kassa-report-day {
+  min-width: 0;
+  padding-top: 2px;
+}
+
+.kassa-report-day + .kassa-report-day {
+  padding-top: 12px;
+  border-top: 2px solid #c8d4d1;
+}
+
+.kassa-report-day > h2 {
+  margin-bottom: 7px;
+  font-size: 15px;
+}
+
+
+.kassa-report-day-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.kassa-report-day-section + .kassa-report-day-section {
+  margin-top: 0;
+}
+
+.kassa-report-day-section h3 {
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+
+.kassa-report-day .kassa-report-table th:nth-child(1) {
+  width: 24%;
+}
+
+.kassa-report-day .kassa-report-table th:nth-child(2) {
+  width: 24%;
+}
+
+.kassa-report-day .kassa-report-table th:nth-child(3) {
+  width: auto;
+}
+
+.kassa-report-day .kassa-report-table th:nth-child(4) {
+  width: 112px;
+}
+
+
+.kassa-report-day-summary {
+  display: flex;
+  justify-content: flex-end;
+  gap: 18px;
+  margin-top: 7px;
+  padding-top: 6px;
+  border-top: 1px solid #cfd8d5;
+  color: #344f4b;
+  font-size: 12px;
+}
+
+.kassa-report-day-summary > div {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+}
+
+.kassa-report-day-summary span {
+  color: #6a7976;
+}
+
+.kassa-report-day-summary strong {
+  min-width: 92px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.kassa-report-day-total {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.kassa-report-status,
+.kassa-report-empty-card {
+  width: min(100%, 860px);
+  margin: 0 auto;
+  box-sizing: border-box;
+  padding: 18px;
+  border: 1px solid #d8dde5;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #586577;
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .kassa-report-header,
+  .kassa-report-two-columns,
+  .kassa-report-day-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .kassa-report-sheet {
+    padding: 14px 12px 18px;
+  }
+
+  .kassa-report-day-summary {
+    flex-wrap: wrap;
+  }
+}
+
+@media print {
+  /*
+   * В приложении есть другие отчетные CSS с глобальным
+   * body * { visibility: hidden !important; }.
+   * Явно возвращаем видимость кассовому отчету.
+   */
+  .kassa-report-page,
+  .kassa-report-page * {
+    visibility: visible !important;
+  }
+
+  html,
+  body,
+  #root,
+  .app-shell,
+  .app-body,
+  .work-area,
+  .work-area.kassa-report-active {
+    width: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  body {
+    margin: 0 !important;
+    background: #ffffff !important;
+  }
+
+  .no-print,
+  .top-bar,
+  .side-menu,
+  .module-toolbar,
+  .work-area-title {
+    display: none !important;
+  }
+
+  .app-body,
+  .work-area {
+    display: block !important;
+  }
+
+  .work-area {
+    padding: 0 !important;
+  }
+
+  .kassa-report-page,
+  .kassa-report-scroll,
+  .kassa-report-sheet {
+    width: auto !important;
+    max-width: none !important;
+    height: auto !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .kassa-report-header {
+    grid-template-columns: minmax(0, 1fr) 68mm;
+    gap: 3mm;
+    margin-bottom: 2.5mm;
+    padding-bottom: 1.5mm;
+    border-bottom-width: 1px;
+  }
+
+  .kassa-report-kicker {
+    margin-bottom: 0;
+    font-size: 7.5pt;
+    line-height: 1;
+  }
+
+  .kassa-report-heading h1 {
+    font-size: 13pt;
+    line-height: 1.05;
+  }
+
+  .kassa-report-meta {
+    gap: 0.8mm;
+  }
+
+  .kassa-report-meta > div {
+    gap: 2mm;
+    padding: 0.8mm 1.2mm;
+    border-radius: 0;
+    font-size: 7.8pt;
+  }
+
+  .kassa-report-two-columns {
+    gap: 3mm;
+  }
+
+  .kassa-report-section h2 {
+    margin-bottom: 1mm;
+    font-size: 9.5pt;
+  }
+
+  .kassa-report-table-wrap {
+    overflow: visible;
+    border-radius: 0;
+  }
+
+  .kassa-report-table {
+    font-size: 7.6pt;
+  }
+
+  .kassa-report-table thead {
+    display: table-header-group;
+  }
+
+  .kassa-report-table tfoot {
+    display: table-row-group;
+  }
+
+  .kassa-report-table tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .kassa-report-table th,
+  .kassa-report-table td {
+    padding: 0.8mm 1.1mm;
+    line-height: 1.1;
+  }
+
+  .kassa-report-table .num {
+    width: 25mm;
+  }
+
+  .kassa-report-day .kassa-report-table th:nth-child(4) {
+    width: 17mm;
+  }
+
+  .kassa-report-day .kassa-report-table {
+    font-size: 6.8pt;
+  }
+
+  .kassa-report-day .kassa-report-table th,
+  .kassa-report-day .kassa-report-table td {
+    padding: 0.7mm 0.8mm;
+  }
+
+  .kassa-report-days {
+    gap: 3mm;
+  }
+
+  .kassa-report-day {
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  .kassa-report-day + .kassa-report-day {
+    padding-top: 2.5mm;
+  }
+
+  .kassa-report-day > h2 {
+    margin-bottom: 1mm;
+    font-size: 9.8pt;
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  .kassa-report-day-columns {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 2.5mm;
+  }
+
+  .kassa-report-day-section + .kassa-report-day-section {
+    margin-top: 0;
+  }
+
+  .kassa-report-day-section h3 {
+    margin-bottom: 0.8mm;
+    font-size: 8.4pt;
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  .kassa-report-day-summary {
+    gap: 4mm;
+    margin-top: 1.2mm;
+    padding-top: 1mm;
+    font-size: 7.8pt;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .kassa-report-day-summary strong {
+    min-width: 18mm;
+  }
+
+  .kassa-report-day-total {
+    font-size: 8.4pt;
+  }
+}

@@ -1,0 +1,299 @@
+/*
+ * =========================================================
+ * Pereuchet — Краткий / развернутый отчет
+ * Отдельный файл: не смешиваем с общим styles.css.
+ * =========================================================
+ */
+
+.pereuchet-report-page {
+  width: 100%;
+  min-width: 0;
+}
+
+.pereuchet-report-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  margin-bottom: 10px;
+  box-shadow: 0 4px 10px rgba(30, 42, 60, 0.10);
+}
+
+.pereuchet-report-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pereuchet-report-actions .toolbar-button {
+  min-width: 70px;
+}
+
+.pereuchet-report-sheet {
+  width: min(1500px, 100%);
+  margin: 0 auto 20px;
+  padding: 16px 18px 22px;
+  border: 1px solid #d8dde5;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #111827;
+}
+
+.pereuchet-report-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 14px;
+}
+
+.pereuchet-report-kicker {
+  margin-bottom: 3px;
+  color: #52736e;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pereuchet-report-header h1 {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.pereuchet-report-period {
+  margin-top: 5px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.pereuchet-report-meta {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 6px 18px;
+  flex: 0 0 auto;
+  min-width: 260px;
+}
+
+.pereuchet-report-meta > div {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 7px;
+}
+
+.pereuchet-report-meta span {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.pereuchet-report-meta strong {
+  font-size: 12px;
+  text-align: right;
+}
+
+.pereuchet-report-empty {
+  padding: 22px 12px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 6px;
+  color: #64748b;
+  text-align: center;
+  background: #fafbfc;
+}
+
+.pereuchet-report-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid #d8dde5;
+  border-radius: 5px;
+}
+
+.pereuchet-report-table {
+  width: 100%;
+  min-width: 1380px;
+  border-collapse: collapse;
+  table-layout: fixed;
+  background: #ffffff;
+  font-size: 10.5px;
+}
+
+.pereuchet-report-table th,
+.pereuchet-report-table td {
+  padding: 3px 4px;
+  border-right: 1px solid #dfe4ea;
+  border-bottom: 1px solid #dfe4ea;
+  line-height: 1.08;
+  vertical-align: top;
+}
+
+.pereuchet-report-table th:last-child,
+.pereuchet-report-table td:last-child {
+  border-right: 0;
+}
+
+.pereuchet-report-table thead th {
+  background: #f1f4f6;
+  color: #334155;
+  font-weight: 700;
+  text-align: left;
+  white-space: normal;
+}
+
+.pereuchet-report-table .num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.pereuchet-report-table .difference {
+  font-weight: 700;
+}
+
+.pereuchet-report-category-row td {
+  padding: 4px 6px;
+  background: #eaf2f0;
+  color: #315f5a;
+  font-weight: 700;
+}
+
+.pereuchet-report-difference-row td {
+  background: #fff9ed;
+}
+
+.pereuchet-report-category-total td {
+  background: #f5f7f8;
+  font-weight: 700;
+  border-top: 1px solid #aeb8c2;
+}
+
+.pereuchet-report-table tfoot td {
+  background: #e9eef2;
+  font-weight: 700;
+  border-top: 2px solid #8795a3;
+  border-bottom: 0;
+}
+
+.pereuchet-report-col-name {
+  width: 210px;
+}
+
+.pereuchet-report-col-unit {
+  width: 42px;
+}
+
+.pereuchet-report-col-price {
+  width: 66px;
+}
+
+.pereuchet-report-col-number {
+  width: 76px;
+}
+
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 7mm;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .pereuchet-report-page,
+  .pereuchet-report-page * {
+    visibility: visible !important;
+  }
+
+  .pereuchet-report-page {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  .pereuchet-report-toolbar,
+  .pereuchet-report-empty {
+    display: none !important;
+  }
+
+  .pereuchet-report-sheet {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .pereuchet-report-header {
+    margin-bottom: 3mm;
+  }
+
+  .pereuchet-report-header h1 {
+    font-size: 14pt;
+  }
+
+  .pereuchet-report-kicker,
+  .pereuchet-report-period,
+  .pereuchet-report-meta span,
+  .pereuchet-report-meta strong {
+    font-size: 8pt;
+  }
+
+  .pereuchet-report-table-wrap {
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .pereuchet-report-table {
+    min-width: 0;
+    table-layout: fixed;
+    font-size: 6.5pt;
+  }
+
+  .pereuchet-report-table th,
+  .pereuchet-report-table td {
+    padding: 0.55mm 0.7mm;
+    line-height: 1.02;
+    overflow-wrap: anywhere;
+  }
+
+  .pereuchet-report-table thead {
+    display: table-header-group;
+  }
+
+  .pereuchet-report-table tfoot {
+    display: table-footer-group;
+  }
+
+  .pereuchet-report-category-row,
+  .pereuchet-report-category-total,
+  .pereuchet-report-table tr {
+    break-inside: avoid;
+  }
+
+  .pereuchet-report-category-row td,
+  .pereuchet-report-category-total td,
+  .pereuchet-report-table tfoot td,
+  .pereuchet-report-table thead th,
+  .pereuchet-report-difference-row td {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .pereuchet-report-col-name {
+    width: 15%;
+  }
+
+  .pereuchet-report-col-unit {
+    width: 4%;
+  }
+
+  .pereuchet-report-col-price {
+    width: 6%;
+  }
+
+  .pereuchet-report-col-number {
+    width: 6.8%;
+  }
+}

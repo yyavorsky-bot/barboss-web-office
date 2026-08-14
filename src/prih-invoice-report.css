@@ -1,0 +1,341 @@
+/*
+ * =========================================================
+ * PrihInvoice — печатная форма приходной накладной
+ * Отдельный стиль по образцу отчётов CardsSirya
+ * =========================================================
+ */
+
+.prih-invoice-print-button {
+  height: 36px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #6f8fa8 0%, #4d6f89 100%);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 15px rgba(53, 89, 116, 0.17);
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease,
+    filter 120ms ease;
+}
+
+.prih-invoice-print-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.04);
+  box-shadow: 0 9px 19px rgba(53, 89, 116, 0.22);
+}
+
+.prih-invoice-print-button:disabled {
+  opacity: 0.58;
+  cursor: default;
+  box-shadow: none;
+}
+
+.prih-invoice-print-page {
+  min-width: 0;
+}
+
+.prih-invoice-print-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  margin-bottom: 10px;
+  background: #f9fafb;
+  box-shadow: 0 4px 10px rgba(30, 42, 60, 0.10);
+}
+
+.prih-invoice-print-sheet {
+  width: min(100%, 860px);
+  margin: 0 auto 18px;
+  padding: 16px 18px 20px;
+  box-sizing: border-box;
+  border: 1px solid #d8dde5;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 6px 18px rgba(30, 42, 60, 0.07);
+}
+
+.prih-invoice-print-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 240px;
+  gap: 14px;
+  align-items: start;
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #365f5b;
+}
+
+.prih-invoice-print-kicker {
+  margin-bottom: 2px;
+  color: #60736f;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.prih-invoice-print-header h1 {
+  margin: 0;
+  color: #244a46;
+  font-size: 20px;
+  line-height: 1.08;
+}
+
+.prih-invoice-print-date {
+  margin-top: 3px;
+  color: #566174;
+  font-size: 12px;
+}
+
+.prih-invoice-print-meta {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.prih-invoice-print-meta > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  background: #f2f6f5;
+  font-size: 12px;
+}
+
+.prih-invoice-print-meta span {
+  color: #6a7976;
+}
+
+.prih-invoice-print-meta strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: #2f4945;
+  text-align: right;
+}
+
+.prih-invoice-print-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid #cfd8d5;
+  border-radius: 7px;
+}
+
+.prih-invoice-print-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  background: #ffffff;
+  font-size: 11px;
+}
+
+.prih-invoice-print-table th,
+.prih-invoice-print-table td {
+  padding: 3px 5px;
+  border-right: 1px solid #dfe5e3;
+  border-bottom: 1px solid #dfe5e3;
+  line-height: 1.12;
+  vertical-align: top;
+}
+
+.prih-invoice-print-table th:last-child,
+.prih-invoice-print-table td:last-child {
+  border-right: 0;
+}
+
+.prih-invoice-print-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #e8f0ee;
+  color: #344f4b;
+  font-weight: 800;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.prih-invoice-print-table tbody tr:nth-child(even) td {
+  background: #fafcfb;
+}
+
+.prih-invoice-print-table .num {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.prih-invoice-print-table .center {
+  text-align: center;
+}
+
+.prih-invoice-print-table tfoot td {
+  border-top: 2px solid #7a918c;
+  border-bottom: 0;
+  background: #e8efed;
+  font-weight: 800;
+}
+
+.prih-invoice-print-empty {
+  padding: 12px !important;
+  color: #657185;
+  text-align: center !important;
+}
+
+.prih-invoice-print-col-index { width: 42px; }
+.prih-invoice-print-col-name { width: auto; }
+.prih-invoice-print-col-unit { width: 72px; }
+.prih-invoice-print-col-quantity { width: 100px; }
+.prih-invoice-print-col-price { width: 105px; }
+.prih-invoice-print-col-amount { width: 115px; }
+
+@media (max-width: 760px) {
+  .prih-invoice-print-header {
+    grid-template-columns: 1fr;
+  }
+
+  .prih-invoice-print-sheet {
+    padding: 14px 12px 18px;
+  }
+}
+
+@media print {
+  /* Защита от глобальных print-стилей других модулей SPA,
+     которые могут скрывать body * через visibility:hidden. */
+  .prih-invoice-print-page,
+  .prih-invoice-print-page * {
+    visibility: visible !important;
+  }
+
+  html,
+  body,
+  #root,
+  .app-shell,
+  .app-body,
+  .work-area {
+    width: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  body {
+    margin: 0 !important;
+    background: #ffffff !important;
+  }
+
+  .no-print,
+  .top-bar,
+  .side-menu,
+  .module-toolbar,
+  .work-area-title {
+    display: none !important;
+  }
+
+  .app-body,
+  .work-area {
+    display: block !important;
+  }
+
+  .work-area {
+    padding: 0 !important;
+  }
+
+  .prih-invoice-print-page,
+  .prih-invoice-print-sheet {
+    width: auto !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .prih-invoice-print-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 58mm;
+    gap: 3mm;
+    margin-bottom: 2mm;
+    padding-bottom: 1.2mm;
+    border-bottom-width: 1px;
+  }
+
+  .prih-invoice-print-kicker {
+    margin-bottom: 0;
+    font-size: 7.5pt;
+    line-height: 1;
+  }
+
+  .prih-invoice-print-header h1 {
+    font-size: 12pt;
+    line-height: 1;
+  }
+
+  .prih-invoice-print-date {
+    margin-top: 0.5mm;
+    font-size: 8.2pt;
+    line-height: 1;
+  }
+
+  .prih-invoice-print-meta {
+    gap: 1mm;
+  }
+
+  .prih-invoice-print-meta > div {
+    min-width: 0;
+    gap: 1mm;
+    padding: 0.7mm 1mm;
+    border-radius: 0;
+    font-size: 8pt;
+    line-height: 1;
+  }
+
+  .prih-invoice-print-meta span,
+  .prih-invoice-print-meta strong {
+    white-space: nowrap;
+  }
+
+  .prih-invoice-print-table-wrap {
+    overflow: visible;
+    border-radius: 0;
+  }
+
+  .prih-invoice-print-table {
+    table-layout: fixed;
+    font-size: 7.6pt;
+  }
+
+  .prih-invoice-print-table th,
+  .prih-invoice-print-table td {
+    padding: 0.7mm 1mm;
+    line-height: 1.05;
+    overflow-wrap: anywhere;
+  }
+
+  .prih-invoice-print-table thead th {
+    position: static;
+    white-space: normal;
+  }
+
+  .prih-invoice-print-table thead {
+    display: table-header-group;
+  }
+
+  .prih-invoice-print-table tfoot {
+    display: table-footer-group;
+  }
+
+  .prih-invoice-print-table tr {
+    break-inside: avoid;
+  }
+
+  .prih-invoice-print-col-index { width: 8mm; }
+  .prih-invoice-print-col-unit { width: 15mm; }
+  .prih-invoice-print-col-quantity { width: 22mm; }
+  .prih-invoice-print-col-price { width: 23mm; }
+  .prih-invoice-print-col-amount { width: 25mm; }
+}

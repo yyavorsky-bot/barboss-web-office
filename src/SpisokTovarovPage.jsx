@@ -10,6 +10,9 @@ export default function SpisokTovarovPage({
   onApply,
   onAddTovar,
   onSaveTovarov,
+  recalcDate,
+  onStartSebest,
+  onCheckSebest,
   readOnly,
   onDirtyChange,
   t = (key, fallback = "") => fallback
@@ -22,6 +25,11 @@ export default function SpisokTovarovPage({
   const [saveLoading, setSaveLoading] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [addLoading, setAddLoading] = useState(false);
+  const [onlySelected, setOnlySelected] = useState(false);
+  const [recalcStarting, setRecalcStarting] = useState(false);
+  const [recalcRunning, setRecalcRunning] = useState(false);
+  const [recalcStatus, setRecalcStatus] = useState("");
+  const [recalcError, setRecalcError] = useState("");
 
   const changedCount = Object.keys(changedRows).length;
   const isDirty = !readOnly && changedCount > 0;
@@ -57,6 +65,97 @@ export default function SpisokTovarovPage({
     setSelectedId(null);
     setSaveError("");
   }, [data]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function detectRunningRecalc() {
+      if (typeof onCheckSebest !== "function") return;
+
+      try {
+        const result = await onCheckSebest();
+        const state = String(result?.result ?? "").trim().toLowerCase();
+
+        if (!cancelled && state === "in process") {
+          setRecalcRunning(true);
+          setRecalcStatus(
+            t("SpisokTovarov.RecalcInProcess", "Пересчёт себестоимости выполняется...")
+          );
+        }
+      } catch {
+        // При открытии формы отсутствие статуса не мешает работе со списком.
+      }
+    }
+
+    detectRunningRecalc();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [onCheckSebest, t]);
+
+  useEffect(() => {
+    if (!recalcRunning || typeof onCheckSebest !== "function") {
+      return undefined;
+    }
+
+    let cancelled = false;
+    let timerId = null;
+
+    async function checkStatus() {
+      try {
+        const result = await onCheckSebest();
+
+        if (cancelled) return;
+
+        const state = String(result?.result ?? "").trim().toLowerCase();
+
+        if (state === "end") {
+          setRecalcRunning(false);
+          setRecalcStatus(
+            t("SpisokTovarov.RecalcFinished", "Пересчёт себестоимости завершён")
+          );
+          setRecalcError("");
+          window.alert(
+            t("SpisokTovarov.RecalcFinishedMessage", "Пересчёт себестоимости завершён.")
+          );
+          return;
+        }
+
+        if (state !== "in process") {
+          throw new Error(
+            t("SpisokTovarov.RecalcUnknownStatus", "Сервер вернул неизвестное состояние пересчёта")
+          );
+        }
+
+        setRecalcStatus(
+          t("SpisokTovarov.RecalcInProcess", "Пересчёт себестоимости выполняется...")
+        );
+        setRecalcError("");
+      } catch (err) {
+        if (cancelled) return;
+
+        setRecalcError(
+          err.message ||
+            t("SpisokTovarov.RecalcCheckError", "Ошибка проверки состояния пересчёта")
+        );
+      }
+
+      if (!cancelled) {
+        timerId = window.setTimeout(checkStatus, 15000);
+      }
+    }
+
+    timerId = window.setTimeout(checkStatus, 15000);
+
+    return () => {
+      cancelled = true;
+
+      if (timerId !== null) {
+        window.clearTimeout(timerId);
+      }
+    };
+  }, [recalcRunning, onCheckSebest, t]);
 
   function confirmDiscardChanges() {
     if (!isDirty) return true;
@@ -163,6 +262,54 @@ export default function SpisokTovarovPage({
       setAddLoading(false);
     }
   }
+
+  async function startRecalc() {
+    if (readOnly || recalcStarting || recalcRunning) return;
+
+    if (isDirty) {
+      setRecalcError(
+        t(
+          "SpisokTovarov.RecalcSaveFirst",
+          "Перед пересчётом сохраните изменения списка сырья"
+        )
+      );
+      return;
+    }
+
+    if (!recalcDate) {
+      setRecalcError(
+        t(
+          "SpisokTovarov.RecalcDateMissing",
+          "В верхнем меню не указана дата «С»"
+        )
+      );
+      return;
+    }
+
+    setRecalcStarting(true);
+    setRecalcError("");
+    setRecalcStatus("");
+
+    try {
+      await onStartSebest?.({
+        date: recalcDate,
+        otobr: onlySelected ? 1 : 0
+      });
+
+      setRecalcRunning(true);
+      setRecalcStatus(
+        t("SpisokTovarov.RecalcInProcess", "Пересчёт себестоимости выполняется...")
+      );
+    } catch (err) {
+      setRecalcError(
+        err.message ||
+          t("SpisokTovarov.RecalcStartError", "Ошибка запуска пересчёта себестоимости")
+      );
+    } finally {
+      setRecalcStarting(false);
+    }
+  }
+
   return (
     <div className="spisok-tovarov-page">
       <div className="module-toolbar spisok-tovarov-toolbar">
@@ -201,6 +348,43 @@ export default function SpisokTovarovPage({
 
         <div className="toolbar-right">
           {!readOnly && (
+            <div className="spisok-tovarov-recalc-controls">
+              <label className="spisok-tovarov-recalc-check">
+                <input
+                  type="checkbox"
+                  checked={onlySelected}
+                  disabled={recalcStarting || recalcRunning}
+                  onChange={(e) => setOnlySelected(e.target.checked)}
+                />
+                <span>
+                  {t("SpisokTovarov.RecalcOnlyFor", "Только для")}
+                  <br />
+                  {t("SpisokTovarov.RecalcSelected", "отобранных")}
+                </span>
+              </label>
+
+              <button
+                type="button"
+                className="toolbar-save-button spisok-tovarov-recalc-button"
+                disabled={recalcStarting || recalcRunning || !recalcDate}
+                onClick={startRecalc}
+                title={
+                  recalcDate
+                    ? t("SpisokTovarov.RecalcDateTitle", "Дата начала пересчёта: {date}")
+                        .replace("{date}", recalcDate)
+                    : t("SpisokTovarov.RecalcDateMissing", "В верхнем меню не указана дата «С»")
+                }
+              >
+                {recalcStarting
+                  ? t("SpisokTovarov.RecalcStarting", "Запуск...")
+                  : recalcRunning
+                    ? t("SpisokTovarov.RecalcRunning", "Пересчёт выполняется")
+                    : t("SpisokTovarov.RecalcFromDate", "Пересчёт с даты")}
+              </button>
+            </div>
+          )}
+
+          {!readOnly && (
             <button
               type="button"
               className="toolbar-save-button spisok-tovarov-add-button"
@@ -231,6 +415,17 @@ export default function SpisokTovarovPage({
           )}
         </div>
       </div>
+
+      {(recalcStatus || recalcError) && (
+        <div
+          className={`spisok-tovarov-recalc-status ${
+            recalcError ? "error" : recalcRunning ? "running" : "done"
+          }`}
+          role={recalcError ? "alert" : "status"}
+        >
+          {recalcError || recalcStatus}
+        </div>
+      )}
 
       {saveError && (
         <div className="login-error">
