@@ -8,9 +8,7 @@ import {
   loadCeh,
   loadFop,
   loadTypDish,
-  loadDishFilterGroups,
-  loadPostav,
-  loadCategor
+  loadDishFilterGroups
 } from "./api";
 import LoginPage from "./LoginPage";
 import {
@@ -26,13 +24,6 @@ import DishesPage from "./DishesPage";
 import PrihListPage from "./PrihListPage";
 import CardsSiryaPage from "./CardsSiryaPage";
 import SpisokTovarovPage from "./SpisokTovarovPage";
-import PersonalPage from "./PersonalPage";
-import DiscountPage from "./DiscountPage";
-import ClientsPage from "./ClientsPage";
-import CategoriesPage from "./CategoriesPage";
-import FopsPage from "./FopsPage";
-import SuppliersPage from "./SuppliersPage";
-import GroupsPage from "./GroupsPage";
 import PeremListPage from "./PeremListPage";
 import SpisanTovListPage from "./SpisanTovListPage";
 import SpisanBludListPage from "./SpisanBludListPage";
@@ -44,6 +35,8 @@ import KassaPage from "./KassaPage";
 import PereuchetPage from "./PereuchetPage";
 import OrdersDayPage from "./OrdersDayPage";
 import SchetViewPage from "./SchetViewPage";
+import DirectoryPage from "./DirectoryPage";
+import SubdivisionsPage from "./SubdivisionsPage";
 import "./styles.css";
 import "./prih-invoice-report.css";
 
@@ -55,19 +48,38 @@ function normalizeMenuActionKey(action) {
     .split("?")[0];
 }
 
-function menuItemContainsAction(item, selectedAction) {
+function normalizeMenuCode(value) {
+  return String(value ?? "").trim();
+}
+
+function menuItemMatchesSelection(item, selectedAction, selectedMenuCode) {
+  const itemCode = normalizeMenuCode(item?.Code ?? item?.code);
+  const targetCode = normalizeMenuCode(selectedMenuCode);
+
+  // Code — основной внутренний идентификатор пункта меню. Это важно для
+  // универсальных обработчиков (wbo_Directory, будущие отчёты), где один
+  // action может использоваться несколькими пунктами.
+  if (targetCode && itemCode) {
+    return itemCode === targetCode;
+  }
+
   const action = item?.action ?? item?.Action ?? "";
+
+  return Boolean(action) &&
+    normalizeMenuActionKey(action) === normalizeMenuActionKey(selectedAction);
+}
+
+function menuItemContainsSelection(item, selectedAction, selectedMenuCode) {
   const items = item?.items ?? item?.Items ?? [];
 
-  if (
-    action &&
-    normalizeMenuActionKey(action) === normalizeMenuActionKey(selectedAction)
-  ) {
+  if (menuItemMatchesSelection(item, selectedAction, selectedMenuCode)) {
     return true;
   }
 
   return Array.isArray(items)
-    ? items.some((child) => menuItemContainsAction(child, selectedAction))
+    ? items.some((child) =>
+        menuItemContainsSelection(child, selectedAction, selectedMenuCode)
+      )
     : false;
 }
 
@@ -75,26 +87,26 @@ function MenuItem({
   item,
   level = 0,
   onSelect,
-  selectedAction
+  selectedAction,
+  selectedMenuCode
 }) {
   const [isOpen, setIsOpen] = useState(false);
 
   const name = item.name ?? item.Name ?? "";
   const action = item.action ?? item.Action ?? "";
+  const code = item.Code ?? item.code ?? "";
   const items = item.items ?? item.Items ?? [];
 
   const hasItems = Array.isArray(items) && items.length > 0;
   const hasAction = Boolean(action);
 
   const isSelected =
-    hasAction &&
-    normalizeMenuActionKey(action) ===
-      normalizeMenuActionKey(selectedAction);
+    hasAction && menuItemMatchesSelection(item, selectedAction, selectedMenuCode);
 
   const containsSelected =
     hasItems &&
     items.some((child) =>
-      menuItemContainsAction(child, selectedAction)
+      menuItemContainsSelection(child, selectedAction, selectedMenuCode)
     );
 
   useEffect(() => {
@@ -110,7 +122,7 @@ function MenuItem({
     }
 
     if (hasAction) {
-      onSelect({ ...item, name, action });
+      onSelect({ ...item, name, action, Code: code });
     }
   }
 
@@ -135,9 +147,7 @@ function MenuItem({
         title={name}
       >
         <span
-          className={`menu-arrow ${
-            !hasItems ? "empty" : ""
-          }`}
+          className={`menu-arrow ${!hasItems ? "empty" : ""}`}
           aria-hidden="true"
         >
           {hasItems ? (isOpen ? "▾" : "▸") : ""}
@@ -150,11 +160,12 @@ function MenuItem({
         <div className="menu-children">
           {items.map((child, index) => (
             <MenuItem
-              key={`${child.name ?? child.Name}-${index}`}
+              key={`${child.Code ?? child.code ?? child.name ?? child.Name}-${index}`}
               item={child}
               level={level + 1}
               onSelect={onSelect}
               selectedAction={selectedAction}
+              selectedMenuCode={selectedMenuCode}
             />
           ))}
         </div>
@@ -162,7 +173,6 @@ function MenuItem({
     </div>
   );
 }
-
 
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -173,6 +183,1254 @@ function parseBooleanFlag(value) {
 
   const normalized = String(value ?? "").trim().toLowerCase();
   return normalized === "true" || normalized === "1" || normalized === "yes";
+}
+
+const DIRECTORY_MENU_CONFIGS = {
+  "08.01": {
+    apiAction: "Personal",
+    saveAction: "Personal",
+    idField: "ID",
+    canAdd: true,
+    canDelete: false,
+    wide: true,
+    xmlRoot: "Personal",
+    wrapInRef: false,
+    xmlGroups: [
+      {
+        section: "CardsP",
+        fields: [
+          "ID",
+          "Name",
+          "Pass",
+          "Skr",
+          "Admin",
+          "Upr",
+          "Bil",
+          "Nalog",
+          "Dost",
+          "Post",
+          "Kli",
+          "Kur",
+          "Phone",
+          "Bonus",
+          "Bond"
+        ]
+      },
+      {
+        section: "CardsPDop",
+        fields: [
+          "ID",
+          "email",
+          "Rem",
+          "LoginMobile"
+        ]
+      }
+    ],
+    filter: {
+      field: "Skr",
+      defaultValue: "active",
+      labelKey: "Personal.Filter",
+      fallback: "Фильтр",
+      emptyKey: "Personal.EmptyFilter",
+      emptyFallback: "По выбранному фильтру сотрудников нет.",
+      options: [
+        {
+          value: "active",
+          labelKey: "Personal.Active",
+          fallback: "Активные",
+          mode: "boolean-false"
+        },
+        {
+          value: "all",
+          labelKey: "Personal.All",
+          fallback: "Все",
+          mode: "all"
+        },
+        {
+          value: "hidden",
+          labelKey: "Personal.Hidden",
+          fallback: "Скрытые",
+          mode: "boolean-true"
+        }
+      ]
+    },
+    columns: [
+      {
+        field: "Name",
+        labelKey: "Personal.Name",
+        fallback: "Имя",
+        type: "text"
+      },
+      {
+        field: "Pass",
+        labelKey: "Personal.Password",
+        fallback: "Пароль",
+        type: "text"
+      },
+      {
+        field: "Phone",
+        labelKey: "Personal.Phone",
+        fallback: "Телефон",
+        type: "text"
+      },
+      {
+        field: "email",
+        labelKey: "Personal.Email",
+        fallback: "Email",
+        type: "text"
+      },
+      {
+        field: "Rem",
+        labelKey: "Personal.Note",
+        fallback: "Примечание",
+        type: "text"
+      },
+      {
+        field: "LoginMobile",
+        labelKey: "Personal.MobileLogin",
+        fallback: "Mobile login",
+        type: "text"
+      },
+      {
+        field: "Skr",
+        labelKey: "Personal.HiddenAbbr",
+        fallback: "Скр.",
+        type: "boolean",
+        defaultValue: false
+      },
+      {
+        field: "Admin",
+        labelKey: "Personal.Admin",
+        fallback: "Admin",
+        type: "boolean",
+        defaultValue: false
+      },
+      {
+        field: "Upr",
+        labelKey: "Personal.ManagerAbbr",
+        fallback: "Упр.",
+        type: "boolean",
+        defaultValue: false
+      },
+      {
+        field: "Bil",
+        labelKey: "Personal.BillingAbbr",
+        fallback: "Бил.",
+        type: "boolean",
+        defaultValue: false
+      },
+      {
+        field: "Nalog",
+        labelKey: "Personal.Tax",
+        fallback: "Налог",
+        type: "boolean",
+        defaultValue: false
+      },
+      {
+        field: "Dost",
+        labelKey: "Personal.DeliveryAbbr",
+        fallback: "Дост.",
+        type: "boolean",
+        defaultValue: false
+      },
+      {
+        field: "Post",
+        labelKey: "Personal.SupplierAbbr",
+        fallback: "Пост.",
+        type: "boolean",
+        defaultValue: false
+      },
+      {
+        field: "Kli",
+        labelKey: "Personal.ClientAbbr",
+        fallback: "Кли.",
+        type: "boolean",
+        defaultValue: false
+      },
+      {
+        field: "Kur",
+        labelKey: "Personal.CourierAbbr",
+        fallback: "Кур.",
+        type: "boolean",
+        defaultValue: false
+      },
+      {
+        field: "Bonus",
+        labelKey: "Directory.Bonus",
+        fallback: "Бонус",
+        type: "boolean",
+        defaultValue: false
+      },
+      {
+        field: "Bond",
+        labelKey: "Personal.Bond",
+        fallback: "Бонд",
+        type: "boolean",
+        defaultValue: false
+      }
+    ]
+  },
+  "08.02": {
+    apiAction: "Clients",
+    saveAction: "Customer",
+    idField: "ID",
+    canAdd: true,
+    canDelete: false,
+    wide: true,
+    xmlRoot: "Ref",
+    wrapInRef: false,
+    xmlGroups: [
+      {
+        section: "CardsP",
+        fields: [
+          "ID",
+          "Name",
+          "NomCard",
+          "Discount",
+          "Phone",
+          "Dolg",
+          "Nom",
+          "Nakop",
+          "Post",
+          "Slug",
+          "Skr",
+          "isBonus",
+          "Bonus"
+        ]
+      },
+      {
+        section: "CardsPDop",
+        fields: [
+          "ID",
+          "Dolg0",
+          "Birtday",
+          "email",
+          "Rem",
+          "BN"
+        ]
+      }
+    ],
+    filter: {
+      field: "Skr",
+      defaultValue: "active",
+      labelKey: "Clients.Filter",
+      fallback: "Фильтр",
+      emptyKey: "Clients.EmptyFilter",
+      emptyFallback: "По выбранному фильтру клиентов нет.",
+      options: [
+        {
+          value: "active",
+          labelKey: "Clients.Active",
+          fallback: "Активные",
+          mode: "boolean-false"
+        },
+        {
+          value: "all",
+          labelKey: "Clients.All",
+          fallback: "Все",
+          mode: "all"
+        },
+        {
+          value: "hidden",
+          labelKey: "Clients.Hidden",
+          fallback: "Скрытые",
+          mode: "boolean-true"
+        }
+      ]
+    },
+    columns: [
+      {
+        field: "Name",
+        labelKey: "Clients.Name",
+        fallback: "Имя",
+        type: "text"
+      },
+      {
+        field: "NomCard",
+        labelKey: "Clients.CardNumber",
+        fallback: "№ Карты",
+        type: "text"
+      },
+      {
+        field: "Discount",
+        labelKey: "Clients.Discount",
+        fallback: "Скидка",
+        type: "select",
+        optionsAction: "Discount",
+        optionValueField: "ID",
+        optionLabelField: "Name",
+        defaultValue: 0,
+        emptyOptionValue: 0,
+        emptyOptionLabel: "—"
+      },
+      {
+        field: "Phone",
+        labelKey: "Clients.Phone",
+        fallback: "Телефон",
+        type: "text"
+      },
+      {
+        field: "Nom",
+        labelKey: "Clients.CardCode",
+        fallback: "Код карты",
+        type: "text"
+      },
+      {
+        field: "Bonus",
+        labelKey: "Clients.Bonus",
+        fallback: "Бонус",
+        type: "number",
+        step: "any"
+      },
+      {
+        field: "Dolg0",
+        labelKey: "Clients.OpeningDebt",
+        fallback: "Долг нач.",
+        type: "number",
+        step: "0.01"
+      },
+      {
+        field: "Birtday",
+        labelKey: "Clients.Birthday",
+        fallback: "День рождения",
+        type: "date"
+      },
+      {
+        field: "email",
+        labelKey: "Clients.Email",
+        fallback: "Email",
+        type: "text"
+      },
+      {
+        field: "Rem",
+        labelKey: "Clients.Note",
+        fallback: "Примечание",
+        type: "text"
+      },
+      {
+        field: "Dolg",
+        labelKey: "Clients.Debt",
+        fallback: "Долг",
+        type: "boolean",
+        defaultValue: false
+      },
+      {
+        field: "Nakop",
+        labelKey: "Clients.AccumAbbr",
+        fallback: "Накоп.",
+        type: "boolean",
+        defaultValue: false
+      },
+      {
+        field: "Post",
+        labelKey: "Clients.PermanentAbbr",
+        fallback: "Пост.",
+        type: "boolean",
+        defaultValue: false
+      },
+      {
+        field: "Slug",
+        labelKey: "Clients.ServiceAbbr",
+        fallback: "Служ.",
+        type: "boolean",
+        defaultValue: false
+      },
+      {
+        field: "Skr",
+        labelKey: "Clients.HiddenAbbr",
+        fallback: "Скр.",
+        type: "boolean",
+        defaultValue: false
+      },
+      {
+        field: "BN",
+        labelKey: "Clients.CashlessAbbr",
+        fallback: "БН",
+        type: "boolean",
+        defaultValue: false
+      },
+      {
+        field: "isBonus",
+        labelKey: "Clients.IsBonus",
+        fallback: "Бонусная",
+        type: "boolean",
+        defaultValue: false,
+        hidden: true
+      }
+    ]
+  },
+  "08.03": {
+    apiAction: "Postav",
+    saveAction: "Supplier",
+    idField: "ID",
+    canAdd: true,
+    canDelete: false,
+    wide: true,
+    includeCurrentOrg: true,
+    tableClass: "suppliers-table",
+    tableWrapClass: "suppliers-table-wrap",
+    xmlRoot: "Ref",
+    wrapInRef: false,
+    xmlGroups: [
+      {
+        section: "CardsP",
+        fields: [
+          "ID",
+          "Name",
+          "Phone",
+          "Skr",
+          "Slug"
+        ]
+      },
+      {
+        section: "CardsSald",
+        fields: [
+          "ID",
+          "org",
+          "Dolg1",
+          "Dolg2"
+        ]
+      }
+    ],
+    filter: {
+      field: "Skr",
+      defaultValue: "active",
+      labelKey: "Suppliers.Filter",
+      fallback: "Фильтр",
+      emptyKey: "Suppliers.EmptyFilter",
+      emptyFallback: "По выбранному фильтру поставщиков нет.",
+      options: [
+        {
+          value: "active",
+          labelKey: "Suppliers.Active",
+          fallback: "Активные",
+          mode: "boolean-false"
+        },
+        {
+          value: "all",
+          labelKey: "Suppliers.All",
+          fallback: "Все",
+          mode: "all"
+        },
+        {
+          value: "hidden",
+          labelKey: "Suppliers.Hidden",
+          fallback: "Скрытые",
+          mode: "boolean-true"
+        }
+      ]
+    },
+    columns: [
+      {
+        field: "Name",
+        labelKey: "Suppliers.Supplier",
+        fallback: "Поставщик",
+        type: "text"
+      },
+      {
+        field: "Phone",
+        labelKey: "Suppliers.Phone",
+        fallback: "Телефон",
+        type: "text"
+      },
+      {
+        field: "Dolg1",
+        labelKey: "Suppliers.CashDebt",
+        fallback: "Долг нал.",
+        type: "nullable-number",
+        step: "0.01",
+        defaultValue: null,
+        editable: ({ context }) => Number(context?.currentOrg ?? 0) !== 0
+      },
+      {
+        field: "Dolg2",
+        labelKey: "Suppliers.CashlessDebt",
+        fallback: "Долг безнал.",
+        type: "nullable-number",
+        step: "0.01",
+        defaultValue: null,
+        editable: ({ context }) => Number(context?.currentOrg ?? 0) !== 0
+      },
+      {
+        field: "Skr",
+        labelKey: "Suppliers.HiddenAbbr",
+        fallback: "Скр.",
+        type: "boolean",
+        defaultValue: false
+      },
+      {
+        field: "Slug",
+        labelKey: "Suppliers.ServiceAbbr",
+        fallback: "Служ.",
+        type: "boolean",
+        defaultValue: false
+      },
+      {
+        field: "org",
+        type: "number",
+        hidden: true,
+        defaultFromContext: "currentOrg"
+      }
+    ]
+  },
+  "08.04": {
+    apiAction: "Groups",
+    saveAction: "Groups",
+    xmlSection: "Groups",
+    idField: "ID",
+    canAdd: true,
+    canDelete: false,
+    wide: true,
+    tableClass: "groups-table",
+    tableWrapClass: "groups-table-wrap",
+    lookups: [
+      {
+        key: "discounts",
+        apiAction: "Discount"
+      }
+    ],
+    xmlFields: [
+      "ID",
+      "Name",
+      "Ind",
+      "Sk01",
+      "Sk02",
+      "Sk03",
+      "Sk04",
+      "Sk05",
+      "Sk06",
+      "Sk07",
+      "Sk08",
+      "Sk09",
+      "Sk10",
+      "Sk11",
+      "Sk12",
+      "Sk13",
+      "Sk14",
+      "Sk15",
+      "IdGroup"
+    ],
+    columns: [
+      {
+        field: "Name",
+        labelKey: "Groups.Name",
+        fallback: "Название",
+        type: "text"
+      },
+      {
+        field: "Ind",
+        labelKey: "Groups.SortIndex",
+        fallback: "Индекс сортировки",
+        type: "nullable-number",
+        step: "1",
+        defaultValue: null
+      },
+      {
+        field: "IdGroup",
+        labelKey: "Groups.ParentGroup",
+        fallback: "Родительская группа",
+        type: "select",
+        optionsFromRows: true,
+        optionValueField: "ID",
+        optionLabelField: "Name",
+        defaultValue: 0,
+        emptyOptionValue: 0,
+        emptyOptionLabel: "",
+        excludeCurrentId: true
+      },
+      {
+        field: "Sk01",
+        labelKey: "Groups.Sk01",
+        fallback: "Sk01",
+        type: "nullable-number",
+        step: "0.01",
+        defaultValue: null,
+        headerClass: "sk-head",
+        cellClass: "sk-cell",
+        inputClass: "groups-sk-input",
+        headerLookupKey: "discounts",
+        headerLookupValue: 1,
+        headerLookupValueField: "ID",
+        headerLookupLabelField: "Name",
+        headerLookupSecondaryField: "Discount",
+        headerLookupBonusField: "isBon",
+        headerBonusClass: "discount-bonus-head"
+      },
+      {
+        field: "Sk02",
+        labelKey: "Groups.Sk02",
+        fallback: "Sk02",
+        type: "nullable-number",
+        step: "0.01",
+        defaultValue: null,
+        headerClass: "sk-head",
+        cellClass: "sk-cell",
+        inputClass: "groups-sk-input",
+        headerLookupKey: "discounts",
+        headerLookupValue: 2,
+        headerLookupValueField: "ID",
+        headerLookupLabelField: "Name",
+        headerLookupSecondaryField: "Discount",
+        headerLookupBonusField: "isBon",
+        headerBonusClass: "discount-bonus-head"
+      },
+      {
+        field: "Sk03",
+        labelKey: "Groups.Sk03",
+        fallback: "Sk03",
+        type: "nullable-number",
+        step: "0.01",
+        defaultValue: null,
+        headerClass: "sk-head",
+        cellClass: "sk-cell",
+        inputClass: "groups-sk-input",
+        headerLookupKey: "discounts",
+        headerLookupValue: 3,
+        headerLookupValueField: "ID",
+        headerLookupLabelField: "Name",
+        headerLookupSecondaryField: "Discount",
+        headerLookupBonusField: "isBon",
+        headerBonusClass: "discount-bonus-head"
+      },
+      {
+        field: "Sk04",
+        labelKey: "Groups.Sk04",
+        fallback: "Sk04",
+        type: "nullable-number",
+        step: "0.01",
+        defaultValue: null,
+        headerClass: "sk-head",
+        cellClass: "sk-cell",
+        inputClass: "groups-sk-input",
+        headerLookupKey: "discounts",
+        headerLookupValue: 4,
+        headerLookupValueField: "ID",
+        headerLookupLabelField: "Name",
+        headerLookupSecondaryField: "Discount",
+        headerLookupBonusField: "isBon",
+        headerBonusClass: "discount-bonus-head"
+      },
+      {
+        field: "Sk05",
+        labelKey: "Groups.Sk05",
+        fallback: "Sk05",
+        type: "nullable-number",
+        step: "0.01",
+        defaultValue: null,
+        headerClass: "sk-head",
+        cellClass: "sk-cell",
+        inputClass: "groups-sk-input",
+        headerLookupKey: "discounts",
+        headerLookupValue: 5,
+        headerLookupValueField: "ID",
+        headerLookupLabelField: "Name",
+        headerLookupSecondaryField: "Discount",
+        headerLookupBonusField: "isBon",
+        headerBonusClass: "discount-bonus-head"
+      },
+      {
+        field: "Sk06",
+        labelKey: "Groups.Sk06",
+        fallback: "Sk06",
+        type: "nullable-number",
+        step: "0.01",
+        defaultValue: null,
+        headerClass: "sk-head",
+        cellClass: "sk-cell",
+        inputClass: "groups-sk-input",
+        headerLookupKey: "discounts",
+        headerLookupValue: 6,
+        headerLookupValueField: "ID",
+        headerLookupLabelField: "Name",
+        headerLookupSecondaryField: "Discount",
+        headerLookupBonusField: "isBon",
+        headerBonusClass: "discount-bonus-head"
+      },
+      {
+        field: "Sk07",
+        labelKey: "Groups.Sk07",
+        fallback: "Sk07",
+        type: "nullable-number",
+        step: "0.01",
+        defaultValue: null,
+        headerClass: "sk-head",
+        cellClass: "sk-cell",
+        inputClass: "groups-sk-input",
+        headerLookupKey: "discounts",
+        headerLookupValue: 7,
+        headerLookupValueField: "ID",
+        headerLookupLabelField: "Name",
+        headerLookupSecondaryField: "Discount",
+        headerLookupBonusField: "isBon",
+        headerBonusClass: "discount-bonus-head"
+      },
+      {
+        field: "Sk08",
+        labelKey: "Groups.Sk08",
+        fallback: "Sk08",
+        type: "nullable-number",
+        step: "0.01",
+        defaultValue: null,
+        headerClass: "sk-head",
+        cellClass: "sk-cell",
+        inputClass: "groups-sk-input",
+        headerLookupKey: "discounts",
+        headerLookupValue: 8,
+        headerLookupValueField: "ID",
+        headerLookupLabelField: "Name",
+        headerLookupSecondaryField: "Discount",
+        headerLookupBonusField: "isBon",
+        headerBonusClass: "discount-bonus-head"
+      },
+      {
+        field: "Sk09",
+        labelKey: "Groups.Sk09",
+        fallback: "Sk09",
+        type: "nullable-number",
+        step: "0.01",
+        defaultValue: null,
+        headerClass: "sk-head",
+        cellClass: "sk-cell",
+        inputClass: "groups-sk-input",
+        headerLookupKey: "discounts",
+        headerLookupValue: 9,
+        headerLookupValueField: "ID",
+        headerLookupLabelField: "Name",
+        headerLookupSecondaryField: "Discount",
+        headerLookupBonusField: "isBon",
+        headerBonusClass: "discount-bonus-head"
+      },
+      {
+        field: "Sk10",
+        labelKey: "Groups.Sk10",
+        fallback: "Sk10",
+        type: "nullable-number",
+        step: "0.01",
+        defaultValue: null,
+        headerClass: "sk-head",
+        cellClass: "sk-cell",
+        inputClass: "groups-sk-input",
+        headerLookupKey: "discounts",
+        headerLookupValue: 10,
+        headerLookupValueField: "ID",
+        headerLookupLabelField: "Name",
+        headerLookupSecondaryField: "Discount",
+        headerLookupBonusField: "isBon",
+        headerBonusClass: "discount-bonus-head"
+      },
+      {
+        field: "Sk11",
+        labelKey: "Groups.Sk11",
+        fallback: "Sk11",
+        type: "nullable-number",
+        step: "0.01",
+        defaultValue: null,
+        headerClass: "sk-head",
+        cellClass: "sk-cell",
+        inputClass: "groups-sk-input",
+        headerLookupKey: "discounts",
+        headerLookupValue: 11,
+        headerLookupValueField: "ID",
+        headerLookupLabelField: "Name",
+        headerLookupSecondaryField: "Discount",
+        headerLookupBonusField: "isBon",
+        headerBonusClass: "discount-bonus-head"
+      },
+      {
+        field: "Sk12",
+        labelKey: "Groups.Sk12",
+        fallback: "Sk12",
+        type: "nullable-number",
+        step: "0.01",
+        defaultValue: null,
+        headerClass: "sk-head",
+        cellClass: "sk-cell",
+        inputClass: "groups-sk-input",
+        headerLookupKey: "discounts",
+        headerLookupValue: 12,
+        headerLookupValueField: "ID",
+        headerLookupLabelField: "Name",
+        headerLookupSecondaryField: "Discount",
+        headerLookupBonusField: "isBon",
+        headerBonusClass: "discount-bonus-head"
+      },
+      {
+        field: "Sk13",
+        labelKey: "Groups.Sk13",
+        fallback: "Sk13",
+        type: "nullable-number",
+        step: "0.01",
+        defaultValue: null,
+        headerClass: "sk-head",
+        cellClass: "sk-cell",
+        inputClass: "groups-sk-input",
+        headerLookupKey: "discounts",
+        headerLookupValue: 13,
+        headerLookupValueField: "ID",
+        headerLookupLabelField: "Name",
+        headerLookupSecondaryField: "Discount",
+        headerLookupBonusField: "isBon",
+        headerBonusClass: "discount-bonus-head"
+      },
+      {
+        field: "Sk14",
+        labelKey: "Groups.Sk14",
+        fallback: "Sk14",
+        type: "nullable-number",
+        step: "0.01",
+        defaultValue: null,
+        headerClass: "sk-head",
+        cellClass: "sk-cell",
+        inputClass: "groups-sk-input",
+        headerLookupKey: "discounts",
+        headerLookupValue: 14,
+        headerLookupValueField: "ID",
+        headerLookupLabelField: "Name",
+        headerLookupSecondaryField: "Discount",
+        headerLookupBonusField: "isBon",
+        headerBonusClass: "discount-bonus-head"
+      },
+      {
+        field: "Sk15",
+        labelKey: "Groups.Sk15",
+        fallback: "Sk15",
+        type: "nullable-number",
+        step: "0.01",
+        defaultValue: null,
+        headerClass: "sk-head",
+        cellClass: "sk-cell",
+        inputClass: "groups-sk-input",
+        headerLookupKey: "discounts",
+        headerLookupValue: 15,
+        headerLookupValueField: "ID",
+        headerLookupLabelField: "Name",
+        headerLookupSecondaryField: "Discount",
+        headerLookupBonusField: "isBon",
+        headerBonusClass: "discount-bonus-head"
+      }
+    ]
+  },
+  "08.05": {
+    apiAction: "Categor",
+    xmlSection: "Categor",
+    deletedSection: "Deleted",
+    idField: "ID",
+    canAdd: true,
+    canDelete: true,
+    columns: [
+      {
+        field: "Name",
+        labelKey: "Directory.Name",
+        fallback: "Наименование",
+        type: "text"
+      }
+    ]
+  },
+  "08.11": {
+    apiAction: "Discount",
+    xmlSection: "Discount",
+    deletedSection: "Deleted",
+    idField: "ID",
+    canAdd: false,
+    canDelete: false,
+    columns: [
+      {
+        field: "Name",
+        labelKey: "Directory.Name",
+        fallback: "Название",
+        type: "text"
+      },
+      {
+        field: "Discount",
+        labelKey: "Directory.DiscountPercent",
+        fallback: "Скидка, %",
+        type: "number",
+        step: "any"
+      },
+      {
+        field: "isBon",
+        labelKey: "Directory.Bonus",
+        fallback: "Бонусная",
+        type: "boolean",
+        defaultValue: false
+      }
+    ]
+  },
+  "08.12": {
+    apiAction: "Fop",
+    saveAction: "Tax",
+    xmlSection: "Tax",
+    deletedSection: "Deleted",
+    idField: "ID",
+    canAdd: true,
+    canDelete: true,
+    columns: [
+      {
+        field: "Name",
+        labelKey: "Directory.Name",
+        fallback: "Наименование",
+        type: "text"
+      },
+      {
+        field: "TaxGroup",
+        labelKey: "Directory.TaxGroup",
+        fallback: "Налоговая группа",
+        type: "select",
+        options: [
+          { ID: 1, Name: "А" },
+          { ID: 2, Name: "Б" },
+          { ID: 3, Name: "В" },
+          { ID: 4, Name: "Г" },
+          { ID: 5, Name: "Д" },
+          { ID: 6, Name: "Е" },
+          { ID: 7, Name: "Ж" },
+          { ID: 8, Name: "З" }
+        ],
+        optionValueField: "ID",
+        optionLabelField: "Name",
+        defaultValue: 0,
+        emptyOptionValue: 0,
+        emptyOptionLabel: "нет"
+      },
+      {
+        field: "IfNoSelect",
+        labelKey: "Directory.Default",
+        fallback: "По умолчанию",
+        type: "boolean",
+        defaultValue: false
+      }
+    ]
+  },
+  "08.07": {
+    apiAction: "ZatrSpis",
+    xmlSection: "ZatrSpis",
+    deletedSection: "Deleted",
+    idField: "ID",
+    canAdd: true,
+    canDelete: true,
+    columns: [
+      {
+        field: "NameZatr",
+        labelKey: "Directory.Name",
+        fallback: "Наименование",
+        type: "text"
+      },
+      {
+        field: "Bel",
+        labelKey: "Directory.Bel",
+        fallback: "Bel",
+        type: "boolean"
+      }
+    ]
+  },
+  "08.08": {
+    apiAction: "ZatrKass",
+    xmlSection: "ZatrKass",
+    deletedSection: "Deleted",
+    idField: "ID",
+    canAdd: true,
+    canDelete: true,
+    columns: [
+      {
+        field: "NameZatr",
+        labelKey: "Directory.Name",
+        fallback: "Наименование",
+        type: "text"
+      },
+      {
+        field: "IdRazdel",
+        labelKey: "Directory.Section",
+        fallback: "Раздел",
+        type: "select",
+        optionsAction: "ZatrKassRazd",
+        optionValueField: "ID",
+        optionLabelField: "NameRazd"
+      },
+      {
+        field: "Nach",
+        labelKey: "Directory.Nach",
+        fallback: "Начисление",
+        type: "boolean"
+      }
+    ]
+  },
+  "08.09": {
+    apiAction: "DohodKass",
+    xmlSection: "DohodKass",
+    deletedSection: "Deleted",
+    idField: "ID",
+    canAdd: true,
+    canDelete: true,
+    columns: [
+      {
+        field: "NameDohod",
+        labelKey: "Directory.Name",
+        fallback: "Наименование",
+        type: "text"
+      },
+      {
+        field: "VidD",
+        labelKey: "Directory.ActivityType",
+        fallback: "Вид деятельности",
+        type: "select",
+        optionsAction: "DohodKassRazd",
+        optionValueField: "ID",
+        optionLabelField: "NameVidI"
+      },
+      {
+        field: "Dohod",
+        labelKey: "Directory.Income",
+        fallback: "Доход",
+        type: "boolean"
+      }
+    ]
+  },
+  "08.10": {
+    kind: "subdivisions"
+  },
+  "08.13": {
+    apiAction: "ValutsKup",
+    xmlSection: "ValutsKup",
+    deletedSection: "Deleted",
+    idField: "ID",
+    canAdd: true,
+    canDelete: true,
+    columns: [
+      {
+        field: "Name",
+        labelKey: "Directory.Name",
+        fallback: "Наименование",
+        type: "text"
+      },
+      {
+        field: "Rate",
+        labelKey: "Directory.Rate",
+        fallback: "Курс",
+        type: "number",
+        step: "0.01"
+      }
+    ]
+  },
+  "08.14": {
+    apiAction: "PrichV",
+    xmlSection: "PrichV",
+    deletedSection: "Deleted",
+    idField: "ID",
+    canAdd: true,
+    canDelete: true,
+    columns: [
+      {
+        field: "Prichina",
+        labelKey: "Directory.ReturnReason",
+        fallback: "Причина возврата",
+        type: "text"
+      },
+      {
+        field: "Spis",
+        labelKey: "Directory.WriteOff",
+        fallback: "Списывать",
+        type: "boolean"
+      },
+      {
+        field: "Zatr",
+        labelKey: "Directory.WriteOffExpense",
+        fallback: "Затраты для списания",
+        type: "select",
+        optionsAction: "ZatrSpis",
+        optionValueField: "ID",
+        optionLabelField: "NameZatr",
+        defaultValue: 0,
+        emptyOptionValue: 0,
+        emptyOptionLabel: "—"
+      }
+    ]
+  },
+  "08.15": {
+    apiAction: "Konsum",
+    xmlSection: "Konsum",
+    deletedSection: "Deleted",
+    idField: "ID",
+    canAdd: true,
+    canDelete: true,
+    columns: [
+      {
+        field: "Consum",
+        labelKey: "Directory.Name",
+        fallback: "Наименование",
+        type: "text"
+      },
+      {
+        field: "Perc",
+        labelKey: "Directory.Percent",
+        fallback: "Процент",
+        type: "number",
+        step: "any"
+      },
+      {
+        field: "Skr",
+        labelKey: "Directory.Hidden",
+        fallback: "Скрыт",
+        type: "boolean"
+      }
+    ]
+  },
+  "08.16": {
+    apiAction: "TypDish",
+    xmlSection: "TypDish",
+    deletedSection: "Deleted",
+    idField: "ID",
+    canAdd: true,
+    canDelete: true,
+    columns: [
+      {
+        field: "Name",
+        labelKey: "Directory.Name",
+        fallback: "Наименование",
+        type: "text"
+      }
+    ]
+  },
+  "08.17": {
+    apiAction: "Act",
+    xmlSection: "Act",
+    deletedSection: "Deleted",
+    idField: "ID",
+    canAdd: true,
+    canDelete: true,
+    wide: true,
+    columns: [
+      {
+        field: "Name",
+        labelKey: "Directory.Name",
+        fallback: "Наименование",
+        type: "text"
+      },
+      {
+        field: "Counter",
+        labelKey: "Directory.Quantity",
+        fallback: "Количество",
+        type: "number",
+        step: "1"
+      },
+      {
+        field: "Skr",
+        labelKey: "Directory.Hidden",
+        fallback: "Скрыт",
+        type: "boolean"
+      },
+      {
+        field: "IDGroup",
+        labelKey: "Directory.ActionGroup",
+        fallback: "Группа акции",
+        type: "search-select",
+        optionsUrl: "wf_GroupsDish.php",
+        optionValueField: "ID",
+        optionLabelField: "Name",
+        defaultValue: 0,
+        emptyOptionValue: 0,
+        emptyOptionLabel: "—"
+      },
+      {
+        field: "IDTov",
+        labelKey: "Directory.Dish",
+        fallback: "Блюдо",
+        type: "search-select",
+        optionsUrl: "wf_DishesAll.php",
+        optionValueField: "ID",
+        optionLabelField: "Name",
+        optionSecondaryField: "SkladName",
+        defaultValue: 0,
+        emptyOptionValue: 0,
+        emptyOptionLabel: "—"
+      },
+      {
+        field: "MinSumm",
+        labelKey: "Directory.MinAmount",
+        fallback: "Мин. сумма",
+        type: "number",
+        step: "0.01"
+      },
+      {
+        field: "Price",
+        labelKey: "Directory.Price",
+        fallback: "Цена",
+        type: "number",
+        step: "0.01"
+      }
+    ]
+  },
+  "08.18": {
+    apiAction: "Divin",
+    xmlSection: "Divin",
+    deletedSection: "Deleted",
+    idField: "ID",
+    canAdd: true,
+    canDelete: true,
+    columns: [
+      {
+        field: "Divination",
+        labelKey: "Directory.Divination",
+        fallback: "Предсказание",
+        type: "text"
+      }
+    ]
+  },
+  "08.19": {
+    apiAction: "Shtraf",
+    xmlSection: "Shtraf",
+    deletedSection: "Deleted",
+    idField: "ID",
+    canAdd: true,
+    canDelete: true,
+    columns: [
+      {
+        field: "NameShtr",
+        labelKey: "Directory.Name",
+        fallback: "Наименование",
+        type: "text"
+      },
+      {
+        field: "Summ",
+        labelKey: "Directory.Amount",
+        fallback: "Сумма",
+        type: "number",
+        step: "0.01"
+      }
+    ]
+  },
+  "08.20": {
+    apiAction: "Zal",
+    xmlSection: "Zal",
+    deletedSection: "Deleted",
+    idField: "ID",
+    canAdd: true,
+    canDelete: true,
+    columns: [
+      {
+        field: "Name",
+        labelKey: "Directory.Name",
+        fallback: "Наименование",
+        type: "text"
+      },
+      {
+        field: "Numb",
+        labelKey: "Directory.Number",
+        fallback: "Номер",
+        type: "number",
+        step: "1"
+      }
+    ]
+  }
+};
+
+function getDirectoryMenuConfig(code) {
+  return DIRECTORY_MENU_CONFIGS[normalizeMenuCode(code)] ?? null;
+}
+
+function isTenantMultiPoint(tenantInfo) {
+  return parseBooleanFlag(
+    tenantInfo?.MultiPoint ?? tenantInfo?.multiPoint ?? tenantInfo?.multipoint
+  );
 }
 
 function createLocalDate(year, month, day) {
@@ -470,6 +1728,7 @@ export default function App() {
   const [license, setLicense] = useState(null);
   const [menu, setMenu] = useState([]);
   const [selectedAction, setSelectedAction] = useState("");
+  const [selectedMenuCode, setSelectedMenuCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [workData, setWorkData] = useState(null);
   const [workTitle, setWorkTitle] = useState("");
@@ -479,6 +1738,16 @@ export default function App() {
   const [currentSklad, setCurrentSklad] = useState("");
   const [organizations, setOrganizations] = useState([]);
   const [currentOrg, setCurrentOrg] = useState("");
+  const [points, setPoints] = useState([]);
+  const [currentPoint, setCurrentPoint] = useState("");
+  const [directoryLookups, setDirectoryLookups] = useState({});
+  const [selectedDirectoryGroupId, setSelectedDirectoryGroupId] = useState(null);
+  const [groupsDirectoryDirty, setGroupsDirectoryDirty] = useState(false);
+  const [groupsHappyDirty, setGroupsHappyDirty] = useState(false);
+  const [groupsHappyOpen, setGroupsHappyOpen] = useState(false);
+  const [groupsHappyRows, setGroupsHappyRows] = useState([]);
+  const [groupsHappyLoading, setGroupsHappyLoading] = useState(false);
+  const [groupsHappyError, setGroupsHappyError] = useState("");
   const [dishGroups, setDishGroups] = useState([]);
   const [cehList, setCehList] = useState([]);
   const [fopList, setFopList] = useState([]);
@@ -504,7 +1773,6 @@ export default function App() {
   const [peremSelectedInvoiceId, setPeremSelectedInvoiceId] = useState(null);
   const [spisanTovSelectedInvoiceId, setSpisanTovSelectedInvoiceId] = useState(null);
   const [spisanBludSelectedInvoiceId, setSpisanBludSelectedInvoiceId] = useState(null);
-  const [discountOptions, setDiscountOptions] = useState([]);
   const [prihInitialData, setPrihInitialData] = useState(null);
   const [prihMode, setPrihMode] = useState("edit");
   const [prihWasSaved, setPrihWasSaved] = useState(false);
@@ -530,11 +1798,116 @@ export default function App() {
     return (key, fallback = "") => translations[key] ?? fallback;
   }, [translations]);
 
+  const groupsHappyDayOptions = useMemo(
+    () => [
+      { ID: 0, Name: t("HappyHours.AllDays", "Все дни") },
+      { ID: 1, Name: t("HappyHours.Monday", "Понедельник") },
+      { ID: 2, Name: t("HappyHours.Tuesday", "Вторник") },
+      { ID: 3, Name: t("HappyHours.Wednesday", "Среда") },
+      { ID: 4, Name: t("HappyHours.Thursday", "Четверг") },
+      { ID: 5, Name: t("HappyHours.Friday", "Пятница") },
+      { ID: 6, Name: t("HappyHours.Saturday", "Суббота") },
+      { ID: 7, Name: t("HappyHours.Sunday", "Воскресенье") }
+    ],
+    [t]
+  );
+
+  const groupsHappyConfig = useMemo(
+    () => ({
+      apiAction: "HHgrup",
+      xmlSection: "HHgrup",
+      deletedSection: "Deleted",
+      idField: "ID",
+      canAdd: true,
+      canDelete: true,
+      deletedFields: [
+        {
+          field: "IdGrup",
+          type: "number",
+          value: Number(selectedDirectoryGroupId || 0)
+        }
+      ],
+      columns: [
+        {
+          field: "IdGrup",
+          type: "number",
+          hidden: true,
+          defaultValue: Number(selectedDirectoryGroupId || 0)
+        },
+        {
+          field: "Beg",
+          labelKey: "HappyHours.Begin",
+          fallback: "Начало",
+          type: "time",
+          defaultValue: ""
+        },
+        {
+          field: "Endd",
+          labelKey: "HappyHours.End",
+          fallback: "Конец",
+          type: "time",
+          defaultValue: ""
+        },
+        {
+          field: "Skid",
+          labelKey: "HappyHours.Discount",
+          fallback: "Скидка %",
+          type: "number",
+          step: "0.01",
+          defaultValue: 0
+        },
+        {
+          field: "DayN",
+          labelKey: "HappyHours.Day",
+          fallback: "День",
+          type: "select",
+          options: groupsHappyDayOptions,
+          optionValueField: "ID",
+          optionLabelField: "Name",
+          defaultValue: 0
+        },
+        {
+          field: "isActive",
+          labelKey: "HappyHours.Active",
+          fallback: "Активно",
+          type: "boolean",
+          defaultValue: true
+        }
+      ]
+    }),
+    [selectedDirectoryGroupId, groupsHappyDayOptions]
+  );
+
+  const selectedDirectoryGroup = useMemo(() => {
+    if (normalizeMenuCode(selectedMenuCode) !== "08.04" || !Array.isArray(workData)) {
+      return null;
+    }
+
+    return (
+      workData.find(
+        (row) => String(row?.ID ?? "") === String(selectedDirectoryGroupId ?? "")
+      ) ?? null
+    );
+  }, [selectedMenuCode, selectedDirectoryGroupId, workData]);
+
+  useEffect(() => {
+    if (
+      selectedAction.toLowerCase() === "wbo_directory" &&
+      normalizeMenuCode(selectedMenuCode) === "08.04"
+    ) {
+      setHasUnsavedChanges(Boolean(groupsDirectoryDirty || groupsHappyDirty));
+    }
+  }, [selectedAction, selectedMenuCode, groupsDirectoryDirty, groupsHappyDirty]);
+
   const currentMenuTitle = useMemo(() => {
-    const menuItem = findMenuItemByAction(menu, selectedAction);
+    const menuItem = findMenuItemByAction(
+      menu,
+      selectedAction,
+      selectedMenuCode
+    );
 
     return menuItem?.name ?? menuItem?.Name ?? "";
-  }, [menu, selectedAction]);
+  }, [menu, selectedAction, selectedMenuCode]);
 
   const displayedWorkTitle =
     currentMenuTitle ||
@@ -570,12 +1943,37 @@ export default function App() {
 
 
 useEffect(() => {
-  if (
-    normalizeMenuActionKey(selectedAction).toLowerCase() === "wf_kassa.php" &&
-    accessToken
-  ) {
+  const actionName = normalizeMenuActionKey(selectedAction).toLowerCase();
+
+  if (actionName === "wf_kassa.php" && accessToken) {
     loadKassaPage(kassaDate);
   }
+
+  // 08.03 (Поставщики) зависит от выбранной организации: Dolg1/Dolg2
+  // могут отличаться для одного и того же поставщика в разных Org.
+  // Поэтому здесь намеренно проверяем только стабильный Code пункта меню,
+  // а не action — wbo_Directory может иметь разное написание/расширение.
+  if (
+    normalizeMenuCode(selectedMenuCode) === "08.03" &&
+    accessToken
+  ) {
+    setWorkLoading(true);
+    setWorkError("");
+
+    loadDirectoryByMenuCode("08.03")
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setPostavList(data);
+        }
+      })
+      .catch((err) => {
+        setWorkError(err?.message || "Ошибка загрузки списка поставщиков");
+      })
+      .finally(() => {
+        setWorkLoading(false);
+      });
+  }
+
   // Здесь намеренно реагируем только на смену организации.
   // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [currentOrg]);
@@ -1354,41 +2752,31 @@ function openPrihInvoice(invoiceOrId) {
   setWorkError("");
 }
 
-async function loadCategories() {
-  setWorkLoading(true);
-  setWorkError("");
-  setWorkData(null);
+function findMenuItemByAction(items, targetAction, targetCode = "") {
+  const normalizedTargetCode = normalizeMenuCode(targetCode);
 
-  try {
-    const result = await fetchWithAuth("https://webback.bar-boss.com/wf_Categor.php");
-
-    const data = result instanceof Response
-      ? await result.json()
-      : result;
-
-    setSelectedAction("wf_Categor.php");
-    setWorkTitle("Категории сырья");
-    setWorkData(data);
-  } catch (err) {
-    setWorkError(err.message || "Ошибка загрузки категорий сырья");
-  } finally {
-    setWorkLoading(false);
-  }
-}
-function findMenuItemByAction(items, targetAction) {
   for (const item of Array.isArray(items) ? items : []) {
+    const itemCode = normalizeMenuCode(item?.Code ?? item?.code);
     const action = item?.action ?? item?.Action ?? "";
 
+    if (normalizedTargetCode && itemCode === normalizedTargetCode) {
+      return item;
+    }
+
     if (
+      !normalizedTargetCode &&
       action &&
-      normalizeMenuActionKey(action) ===
-        normalizeMenuActionKey(targetAction)
+      normalizeMenuActionKey(action) === normalizeMenuActionKey(targetAction)
     ) {
       return item;
     }
 
     const children = item?.items ?? item?.Items ?? [];
-    const found = findMenuItemByAction(children, targetAction);
+    const found = findMenuItemByAction(
+      children,
+      targetAction,
+      normalizedTargetCode
+    );
 
     if (found) {
       return found;
@@ -1491,38 +2879,6 @@ function openDishCalc(dishId) {
 }
 
 
-async function loadPersonal() {
-  setSelectedAction("wf_Personal.php");
-  setWorkTitle("Персонал");
-  setWorkLoading(true);
-  setWorkError("");
-  setWorkData(null);
-
-  try {
-    const response = await fetchWithAuth("https://webback.bar-boss.com/wf_Personal.php", {
-      method: "GET"
-    });
-
-    const text = await response.text();
-
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      throw new Error("Персонал вернул не JSON: " + text.substring(0, 300));
-    }
-
-    if (!response.ok) {
-      throw new Error(data.error || "Ошибка загрузки персонала");
-    }
-
-    setWorkData(Array.isArray(data) ? data : []);
-  } catch (err) {
-    setWorkError(err.message || "Ошибка загрузки персонала");
-  } finally {
-    setWorkLoading(false);
-  }
-}
 
 function getCurrentOrgCode() {
   const n = Number(currentOrg);
@@ -1585,165 +2941,11 @@ async function loadSpisanTovList(options = {}) {
   }
 }
 
-async function loadSuppliers() {
-  setWorkLoading(true);
-  setWorkError("");
-  setWorkData(null);
-
-  try {
-    
-    const orgCode = getCurrentOrgCode();
-
-    const url = new URL("https://webback.bar-boss.com/wf_Postav.php");
-    url.searchParams.set("org", String(orgCode));
-
-    const result = await fetchWithAuth(url.toString());
-
-    const data = result instanceof Response
-      ? await result.json()
-      : result;
-
-    setSelectedAction("wf_Postav.php");
-    setWorkTitle("Список поставщиков");
-    setWorkData(data);
-  } catch (err) {
-    setWorkError(err.message || "Ошибка загрузки списка поставщиков");
-  } finally {
-    setWorkLoading(false);
-  }
-}
-
-async function loadFops() {
-  setWorkLoading(true);
-  setWorkError("");
-  setWorkData(null);
-
-  try {
-    const result = await fetchWithAuth("https://webback.bar-boss.com/wf_Fops.php");
-
-    const data = result instanceof Response
-      ? await result.json()
-      : result;
-
-    setSelectedAction("wf_Fops.php");
-    setWorkTitle("Список предприятий");
-    setWorkData(data);
-  } catch (err) {
-    setWorkError(err.message || "Ошибка загрузки списка предприятий");
-  } finally {
-    setWorkLoading(false);
-  }
-}
-
-async function loadDiscount() {
-  setWorkLoading(true);
-  setWorkError("");
-  setWorkData(null);
-
-  try {
-    const result = await fetchWithAuth("https://webback.bar-boss.com/wf_Discount.php");
-
-    const data = result instanceof Response
-      ? await result.json()
-      : result;
-
-    setSelectedAction("wf_Discount.php");
-    setWorkTitle("Список скидок");
-    setWorkData(data);
-  } catch (err) {
-    setWorkError(err.message || "Ошибка загрузки списка скидок");
-  } finally {
-    setWorkLoading(false);
-  }
-}
-
-async function loadGroupsEdit() {
-  setWorkLoading(true);
-  setWorkError("");
-  setWorkData(null);
-
-  try {
-    const groupsResult = await fetchWithAuth("https://webback.bar-boss.com/wf_GroupsEdit.php");
-    const groupsData = groupsResult instanceof Response
-      ? await groupsResult.json()
-      : groupsResult;
-
-    const discountsResult = await fetchWithAuth("https://webback.bar-boss.com/wf_Discount.php");
-    const discountsData = discountsResult instanceof Response
-      ? await discountsResult.json()
-      : discountsResult;
-
-    setDiscountOptions(Array.isArray(discountsData) ? discountsData : []);
-
-    setSelectedAction("wf_GroupsEdit.php");
-    setWorkTitle("Группы блюд");
-    setWorkData(Array.isArray(groupsData) ? groupsData : []);
-  } catch (err) {
-    setWorkError(err.message || "Ошибка загрузки групп блюд");
-  } finally {
-    setWorkLoading(false);
-  }
-}
-
-async function addRefItem(action) {
-  const url = new URL("https://webback.bar-boss.com/wf_RefAdd.php");
-
-  url.searchParams.set("Action", action);
-
-  const response = await fetchWithAuth(url.toString(), {
-    method: "GET"
-  });
-
-  const text = await response.text();
-
-  let data;
-  try {
-    data = JSON.parse(text);
-  } catch {
-    throw new Error("Новая строка справочника вернулась не JSON: " + text.substring(0, 300));
-  }
-
-  if (!response.ok) {
-    throw new Error(data.error || "Ошибка добавления строки справочника");
-  }
-
-  const newItem = Array.isArray(data) ? data[0] : data.item;
-
-  if (!newItem?.ID) {
-    throw new Error("Сервер не вернул новую строку справочника");
-  }
-
-  return newItem;
-}
 async function normalizeApiResult(result) {
   return result instanceof Response
     ? await result.json()
     : result;
 }
-async function loadClients() {
-  setWorkLoading(true);
-  setWorkError("");
-  setWorkData(null);
-
-  try {
-    const clientsResult = await fetchWithAuth("https://webback.bar-boss.com/wf_Clients.php");
-    const clientsData = await normalizeApiResult(clientsResult);
-
-    const discountsResult = await fetchWithAuth("https://webback.bar-boss.com/wf_Discount.php");
-    const discountsData = await normalizeApiResult(discountsResult);
-
-    setDiscountOptions(Array.isArray(discountsData) ? discountsData : []);
-
-    setSelectedAction("wf_Clients.php");
-    setWorkTitle("Список клиентов");
-    setWorkData(clientsData);
-  } catch (err) {
-    setWorkError(err.message || "Ошибка загрузки списка клиентов");
-  } finally {
-    setWorkLoading(false);
-  }
-}
-
 async function savePersonalRef({ CardsP, CardsPDop }) {
 
   body.set("Action", action);
@@ -1838,7 +3040,13 @@ async function loadPrihList({
   setWorkData(null);
 
   try {
-   const postavResponse = await fetchWithAuth("https://webback.bar-boss.com/wf_Postav.php", {
+   const postavUrl = new URL(
+  "https://webback.bar-boss.com/wf_Directory.php"
+);
+postavUrl.searchParams.set("Action", "Postav");
+postavUrl.searchParams.set("org", String(getCurrentOrgCode()));
+
+const postavResponse = await fetchWithAuth(postavUrl.toString(), {
   method: "GET"
 });
 
@@ -1928,7 +3136,7 @@ async function loadCardsSirya({
   setWorkData(null);
 
   try {
-    const categorResponse = await fetchWithAuth("https://webback.bar-boss.com/wf_Categor.php", {
+    const categorResponse = await fetchWithAuth("https://webback.bar-boss.com/wf_Directory.php?Action=Categor", {
       method: "GET"
     });
 
@@ -1989,7 +3197,7 @@ async function loadSpisokTovarov({
   setWorkData(null);
 
   try {
-    const categorResponse = await fetchWithAuth("https://webback.bar-boss.com/wf_Categor.php", {
+    const categorResponse = await fetchWithAuth("https://webback.bar-boss.com/wf_Directory.php?Action=Categor", {
       method: "GET"
     });
 
@@ -2251,6 +3459,274 @@ async function addDish({ sklad, group }) {
 
   return newDish;
 }
+  async function loadDirectoryData(
+    apiAction,
+    request = fetchWithAuth,
+    requestParams = {}
+  ) {
+    const url = new URL("https://webback.bar-boss.com/wf_Directory.php");
+    url.searchParams.set("Action", String(apiAction || ""));
+
+    Object.entries(requestParams || {}).forEach(([key, value]) => {
+      if (value === null || value === undefined || value === "") return;
+      url.searchParams.set(String(key), String(value));
+    });
+
+    const response = await request(url.toString(), { method: "GET" });
+    const text = await response.text();
+
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      throw new Error(
+        `Справочник ${apiAction} вернул не JSON: ${text.substring(0, 300)}`
+      );
+    }
+
+    const normalized = Array.isArray(data) ? data[0] : data;
+
+    if (
+      !response.ok ||
+      (!Array.isArray(data) && normalized?.status === "error")
+    ) {
+      throw new Error(
+        normalized?.error ||
+          normalized?.message ||
+          `Ошибка загрузки справочника ${apiAction}`
+      );
+    }
+
+    return Array.isArray(data) ? data : [];
+  }
+
+  async function loadDirectoryByMenuCode(menuCode) {
+    const config = getDirectoryMenuConfig(menuCode);
+
+    if (!config) {
+      throw new Error(`Не настроен справочник для пункта меню ${menuCode}`);
+    }
+
+    if (config.kind === "subdivisions") {
+      const [skladsData, cehsData] = await Promise.all([
+        loadDirectoryData("Sklad"),
+        loadDirectoryData("Ceh")
+      ]);
+
+      setDirectoryLookups({});
+      setWorkData({
+        kind: "subdivisions",
+        sklads: skladsData,
+        cehs: cehsData
+      });
+      return;
+    }
+
+    const lookupColumns = (Array.isArray(config.columns) ? config.columns : [])
+      .filter(
+        (column) =>
+          (column?.type === "select" || column?.type === "search-select") &&
+          (column?.optionsAction || column?.optionsUrl)
+      );
+
+    const configLookups = (Array.isArray(config.lookups) ? config.lookups : [])
+      .filter((lookup) => lookup?.key && (lookup?.apiAction || lookup?.url));
+
+    async function loadLookupSource({ apiAction, url, label }) {
+      if (apiAction) {
+        return await loadDirectoryData(apiAction);
+      }
+
+      const source = String(url || "").trim();
+      const lookupUrl = /^https?:\/\//i.test(source)
+        ? source
+        : `https://webback.bar-boss.com/${source.replace(/^\/+/, "")}`;
+
+      const response = await fetchWithAuth(lookupUrl, { method: "GET" });
+      const text = await response.text();
+
+      let lookupData;
+      try {
+        lookupData = JSON.parse(text);
+      } catch {
+        throw new Error(
+          `Список ${label || ""} вернул не JSON: ${text.substring(0, 300)}`
+        );
+      }
+
+      const normalized = Array.isArray(lookupData) ? lookupData[0] : lookupData;
+
+      if (
+        !response.ok ||
+        (!Array.isArray(lookupData) && normalized?.status === "error")
+      ) {
+        throw new Error(
+          normalized?.error ||
+            normalized?.message ||
+            `Ошибка загрузки списка ${label || ""}`
+        );
+      }
+
+      return Array.isArray(lookupData) ? lookupData : [];
+    }
+
+    const lookupPromises = [
+      ...lookupColumns.map((column) =>
+        loadLookupSource({
+          apiAction: column.optionsAction,
+          url: column.optionsUrl,
+          label: column.field
+        })
+      ),
+      ...configLookups.map((lookup) =>
+        loadLookupSource({
+          apiAction: lookup.apiAction,
+          url: lookup.url,
+          label: lookup.key
+        })
+      )
+    ];
+
+    const mainRequestParams = config.includeCurrentOrg
+      ? { org: getCurrentOrgCode() }
+      : {};
+
+    const [data, ...lookupLists] = await Promise.all([
+      loadDirectoryData(
+        config.apiAction,
+        fetchWithAuth,
+        mainRequestParams
+      ),
+      ...lookupPromises
+    ]);
+
+    const nextLookups = {};
+
+    lookupColumns.forEach((column, index) => {
+      nextLookups[column.field] = Array.isArray(lookupLists[index])
+        ? lookupLists[index]
+        : [];
+    });
+
+    const configLookupOffset = lookupColumns.length;
+
+    configLookups.forEach((lookup, index) => {
+      nextLookups[lookup.key] = Array.isArray(
+        lookupLists[configLookupOffset + index]
+      )
+        ? lookupLists[configLookupOffset + index]
+        : [];
+    });
+
+    setDirectoryLookups(nextLookups);
+    setWorkData(data);
+    return data;
+  }
+
+  async function loadGroupsHappyHours(groupId = selectedDirectoryGroupId) {
+    const id = Number(groupId || 0);
+
+    if (id <= 0) {
+      throw new Error(
+        t(
+          "Directory.SaveGroupBeforeHappyHours",
+          "Сначала сохраните группу блюд"
+        )
+      );
+    }
+
+    setGroupsHappyLoading(true);
+    setGroupsHappyError("");
+
+    try {
+      const allRows = await loadDirectoryData("HHgrup");
+      const rows = allRows.filter(
+        (row) => Number(row?.IdGrup ?? 0) === id
+      );
+
+      setGroupsHappyRows(rows);
+      setGroupsHappyDirty(false);
+      return rows;
+    } finally {
+      setGroupsHappyLoading(false);
+    }
+  }
+
+  async function openGroupsHappyHours() {
+    const id = Number(selectedDirectoryGroupId || 0);
+
+    if (id <= 0) {
+      window.alert(
+        t(
+          "Directory.SaveGroupBeforeHappyHours",
+          "Сначала сохраните группу блюд"
+        )
+      );
+      return;
+    }
+
+    setGroupsHappyOpen(true);
+    setGroupsHappyRows([]);
+    setGroupsHappyError("");
+    setGroupsHappyDirty(false);
+
+    try {
+      await loadGroupsHappyHours(id);
+    } catch (error) {
+      setGroupsHappyError(
+        error?.message ||
+          t("HappyHours.LoadError", "Ошибка загрузки счастливых часов")
+      );
+    }
+  }
+
+  function closeGroupsHappyHours() {
+    if (
+      groupsHappyDirty &&
+      !window.confirm(
+        t(
+          "App.UnsavedChangesWarning",
+          "Внимание! Вы не сохранили измененные данные!\nУверены, что хотите уйти?"
+        )
+      )
+    ) {
+      return;
+    }
+
+    setGroupsHappyOpen(false);
+    setGroupsHappyRows([]);
+    setGroupsHappyError("");
+    setGroupsHappyDirty(false);
+  }
+
+  async function saveGroupsHappyHours(xml) {
+    const response = await saveRefItem("HHgrup", xml);
+    const text = await response.text();
+    let result = null;
+
+    if (text.trim()) {
+      try {
+        result = JSON.parse(text);
+      } catch {
+        if (!response.ok) {
+          throw new Error(
+            `Сохранение счастливых часов вернуло не JSON: ${text.substring(0, 300)}`
+          );
+        }
+      }
+    }
+
+    if (!response.ok || result?.status === "error") {
+      throw new Error(
+        result?.error ||
+          result?.message ||
+          t("Directory.SaveError", "Ошибка сохранения справочника")
+      );
+    }
+
+    return result;
+  }
+
   async function openAction(item) {
     if (!item.action) {
     console.log("NO ACTION IN ITEM:", item);
@@ -2258,6 +3734,7 @@ async function addDish({ sklad, group }) {
   }
 
   const actionName = normalizeMenuAction(item.action);
+  const menuCode = normalizeMenuCode(item.Code ?? item.code);
 
   if (hasUnsavedChanges) {
     const ok = window.confirm(unsavedChangesMessage);
@@ -2271,6 +3748,14 @@ async function addDish({ sklad, group }) {
 
   const url = buildMenuActionUrl(item.action);
 
+  setSelectedDirectoryGroupId(null);
+  setGroupsDirectoryDirty(false);
+  setGroupsHappyDirty(false);
+  setGroupsHappyOpen(false);
+  setGroupsHappyRows([]);
+  setGroupsHappyError("");
+
+  setSelectedMenuCode(menuCode);
   setSelectedAction(actionName);
   setWorkTitle(item.name);
   setWorkLoading(true);
@@ -2278,6 +3763,11 @@ async function addDish({ sklad, group }) {
   setWorkData(null);
 
   try {
+
+    if (actionName.toLowerCase() === "wbo_directory") {
+      await loadDirectoryByMenuCode(menuCode);
+      return;
+    }
 
     if (actionName === "wf_Kassa.php") {
       loadKassaPage(kassaDate);
@@ -2315,16 +3805,6 @@ async function addDish({ sklad, group }) {
     });
     return;
   }
-  if (actionName === "wf_GroupsEdit.php") {
-  await loadGroupsEdit();
-  return;
-  }
-
-  if (actionName === "wf_Clients.php") {
-  await loadClients();
-  return;
-  }
-
   if (actionName === "wf_PrihList.php") {
   setPrihPfMode(false);
   await loadPrihList({
@@ -2344,41 +3824,15 @@ async function addDish({ sklad, group }) {
   });
   return;
   }
-  if (actionName === "wf_Fops.php") {
-    await loadFops();
-    return;
-  }
-  
   if (actionName === "wf_SpisokZakazov.php") {
   await loadOrdersDay();
   return;
   }
-  
-  if (actionName === "wf_Postav.php") {
-    await loadSuppliers();
-    return;
-  }
-
   if (actionName === "wf_SpisokTovarov.php") {
     await loadSpisokTovarov({
       cat: "0",
       skr: 0
     });
-    return;
-  }
-  
-  if (actionName === "wf_Personal.php") {
-    await loadPersonal();
-    return;
-  }
-  
-  if (actionName === "wf_Discount.php") {
-    await loadDiscount();
-    return;
-  }
-  
-  if (actionName === "wf_Categor.php") {
-    await loadCategories();
     return;
   }
   const response = await fetchWithAuth(url, {
@@ -2422,6 +3876,35 @@ async function addDish({ sklad, group }) {
       setUser(loginData.user);
       setTenant(loginData.tenant);
       setLicense(loginData.license);
+
+      if (isTenantMultiPoint(loginData.tenant)) {
+        const authenticatedRequest = (url, options = {}) =>
+          fetch(url, {
+            ...options,
+            credentials: "include",
+            headers: {
+              ...(options.headers || {}),
+              Authorization: `Bearer ${loginData.accessToken}`
+            }
+          });
+
+        const pointsData = await loadDirectoryData(
+          "Points",
+          authenticatedRequest
+        );
+
+        setPoints(pointsData);
+
+        const defaultPoint =
+          pointsData.find((point) => Number(point?.ID) === 1) ??
+          pointsData[0] ??
+          null;
+
+        setCurrentPoint(defaultPoint ? String(defaultPoint.ID) : "");
+      } else {
+        setPoints([]);
+        setCurrentPoint("");
+      }
 
       const preferredLanguage = normalizeLanguage(
         loginData.user?.lang ||
@@ -2514,6 +3997,7 @@ async function addDish({ sklad, group }) {
   setTranslations({});
 
   setSelectedAction("");
+  setSelectedMenuCode("");
   setWorkData(null);
   setWorkTitle("");
   setWorkLoading(false);
@@ -2523,6 +4007,9 @@ async function addDish({ sklad, group }) {
   setCurrentSklad("");
   setOrganizations([]);
   setCurrentOrg("");
+  setPoints([]);
+  setCurrentPoint("");
+  setDirectoryLookups({});
 
   setDishGroups([]);
   setCehList([]);
@@ -2613,6 +4100,7 @@ async function saveDishes(xml) {
     }
 
     setSelectedAction("");
+    setSelectedMenuCode("");
     setWorkTitle("");
     setWorkData(null);
     setWorkLoading(false);
@@ -2625,6 +4113,7 @@ async function saveDishes(xml) {
     setSpisanBludInitialData(null);
     setViewOrderId(null);
     setViewSourceOrder(null);
+    setDirectoryLookups({});
   }
 
   const currentOrganizationName =
@@ -2708,6 +4197,41 @@ async function saveDishes(xml) {
   </div>
 
   <div className="top-right">
+    {isTenantMultiPoint(tenant) && points.length > 0 && (
+      <label className="top-field top-select-field top-point-field">
+        <span>{t("App.PointShort", "Поинт:")}</span>
+        <select
+          value={currentPoint}
+          onChange={(e) => {
+            const nextPoint = e.target.value;
+
+            if (nextPoint === currentPoint) {
+              return;
+            }
+
+            if (hasUnsavedChanges) {
+              const ok = window.confirm(unsavedChangesMessage);
+
+              if (!ok) {
+                return;
+              }
+
+              setHasUnsavedChanges(false);
+            }
+
+            setCurrentPoint(nextPoint);
+          }}
+          title={t("App.Point", "Торговая точка")}
+        >
+          {points.map((point) => (
+            <option key={point.ID} value={String(point.ID)}>
+              {point.NamePoint ?? point.Name ?? `Point ${point.ID}`}
+            </option>
+          ))}
+        </select>
+      </label>
+    )}
+
     {tenant?.multiOrg && organizations.length > 0 && (
       <label className="top-field top-select-field">
         <span>{t("App.OrganizationShort", "Орг:")}</span>
@@ -2852,10 +4376,11 @@ async function saveDishes(xml) {
   <nav className="side-menu-scroll" aria-label={t("App.MainMenuAria", "Главное меню")}>
     {menu.map((item, index) => (
       <MenuItem
-        key={`${item.name ?? item.Name}-${index}`}
+        key={`${item.Code ?? item.code ?? item.name ?? item.Name}-${index}`}
         item={item}
         onSelect={openAction}
         selectedAction={selectedAction}
+        selectedMenuCode={selectedMenuCode}
       />
     ))}
   </nav>
@@ -2870,7 +4395,6 @@ async function saveDishes(xml) {
     selectedAction !== "spisan-blud-invoice-card" &&
     selectedAction !== "dish-calc" &&
     selectedAction !== "wf_Kassa.php" &&
-    selectedAction !== "wf_GroupsEdit.php" &&
     selectedAction !== "wf_SpisanBludList.php" &&
     selectedAction !== "wf_SpisokZakazov.php" &&
     selectedAction !== "wf_SchetView.php" && (
@@ -2895,6 +4419,202 @@ async function saveDishes(xml) {
       {workError}
     </div>
   )}
+
+  {!workLoading &&
+    !workError &&
+    selectedAction.toLowerCase() === "wbo_directory" &&
+    normalizeMenuCode(selectedMenuCode) === "08.10" &&
+    workData?.kind === "subdivisions" && (
+      <SubdivisionsPage
+        data={workData}
+        organizations={organizations}
+        points={points}
+        multiOrg={Boolean(tenant?.multiOrg)}
+        multiPoint={isTenantMultiPoint(tenant)}
+        currentOrg={currentOrg}
+        currentPoint={currentPoint}
+        readOnly={Boolean(user?.readOnly)}
+        fetchWithAuth={fetchWithAuth}
+        onSkladsChanged={(rows) => {
+          const nextRows = Array.isArray(rows) ? rows : [];
+          setSklads(nextRows);
+
+          if (
+            !nextRows.some(
+              (row) =>
+                String(row?.ID ?? row?.Code ?? "") === String(currentSklad)
+            )
+          ) {
+            setCurrentSklad(
+              nextRows[0]
+                ? String(nextRows[0].ID ?? nextRows[0].Code ?? "")
+                : ""
+            );
+          }
+        }}
+        onCehsChanged={(rows) => setCehList(Array.isArray(rows) ? rows : [])}
+        onDirtyChange={setHasUnsavedChanges}
+        t={t}
+      />
+    )}
+
+  {!workLoading &&
+    !workError &&
+    Array.isArray(workData) &&
+    selectedAction.toLowerCase() === "wbo_directory" && (
+      <DirectoryPage
+        data={workData}
+        config={getDirectoryMenuConfig(selectedMenuCode)}
+        lookupData={directoryLookups}
+        context={{
+          currentOrg: getCurrentOrgCode()
+        }}
+        readOnly={Boolean(user?.readOnly)}
+        selectedId={
+          normalizeMenuCode(selectedMenuCode) === "08.04"
+            ? selectedDirectoryGroupId
+            : null
+        }
+        onSelectedIdChange={
+          normalizeMenuCode(selectedMenuCode) === "08.04"
+            ? (id) => setSelectedDirectoryGroupId(id)
+            : undefined
+        }
+        toolbarActions={
+          normalizeMenuCode(selectedMenuCode) === "08.04"
+            ? [
+                {
+                  key: "groups-happy-hours",
+                  labelKey: "HappyHours.Title",
+                  fallback: "Счастливые часы",
+                  disabled: Number(selectedDirectoryGroupId || 0) <= 0,
+                  onClick: openGroupsHappyHours
+                }
+              ]
+            : []
+        }
+        onDirtyChange={
+          normalizeMenuCode(selectedMenuCode) === "08.04"
+            ? setGroupsDirectoryDirty
+            : setHasUnsavedChanges
+        }
+        onSave={async (xml) => {
+          const config = getDirectoryMenuConfig(selectedMenuCode);
+
+          if (!config) {
+            throw new Error(`Не настроен справочник для пункта меню ${selectedMenuCode}`);
+          }
+
+          const saveAction = config.saveAction || config.apiAction;
+          const response = await saveRefItem(saveAction, xml);
+          const text = await response.text();
+          let result = null;
+
+          if (text.trim()) {
+            try {
+              result = JSON.parse(text);
+            } catch {
+              if (!response.ok) {
+                throw new Error(`Сохранение справочника вернуло не JSON: ${text.substring(0, 300)}`);
+              }
+            }
+          }
+
+          if (!response.ok || result?.status === "error") {
+            throw new Error(
+              result?.error || result?.message || "Ошибка сохранения справочника"
+            );
+          }
+
+          const reloadedData = await loadDirectoryByMenuCode(selectedMenuCode);
+
+          if (config.apiAction === "Fop" && Array.isArray(reloadedData)) {
+            setFopList(reloadedData);
+          }
+
+          if (config.apiAction === "Postav" && Array.isArray(reloadedData)) {
+            setPostavList(reloadedData);
+          }
+
+          return result;
+        }}
+        t={t}
+      />
+    )}
+
+  {groupsHappyOpen &&
+    normalizeMenuCode(selectedMenuCode) === "08.04" && (
+      <div
+        className="subdivisions-happy-overlay"
+        role="dialog"
+        aria-modal="true"
+        aria-label={t("HappyHours.Title", "Счастливые часы")}
+      >
+        <div className="subdivisions-happy-dialog">
+          <div className="subdivisions-happy-heading">
+            <div>
+              <strong>{t("HappyHours.Title", "Счастливые часы")}</strong>
+              {selectedDirectoryGroup?.Name && (
+                <span> — {selectedDirectoryGroup.Name}</span>
+              )}
+            </div>
+
+            <div className="subdivisions-happy-heading-actions">
+              <button
+                type="button"
+                className="small-action-button"
+                disabled={groupsHappyLoading}
+                onClick={() => {
+                  loadGroupsHappyHours().catch((error) => {
+                    setGroupsHappyError(
+                      error?.message ||
+                        t(
+                          "HappyHours.LoadError",
+                          "Ошибка загрузки счастливых часов"
+                        )
+                    );
+                  });
+                }}
+              >
+                {t("DishesPF.Refresh", "Обновить")}
+              </button>
+
+              <button
+                type="button"
+                className="small-action-button"
+                onClick={closeGroupsHappyHours}
+              >
+                {t("HappyHours.Back", "Вернуться")}
+              </button>
+            </div>
+          </div>
+
+          {groupsHappyError && (
+            <div className="login-error subdivisions-happy-error">
+              {groupsHappyError}
+            </div>
+          )}
+
+          {groupsHappyLoading ? (
+            <div className="subdivisions-happy-loading">
+              {t("HappyHours.Loading", "Загрузка...")}
+            </div>
+          ) : (
+            <DirectoryPage
+              data={groupsHappyRows}
+              config={groupsHappyConfig}
+              readOnly={Boolean(user?.readOnly)}
+              onDirtyChange={setGroupsHappyDirty}
+              onSave={async (xml) => {
+                await saveGroupsHappyHours(xml);
+                await loadGroupsHappyHours();
+              }}
+              t={t}
+            />
+          )}
+        </div>
+      </div>
+    )}
 
   {!workLoading && !workError && workData && selectedAction === "wf_Dishes.php" && (
     <DishesPage
@@ -3121,21 +4841,6 @@ onChangePost={async (nextPost) => {
 {!workLoading &&
   !workError &&
   workData &&
-  selectedAction === "wf_Postav.php" && (
-    <SuppliersPage
-      data={workData}
-      org={currentOrg}
-      readOnly={Boolean(user?.readOnly)}
-      onAddSupplier={() => addRefItem("Supplier")}
-      onSaveSupplier={(xml) => saveRefItem("Supplier", xml)}
-      t={t}
-    locale={locale}
-    onDirtyChange={setHasUnsavedChanges}
-    />
-)}
-{!workLoading &&
-  !workError &&
-  workData &&
   selectedAction === "wf_CardsSirya.php" && (
     <CardsSiryaPage
       data={workData}
@@ -3185,17 +4890,6 @@ onChangePost={async (nextPost) => {
     />
   )}
 
-{!workLoading && !workError && workData && selectedAction === "wf_Personal.php" && (
-<PersonalPage
-  data={workData}
-  readOnly={Boolean(user?.readOnly)}
-  onAddPersonal={() => addRefItem("Personal")}
-  onSavePersonal={(xml) => saveRefItem("Personal", xml)}
-    t={t}
-    locale={locale}
-  onDirtyChange={setHasUnsavedChanges}
-/>
-)}
 
 {!workLoading && !workError && workData && selectedAction === "wf_SpisanBludList.php" && (
 <SpisanBludListPage
@@ -3217,65 +4911,9 @@ onChangePost={async (nextPost) => {
 />
 )}
 
-{!workLoading && !workError && workData && selectedAction === "wf_Discount.php" && (
-  <DiscountPage
-    data={workData}
-    readOnly={Boolean(user?.readOnly)}
-    onSaveDiscount={(xml) => saveRefItem("Discount", xml)}
-    t={t}
-    locale={locale}
-    onDirtyChange={setHasUnsavedChanges}
-  />
-)}
-{!workLoading && !workError && workData && selectedAction === "wf_Clients.php" && (
-  <ClientsPage
-    data={workData}
-    discounts={discountOptions}
-    readOnly={Boolean(user?.readOnly)}
-    onAddCustomer={() => addRefItem("Customer")}
-    onSaveCustomer={(xml) => saveRefItem("Customer", xml)}
-    t={t}
-    locale={locale}
-    onDirtyChange={setHasUnsavedChanges}
-  />
-)}
 
-{!workLoading && !workError && workData && selectedAction === "wf_Categor.php" && (
-  <CategoriesPage
-    data={workData}
-    readOnly={Boolean(user?.readOnly)}
-    onAddCategory={() => addRefItem("Categories")}
-    onSaveCategory={(xml) => saveRefItem("Categories", xml)}
-    t={t}
-    locale={locale}
-    onDirtyChange={setHasUnsavedChanges}
-  />
-)}
 
-{!workLoading && !workError && workData && selectedAction === "wf_Fops.php" && (
-  <FopsPage
-    data={workData}
-    readOnly={Boolean(user?.readOnly)}
-    onAddFop={() => addRefItem("Tax")}
-    onSaveFop={(xml) => saveRefItem("Tax", xml)}
-    t={t}
-    locale={locale}
-    onDirtyChange={setHasUnsavedChanges}
-  />
-)}
 
-{!workLoading && !workError && workData && selectedAction === "wf_GroupsEdit.php" && (
-  <GroupsPage
-    data={workData}
-    discounts={discountOptions}
-    readOnly={Boolean(user?.readOnly)}
-    onAddGroup={() => addRefItem("Groups")}
-    onSaveGroup={(xml) => saveRefItem("Groups", xml)}
-    t={t}
-    locale={locale}
-    onDirtyChange={setHasUnsavedChanges}
-  />
-)}
 
 {!workLoading && !workError && workData && selectedAction === "wf_SpisokTovarov.php" && (
   <SpisokTovarovPage
@@ -3351,14 +4989,9 @@ onChangePost={async (nextPost) => {
   workData &&
   selectedAction !== "wf_Dishes.php" &&
   selectedAction !== "wf_PrihList.php" &&
-  selectedAction !== "wf_Discount.php" &&
   selectedAction !== "wf_CardsSirya.php" &&
-  selectedAction !== "wf_Fops.php" &&
-  selectedAction !== "wf_GroupsEdit.php" &&
   selectedAction !== "wf_SpisanBludList.php" &&
   selectedAction !== "wf_SpisanTovList.php" &&
-  selectedAction !== "wf_Postav.php" &&
-  selectedAction !== "wf_Clients.php" &&
   selectedAction !== "prih-invoice-card" &&
   selectedAction !== "prih-invoice" &&
   selectedAction !== "wf_SchetView.php" &&
@@ -3369,10 +5002,9 @@ onChangePost={async (nextPost) => {
   selectedAction !== "wf_PeremList.php" &&
   selectedAction !== "dish-calc" &&
   selectedAction !== "spisan-blud-invoice-card" &&
-  selectedAction !== "wf_Categor.php" && 
   selectedAction !== "wf_SpisokTovarov.php" &&
   selectedAction !== "wf_SpisokZakazov.php" &&
-  selectedAction !== "wf_Personal.php" && (
+  selectedAction.toLowerCase() !== "wbo_directory" && (
     <pre className="json-view">
       {JSON.stringify(workData, null, 2)}
     </pre>

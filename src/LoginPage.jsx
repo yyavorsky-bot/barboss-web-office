@@ -15,7 +15,7 @@ const LANGUAGE_OPTIONS = [
 const FALLBACK_TRANSLATIONS = {
   "Login.RequiredFieldsError": "Введіть аліас, логін і пароль",
   "Login.LoginError": "Помилка входу",
-  "Login.Version": "Версія 1.2 © Юрій Яворський 2026 р.",
+  "Login.Version": "Версія 1.4 © Юрій Яворський 2026 р.",
   "Login.IntroDescription":
     "Робочий простір для каси, складу, замовлень і довідників ресторану.",
   "Login.MainSectionsAriaLabel": "Основні розділи",

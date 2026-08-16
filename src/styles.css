@@ -13060,3 +13060,928 @@ html body .app-shell > .top-bar {
   overflow-x: auto;
   overflow-y: auto;
 }
+
+/*
+ * =========================================================
+ * MultiPoint + универсальные справочники
+ * =========================================================
+ */
+
+.top-point-field select {
+  min-width: 118px;
+  max-width: 165px;
+}
+
+.directory-page {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.directory-table-wrap {
+  width: min(760px, 100%);
+  min-width: 0;
+  margin-left: auto;
+  margin-right: auto;
+  overflow: auto;
+  border: 1px solid rgba(94, 150, 141, 0.18);
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgba(40, 87, 81, 0.08),
+    0 0 0 1px rgba(94, 150, 141, 0.07);
+}
+
+.directory-table {
+  width: 100%;
+  min-width: 420px;
+}
+
+.directory-table th:first-child,
+.directory-table td:first-child {
+  width: auto;
+}
+
+.directory-table .directory-boolean-column {
+  width: 88px;
+  min-width: 88px;
+  max-width: 88px;
+  text-align: center;
+}
+
+.directory-table td.directory-boolean-column input[type="checkbox"] {
+  margin: 0;
+}
+
+.directory-empty-cell {
+  padding: 18px 12px !important;
+  color: #6b7280;
+  text-align: center !important;
+}
+
+@media (max-width: 760px) {
+  .top-point-field {
+    flex: 1 1 180px;
+  }
+
+  .top-point-field select {
+    flex: 1 1 auto;
+    max-width: none;
+  }
+}
+
+/* =========================================================
+   2026-08-15 — универсальные справочники: CRUD
+   ========================================================= */
+.directory-toolbar {
+  width: min(760px, 100%);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.directory-text-input {
+  min-width: 0;
+}
+
+.directory-table td {
+  vertical-align: middle;
+}
+
+.directory-delete-column {
+  width: 42px !important;
+  min-width: 42px !important;
+  max-width: 42px !important;
+  text-align: center !important;
+  padding-left: 3px !important;
+  padding-right: 3px !important;
+}
+
+.directory-delete-column .small-danger-button {
+  width: 26px;
+  min-width: 26px;
+  height: 24px;
+  padding: 0;
+  line-height: 20px;
+}
+
+/* =========================================================
+   2026-08-15 — универсальные справочники: мягкая заливка панели
+   ========================================================= */
+.directory-toolbar {
+  width: min(760px, 100%);
+  margin-left: auto;
+  margin-right: auto;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(117, 164, 152, 0.34);
+  border-radius: 12px;
+  background: linear-gradient(180deg, #f8fcfb 0%, #eef7f4 100%);
+  box-shadow: 0 6px 14px rgba(40, 87, 81, 0.06);
+}
+
+.directory-toolbar .toolbar-left,
+.directory-toolbar .toolbar-right {
+  gap: 10px;
+}
+
+
+/* =========================================================
+   2026-08-15 — универсальные справочники: поля-списки
+   ========================================================= */
+.directory-select {
+  width: 100%;
+  min-width: 220px;
+  height: 26px;
+  border: 1px solid rgba(100, 116, 139, 0.36);
+  border-radius: 5px;
+  background: #ffffff;
+  padding: 1px 24px 1px 6px;
+  font-size: 14px;
+}
+
+.directory-select:focus {
+  outline: 1px solid rgba(72, 129, 121, 0.55);
+  border-color: rgba(72, 129, 121, 0.55);
+}
+
+/* =========================================================
+   2026-08-15 — универсальные справочники: контраст выпадающего списка
+   ========================================================= */
+.directory-select {
+  background: #f5faf8;
+}
+
+.directory-select option {
+  background: #e7f1ee;
+  color: #243b36;
+}
+
+.directory-select option:checked {
+  background: #d7e8e3;
+  color: #18332c;
+}
+
+
+/* =========================================================
+   2026-08-15 — универсальные справочники: числовые поля
+   ========================================================= */
+.directory-table .directory-number-column {
+  width: 130px;
+  min-width: 130px;
+  max-width: 130px;
+  text-align: right;
+}
+
+.directory-number-input {
+  width: 100% !important;
+  min-width: 0 !important;
+  text-align: right !important;
+}
+
+
+/* =========================================================
+   2026-08-15 — универсальные справочники: широкая форма
+   ========================================================= */
+.directory-page-wide {
+  width: 100%;
+  max-width: none;
+  align-items: stretch;
+}
+
+.directory-page-wide .directory-toolbar,
+.directory-page-wide .directory-table-wrap {
+  width: 100%;
+  max-width: none;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.directory-page-wide .directory-table {
+  width: 100%;
+  min-width: 1080px;
+}
+
+/* =========================================================
+   2026-08-15 — универсальные справочники: search-select
+   ========================================================= */
+.directory-table .directory-search-column {
+  min-width: 230px;
+  width: 230px;
+}
+
+.directory-search-select {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+
+.directory-search-input {
+  width: 100%;
+  min-width: 0;
+  height: 28px;
+  border: 1px solid rgba(100, 116, 139, 0.38);
+  border-radius: 5px;
+  background: #f5faf8;
+  padding: 2px 7px;
+  color: #243b36;
+  font-size: 13px;
+  outline: none;
+}
+
+.directory-search-input:focus {
+  border-color: rgba(72, 129, 121, 0.65);
+  box-shadow: 0 0 0 1px rgba(72, 129, 121, 0.18);
+}
+
+.directory-search-list {
+  position: absolute;
+  z-index: 80;
+  top: calc(100% + 3px);
+  left: 0;
+  width: max(100%, 300px);
+  max-height: 260px;
+  overflow-y: auto;
+  border: 1px solid rgba(72, 129, 121, 0.42);
+  border-radius: 7px;
+  background: #dfeee9;
+  box-shadow: 0 10px 24px rgba(37, 66, 60, 0.18);
+  padding: 3px;
+}
+
+.directory-search-option {
+  width: 100%;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  padding: 6px 8px;
+  color: #203a34;
+  text-align: left;
+  cursor: pointer;
+}
+
+.directory-search-option:hover,
+.directory-search-option.selected {
+  background: #c9e1da;
+}
+
+.directory-search-option-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.directory-search-option-secondary,
+.directory-search-secondary {
+  flex: 0 0 auto;
+  color: #667b76;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.directory-search-empty {
+  padding: 8px 9px;
+  color: #667b76;
+  font-size: 12px;
+}
+
+.directory-search-readonly {
+  display: inline-flex;
+  align-items: baseline;
+  min-width: 0;
+  max-width: 100%;
+}
+
+
+/* =========================================================
+   2026-08-15 — search-select поверх таблицы (portal)
+   ========================================================= */
+.directory-search-list-portal {
+  position: fixed;
+  z-index: 10000;
+  margin: 0;
+  box-sizing: border-box;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+
+/* =========================================================
+   2026-08-15 — Список подразделений (08.10)
+   ========================================================= */
+.subdivisions-page {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.subdivisions-section {
+  width: 100%;
+  min-width: 0;
+}
+
+.subdivisions-section-heading {
+  width: min(760px, 100%);
+  min-height: 36px;
+  margin: 0 auto 8px;
+  padding: 7px 11px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid rgba(117, 164, 152, 0.28);
+  border-radius: 10px;
+  background: #edf6f3;
+  color: #28453f;
+}
+
+.subdivisions-sklad-section .subdivisions-section-heading {
+  width: 100%;
+}
+
+.subdivisions-section-heading strong {
+  font-size: 14px;
+}
+
+.subdivisions-happy-button {
+  white-space: nowrap;
+}
+
+.directory-table .directory-time-column {
+  width: 125px;
+  min-width: 125px;
+  max-width: 125px;
+  text-align: center;
+}
+
+.directory-time-input {
+  width: 100%;
+  height: 28px;
+  border: 1px solid rgba(100, 116, 139, 0.38);
+  border-radius: 5px;
+  background: #f8fbfa;
+  padding: 2px 5px;
+  font: inherit;
+  font-size: 13px;
+  color: #243b36;
+  outline: none;
+}
+
+.directory-time-input:focus {
+  border-color: rgba(72, 129, 121, 0.65);
+  box-shadow: 0 0 0 1px rgba(72, 129, 121, 0.16);
+}
+
+.subdivisions-happy-overlay {
+  position: fixed;
+  z-index: 9000;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(25, 40, 36, 0.34);
+}
+
+.subdivisions-happy-dialog {
+  width: min(920px, calc(100vw - 48px));
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  padding: 14px;
+  border: 1px solid rgba(86, 132, 122, 0.3);
+  border-radius: 14px;
+  background: #f8fbfa;
+  box-shadow: 0 20px 60px rgba(22, 45, 39, 0.26);
+}
+
+.subdivisions-happy-heading {
+  min-height: 40px;
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border: 1px solid rgba(117, 164, 152, 0.28);
+  border-radius: 10px;
+  background: #e7f2ee;
+  color: #28453f;
+}
+
+.subdivisions-happy-heading-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.subdivisions-happy-error {
+  margin-bottom: 10px;
+}
+
+.subdivisions-happy-loading {
+  padding: 22px 12px;
+  text-align: center;
+  color: #64748b;
+}
+
+.subdivisions-happy-dialog .directory-page {
+  align-items: stretch;
+}
+
+.subdivisions-happy-dialog .directory-toolbar,
+.subdivisions-happy-dialog .directory-table-wrap {
+  width: 100%;
+  max-width: none;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+@media (max-width: 760px) {
+  .subdivisions-happy-overlay {
+    padding: 10px;
+  }
+
+  .subdivisions-happy-dialog {
+    width: calc(100vw - 20px);
+    max-height: calc(100vh - 20px);
+  }
+
+  .subdivisions-happy-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+
+/* =========================================================
+   2026-08-15 — 08.10: собственный vertical scroll списка складов
+   ========================================================= */
+.subdivisions-sklad-section .directory-table-wrap {
+  max-height: 260px;
+  overflow-y: auto;
+  overflow-x: auto;
+}
+
+.subdivisions-sklad-section .directory-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+
+
+/* =========================================================
+   2026-08-15 — универсальные справочники: sticky CRUD toolbar
+   ========================================================= */
+.directory-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+
+/* =========================================================
+   2026-08-15 — универсальные справочники:
+   стиль CRUD-панели в духе FopsPage
+   ========================================================= */
+.directory-toolbar {
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 13px;
+  background: linear-gradient(
+    135deg,
+    #dbf7f2 0%,
+    #b3e6df 100%
+  );
+  box-shadow:
+    0 7px 18px rgba(43, 112, 103, 0.12),
+    inset 0 1px rgba(255, 255, 255, 0.55);
+}
+
+.directory-toolbar .toolbar-left,
+.directory-toolbar .toolbar-right {
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.directory-toolbar .small-action-button,
+.directory-toolbar .save-button {
+  height: 32px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 9px;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    transform 120ms ease,
+    filter 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.directory-toolbar .small-action-button {
+  background: linear-gradient(135deg, #c2a76a 0%, #9a8146 100%);
+  box-shadow: 0 5px 12px rgba(92, 72, 30, 0.16);
+}
+
+.directory-toolbar .save-button,
+.directory-toolbar .save-button-active:not(:disabled) {
+  background: linear-gradient(135deg, #3f9a7f 0%, #26715f 100%);
+  border-color: transparent;
+  color: #ffffff;
+  box-shadow: 0 5px 12px rgba(31, 105, 87, 0.18);
+}
+
+.directory-toolbar .small-action-button:hover:not(:disabled),
+.directory-toolbar .save-button:hover:not(:disabled),
+.directory-toolbar .save-button-active:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+
+.directory-toolbar .small-action-button:disabled,
+.directory-toolbar .save-button:disabled,
+.directory-toolbar .save-button-active:disabled {
+  opacity: 0.48;
+  cursor: default;
+  transform: none;
+  box-shadow: none;
+}
+
+/* sticky остаётся: визуально панель выглядит как самостоятельная шапка */
+.directory-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+
+/* =========================================================
+   2026-08-15 — универсальные справочники: фильтр в CRUD-панели
+   ========================================================= */
+.directory-filter-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #356b65;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.directory-filter-select {
+  height: 32px;
+  min-width: 132px;
+  padding: 0 30px 0 10px;
+  border: 0;
+  border-radius: 9px;
+  outline: none;
+  background: rgba(255, 255, 255, 0.82);
+  color: #305e59;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgba(53, 107, 101, 0.12);
+}
+
+.directory-filter-select:focus {
+  box-shadow:
+    inset 0 0 0 1px rgba(53, 107, 101, 0.30),
+    0 0 0 3px rgba(63, 154, 127, 0.12);
+}
+
+/* Персонал — широкая одномерная таблица с горизонтальной прокруткой */
+.directory-page-wide .directory-table-wrap {
+  overflow-x: auto;
+}
+
+.directory-page-wide .directory-table {
+  min-width: 1550px;
+}
+
+
+/* =========================================================
+   2026-08-15 — универсальные справочники: date
+   ========================================================= */
+.directory-date-column {
+  min-width: 128px;
+  width: 128px;
+}
+
+.directory-date-input {
+  width: 118px;
+  min-width: 118px;
+}
+
+
+/* =========================================================
+   2026-08-15 — Personal / Clients: компактные флаги и зебра
+   ========================================================= */
+
+/* Универсальные checkbox-колонки были 88px — для широких справочников
+   это слишком много. 42px хватает для checkbox и короткого заголовка. */
+.directory-table .directory-boolean-column {
+  width: 42px !important;
+  min-width: 42px !important;
+  max-width: 42px !important;
+  padding-left: 2px !important;
+  padding-right: 2px !important;
+  text-align: center !important;
+}
+
+.directory-table th.directory-boolean-column {
+  font-size: 11px;
+  line-height: 1.05;
+  white-space: normal;
+  word-break: normal;
+}
+
+.directory-table td.directory-boolean-column input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+}
+
+/* В широких таблицах select не должен сам требовать 220px. */
+.directory-page-wide .directory-select {
+  min-width: 90px;
+}
+
+/* Возвращаем прежнюю спокойную зебру только персоналу и клиентам. */
+.directory-page-personal .directory-table tbody tr:nth-child(odd) td,
+.directory-page-clients .directory-table tbody tr:nth-child(odd) td {
+  background: #fffdf8;
+}
+
+.directory-page-personal .directory-table tbody tr:nth-child(even) td,
+.directory-page-clients .directory-table tbody tr:nth-child(even) td {
+  background: #f6f1db;
+}
+
+.directory-page-personal .directory-table tbody tr:hover td,
+.directory-page-clients .directory-table tbody tr:hover td {
+  background: rgba(208, 229, 224, 0.72);
+}
+
+/* selected / changed остаются важнее зебры */
+.directory-page-personal .directory-table tbody tr.selected-row td,
+.directory-page-personal .directory-table tbody tr.selected-row:hover td,
+.directory-page-clients .directory-table tbody tr.selected-row td,
+.directory-page-clients .directory-table tbody tr.selected-row:hover td {
+  background: #d8eee8 !important;
+}
+
+.directory-page-personal .directory-table tbody tr.changed-row td,
+.directory-page-personal .directory-table tbody tr.changed-row:hover td,
+.directory-page-clients .directory-table tbody tr.changed-row td,
+.directory-page-clients .directory-table tbody tr.changed-row:hover td {
+  background: #fff1c9 !important;
+}
+
+.directory-page-personal .directory-table tbody tr.selected-row.changed-row td,
+.directory-page-personal .directory-table tbody tr.selected-row.changed-row:hover td,
+.directory-page-clients .directory-table tbody tr.selected-row.changed-row td,
+.directory-page-clients .directory-table tbody tr.selected-row.changed-row:hover td {
+  background: #f8e7b6 !important;
+}
+
+/* Персонал: возвращаем нормальные размеры основных текстовых полей. */
+.directory-page-personal .directory-table {
+  min-width: 1420px;
+  table-layout: fixed;
+}
+
+.directory-page-personal .directory-field-Name {
+  width: 210px;
+  min-width: 210px;
+}
+
+.directory-page-personal .directory-field-Pass {
+  width: 105px;
+  min-width: 105px;
+}
+
+.directory-page-personal .directory-field-Phone {
+  width: 125px;
+  min-width: 125px;
+}
+
+.directory-page-personal .directory-field-email {
+  width: 175px;
+  min-width: 175px;
+}
+
+.directory-page-personal .directory-field-Rem {
+  width: 185px;
+  min-width: 185px;
+}
+
+.directory-page-personal .directory-field-LoginMobile {
+  width: 125px;
+  min-width: 125px;
+}
+
+/* Клиенты: имя и основные текстовые поля не должны схлопываться. */
+.directory-page-clients .directory-table {
+  min-width: 1380px;
+  table-layout: fixed;
+}
+
+.directory-page-clients .directory-field-Name {
+  width: 190px;
+  min-width: 190px;
+}
+
+.directory-page-clients .directory-field-NomCard {
+  width: 92px;
+  min-width: 92px;
+}
+
+.directory-page-clients .directory-field-Discount {
+  width: 96px;
+  min-width: 96px;
+}
+
+.directory-page-clients .directory-field-Phone {
+  width: 120px;
+  min-width: 120px;
+}
+
+.directory-page-clients .directory-field-Nom {
+  width: 100px;
+  min-width: 100px;
+}
+
+.directory-page-clients .directory-field-Bonus {
+  width: 76px !important;
+  min-width: 76px !important;
+  max-width: 76px !important;
+}
+
+.directory-page-clients .directory-field-Dolg0 {
+  width: 86px !important;
+  min-width: 86px !important;
+  max-width: 86px !important;
+}
+
+.directory-page-clients .directory-field-Birtday {
+  width: 122px;
+  min-width: 122px;
+  max-width: 122px;
+}
+
+.directory-page-clients .directory-field-email {
+  width: 165px;
+  min-width: 165px;
+}
+
+.directory-page-clients .directory-field-Rem {
+  width: 165px;
+  min-width: 165px;
+}
+
+
+/* =========================================================
+   2026-08-15 — 08.04 Groups в универсальном DirectoryPage
+   ========================================================= */
+.directory-page-groups {
+  --groups-name-width: 220px;
+  --groups-index-width: 92px;
+  --groups-parent-width: 190px;
+  --groups-sk-width: 58px;
+  --groups-table-min-width: 1372px;
+}
+
+.directory-page-groups .directory-toolbar {
+  width: 100%;
+  max-width: none;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.directory-page-groups .groups-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.directory-page-groups .groups-table .directory-field-Name {
+  width: var(--groups-name-width);
+  min-width: var(--groups-name-width);
+  max-width: var(--groups-name-width);
+}
+
+.directory-page-groups .groups-table .directory-field-Ind {
+  width: var(--groups-index-width) !important;
+  min-width: var(--groups-index-width) !important;
+  max-width: var(--groups-index-width) !important;
+}
+
+.directory-page-groups .groups-table .directory-field-IdGroup {
+  width: var(--groups-parent-width);
+  min-width: var(--groups-parent-width);
+  max-width: var(--groups-parent-width);
+}
+
+.directory-page-groups .groups-table .directory-select {
+  min-width: 0;
+}
+
+.directory-page-groups .groups-table .sk-head,
+.directory-page-groups .groups-table .sk-cell {
+  width: var(--groups-sk-width) !important;
+  min-width: var(--groups-sk-width) !important;
+  max-width: var(--groups-sk-width) !important;
+}
+
+.directory-page-groups .groups-table .directory-number-column.sk-head,
+.directory-page-groups .groups-table td.directory-number-column.sk-cell {
+  width: var(--groups-sk-width) !important;
+  min-width: var(--groups-sk-width) !important;
+  max-width: var(--groups-sk-width) !important;
+}
+
+@media (max-width: 1100px) {
+  .directory-page-groups {
+    --groups-name-width: 180px;
+    --groups-index-width: 78px;
+    --groups-parent-width: 160px;
+    --groups-sk-width: 52px;
+    --groups-table-min-width: 1198px;
+  }
+}
+
+
+/* =========================================================
+   2026-08-15 — 08.04 Groups: вертикальные границы скидок
+   ========================================================= */
+.directory-page-groups .groups-table th.sk-head,
+.directory-page-groups .groups-table td.sk-cell {
+  border-left: 1px solid #c9ced3 !important;
+  border-right: 1px solid #c9ced3 !important;
+}
+
+
+/* =========================================================
+   2026-08-15 — 08.03 Postav в универсальном DirectoryPage
+   ========================================================= */
+.directory-page-postav.directory-page-wide {
+  align-items: center;
+}
+
+.directory-page-postav .directory-toolbar,
+.directory-page-postav .suppliers-table-wrap {
+  width: 100%;
+  max-width: 1180px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.directory-page-postav .suppliers-table {
+  width: 100%;
+  min-width: 0 !important;
+  table-layout: fixed;
+}
+
+.directory-page-postav .suppliers-table .directory-field-Name {
+  width: 40% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+}
+
+.directory-page-postav .suppliers-table .directory-field-Phone {
+  width: 22% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+}
+
+.directory-page-postav .suppliers-table .directory-field-Dolg1,
+.directory-page-postav .suppliers-table .directory-field-Dolg2 {
+  width: 14% !important;
+  min-width: 90px !important;
+  max-width: none !important;
+}
+
+.directory-page-postav .suppliers-table .directory-field-Skr,
+.directory-page-postav .suppliers-table .directory-field-Slug {
+  width: 5% !important;
+  min-width: 42px !important;
+  max-width: 52px !important;
+}
+
+@media (max-width: 700px) {
+  .directory-page-postav .suppliers-table {
+    min-width: 760px !important;
+  }
+}
