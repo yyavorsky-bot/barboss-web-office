@@ -1,0 +1,290 @@
+/* 09.01 — Нерасчитанные столы */
+
+.nerasch-page {
+  min-width: 0;
+}
+
+.nerasch-toolbar {
+  margin-bottom: 10px;
+}
+
+.nerasch-toolbar .toolbar-left {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.nerasch-action-button {
+  min-height: 34px;
+  border-radius: 9px !important;
+  white-space: nowrap;
+}
+
+.nerasch-table-wrap {
+  overflow: auto;
+}
+
+.nerasch-table {
+  min-width: 900px;
+}
+
+.nerasch-table th.num,
+.nerasch-table td.num {
+  text-align: right;
+}
+
+.nerasch-table tbody tr {
+  cursor: pointer;
+}
+
+.nerasch-table tbody tr.selected-row td {
+  background: #dcece8 !important;
+}
+
+.nerasch-empty,
+.nerasch-report-state {
+  padding: 18px 14px;
+  color: #64748b;
+}
+
+.nerasch-report-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nerasch-toolbar-spacer {
+  flex: 1 1 auto;
+}
+
+.nerasch-report-sheet {
+  width: min(980px, 100%);
+  margin: 0 auto;
+  padding: 18px 20px 24px;
+  border: 1px solid #d9dfdb;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 6px 20px rgba(37, 60, 54, 0.08);
+}
+
+.nerasch-report-heading {
+  margin-bottom: 12px;
+}
+
+.nerasch-report-heading h2 {
+  margin: 0 0 9px;
+  text-align: center;
+  color: #243f39;
+  font-size: 20px;
+}
+
+.nerasch-report-meta {
+  display: flex;
+  gap: 8px;
+  margin: 3px 0;
+  font-size: 13px;
+}
+
+.nerasch-report-meta span {
+  min-width: 120px;
+  color: #66756f;
+}
+
+.nerasch-report-table-wrap {
+  overflow-x: auto;
+}
+
+.nerasch-report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.nerasch-report-table th,
+.nerasch-report-table td {
+  padding: 6px 8px;
+  border: 1px solid #d4ddd7;
+  vertical-align: top;
+}
+
+.nerasch-report-table th {
+  background: #edf4f1;
+  color: #334b44;
+  text-align: left;
+  font-weight: 700;
+}
+
+.nerasch-report-table th.num,
+.nerasch-report-table td.num {
+  text-align: right;
+}
+
+.nerasch-subtotal-row td {
+  background: #f5f8f6;
+  font-weight: 800;
+}
+
+.nerasch-subtotal-row td:first-child {
+  text-align: right;
+}
+
+.nerasch-bill-totals {
+  width: min(440px, 100%);
+  margin: 12px 0 0 auto;
+  border-top: 1px solid #cfd9d3;
+}
+
+.nerasch-bill-totals > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 5px 7px;
+}
+
+.nerasch-bill-totals > div.grand {
+  margin-top: 3px;
+  border-top: 1px solid #aebdb5;
+  background: #edf4f1;
+  font-weight: 800;
+}
+
+.nerasch-bill-parties {
+  display: grid;
+  gap: 5px;
+  margin-top: 16px;
+}
+
+.nerasch-bill-parties > div {
+  display: flex;
+  gap: 8px;
+}
+
+.nerasch-bill-parties span {
+  min-width: 90px;
+  color: #66756f;
+}
+
+.nerasch-group {
+  margin-top: 14px;
+}
+
+.nerasch-group-title {
+  padding: 6px 8px;
+  border: 1px solid #cbd9d3;
+  border-bottom: 0;
+  background: #dfece8;
+  color: #31564e;
+  font-weight: 800;
+}
+
+.nerasch-grand-total {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px 28px;
+  margin-top: 12px;
+  padding: 8px 10px;
+  border-top: 2px solid #9eb4aa;
+  background: #f4f8f6;
+}
+
+@media (max-width: 800px) {
+  .nerasch-report-sheet {
+    padding: 12px;
+  }
+
+  .nerasch-report-toolbar {
+    flex-wrap: wrap;
+  }
+
+  .nerasch-toolbar-spacer {
+    display: none;
+  }
+}
+
+
+/* =========================================================
+   2026-08-21 — 09.01 Нерасчитанные столы: контраст и отступы
+   ========================================================= */
+
+/* Компактную форму чуть отодвигаем от краёв рабочей области. */
+.nerasch-page:not(.nerasch-report-page) {
+  padding-left: clamp(18px, 3vw, 46px);
+  padding-right: clamp(18px, 3vw, 46px);
+}
+
+/* Основные пять действий — насыщенный фон, белый текст. */
+.nerasch-toolbar .nerasch-action-button {
+  border-color: transparent !important;
+  background: linear-gradient(
+    135deg,
+    #5b9189 0%,
+    #3f766f 100%
+  ) !important;
+  color: #ffffff !important;
+  font-weight: 700;
+  box-shadow: 0 4px 10px rgba(45, 91, 84, 0.18);
+}
+
+.nerasch-toolbar .nerasch-action-button:hover:not(:disabled) {
+  filter: brightness(1.07);
+  transform: translateY(-1px);
+}
+
+.nerasch-toolbar .nerasch-action-button:disabled {
+  opacity: 0.50;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Кнопки внутри отчётов, включая "Назад". */
+.nerasch-report-toolbar .report-action-button {
+  border-color: transparent !important;
+  border-radius: 8px !important;
+  background: linear-gradient(
+    135deg,
+    #5b9189 0%,
+    #3f766f 100%
+  ) !important;
+  color: #ffffff !important;
+  font-weight: 700;
+  box-shadow: 0 3px 8px rgba(45, 91, 84, 0.16);
+}
+
+.nerasch-report-toolbar .report-action-button:hover:not(:disabled) {
+  filter: brightness(1.07);
+}
+
+.nerasch-report-toolbar .report-action-button:disabled {
+  opacity: 0.50;
+  box-shadow: none;
+}
+
+/* "Назад" немного темнее, чтобы действие хорошо читалось. */
+.nerasch-report-toolbar .report-action-button:first-child {
+  background: linear-gradient(
+    135deg,
+    #496f69 0%,
+    #345953 100%
+  ) !important;
+  color: #ffffff !important;
+}
+
+@media (max-width: 800px) {
+  .nerasch-page:not(.nerasch-report-page) {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+}
+
+
+/* 09.01 — итог по сумме и авансам в основной таблице */
+.nerasch-main-total-row td {
+  background: #edf4f1 !important;
+  border-top: 2px solid #9eb4aa !important;
+  font-weight: 800;
+}
+
+.nerasch-main-total-row td:first-child {
+  text-align: right;
+}

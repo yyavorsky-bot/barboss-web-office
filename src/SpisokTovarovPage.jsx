@@ -13,6 +13,7 @@ export default function SpisokTovarovPage({
   recalcDate,
   onStartSebest,
   onCheckSebest,
+  fetchWithAuth,
   readOnly,
   onDirtyChange,
   t = (key, fallback = "") => fallback
@@ -30,6 +31,12 @@ export default function SpisokTovarovPage({
   const [recalcRunning, setRecalcRunning] = useState(false);
   const [recalcStatus, setRecalcStatus] = useState("");
   const [recalcError, setRecalcError] = useState("");
+
+  const [auditOpen, setAuditOpen] = useState(false);
+  const [auditRows, setAuditRows] = useState([]);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [auditError, setAuditError] = useState("");
+  const [selectedAuditId, setSelectedAuditId] = useState(null);
 
   const changedCount = Object.keys(changedRows).length;
   const isDirty = !readOnly && changedCount > 0;
@@ -156,6 +163,143 @@ export default function SpisokTovarovPage({
       }
     };
   }, [recalcRunning, onCheckSebest, t]);
+
+  const selectedAudit =
+    auditRows.find(
+      (row) =>
+        Number(row?.CodeSebList || 0) ===
+        Number(selectedAuditId || 0)
+    ) ??
+    auditRows[0] ??
+    null;
+
+  const selectedAuditList = Array.isArray(
+    selectedAudit?.List
+  )
+    ? selectedAudit.List
+    : [];
+
+  useEffect(() => {
+    if (!auditOpen) {
+      return undefined;
+    }
+
+    function handleAuditEscape(event) {
+      if (event.key === "Escape") {
+        setAuditOpen(false);
+      }
+    }
+
+    window.addEventListener(
+      "keydown",
+      handleAuditEscape
+    );
+
+    return () => {
+      window.removeEventListener(
+        "keydown",
+        handleAuditEscape
+      );
+    };
+  }, [auditOpen]);
+
+  async function openAudit() {
+    if (auditLoading || !fetchWithAuth) {
+      return;
+    }
+
+    setAuditOpen(true);
+    setAuditLoading(true);
+    setAuditError("");
+    setAuditRows([]);
+    setSelectedAuditId(null);
+
+    try {
+      const url = new URL(
+        "https://webback.bar-boss.com/wf_Directory.php"
+      );
+      url.searchParams.set("Action", "Audit");
+
+      const response = await fetchWithAuth(
+        url.toString(),
+        {
+          method: "GET"
+        }
+      );
+
+      const text = await response.text();
+      let result;
+
+      try {
+        result = text.trim()
+          ? JSON.parse(text)
+          : [];
+      } catch {
+        throw new Error(
+          t(
+            "SpisokTovarov.AuditInvalidResponse",
+            "Сервер вернул некорректный ответ аудита"
+          )
+        );
+      }
+
+      const statusItem =
+        !Array.isArray(result) &&
+        result &&
+        typeof result === "object"
+          ? result
+          : null;
+
+      if (
+        !response.ok ||
+        statusItem?.status === "error"
+      ) {
+        throw new Error(
+          statusItem?.error ||
+            statusItem?.message ||
+            t(
+              "SpisokTovarov.AuditLoadError",
+              "Ошибка загрузки аудита пересчёта себестоимости"
+            )
+        );
+      }
+
+      const normalizedRows =
+        Array.isArray(result)
+          ? result
+          : Array.isArray(result?.data)
+            ? result.data
+            : Array.isArray(result?.Data)
+              ? result.Data
+              : Array.isArray(result?.result)
+                ? result.result
+                : [];
+
+      setAuditRows(normalizedRows);
+
+      if (normalizedRows.length > 0) {
+        setSelectedAuditId(
+          Number(
+            normalizedRows[0]?.CodeSebList || 0
+          ) || null
+        );
+      }
+    } catch (err) {
+      setAuditError(
+        err?.message ||
+          t(
+            "SpisokTovarov.AuditLoadError",
+            "Ошибка загрузки аудита пересчёта себестоимости"
+          )
+      );
+    } finally {
+      setAuditLoading(false);
+    }
+  }
+
+  function closeAudit() {
+    setAuditOpen(false);
+  }
 
   function confirmDiscardChanges() {
     if (!isDirty) return true;
@@ -347,6 +491,17 @@ export default function SpisokTovarovPage({
         </div>
 
         <div className="toolbar-right">
+          <button
+            type="button"
+            className="toolbar-save-button spisok-tovarov-audit-button"
+            onClick={openAudit}
+            disabled={auditLoading || !fetchWithAuth}
+          >
+            {auditLoading
+              ? t("SpisokTovarov.AuditLoading", "Аудит...")
+              : t("SpisokTovarov.AuditButton", "Аудит пересчёта")}
+          </button>
+
           {!readOnly && (
             <div className="spisok-tovarov-recalc-controls">
               <label className="spisok-tovarov-recalc-check">
@@ -640,8 +795,360 @@ export default function SpisokTovarovPage({
           </table>
         </div>
       )}
+
+      {auditOpen && (
+        <div
+          className="spisok-tovarov-audit-overlay"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              closeAudit();
+            }
+          }}
+        >
+          <section
+            className="spisok-tovarov-audit-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="spisok-tovarov-audit-title"
+          >
+            <div className="spisok-tovarov-audit-header">
+              <div>
+                <h3 id="spisok-tovarov-audit-title">
+                  {t(
+                    "SpisokTovarov.AuditTitle",
+                    "Аудит пересчёта себестоимости"
+                  )}
+                </h3>
+                <div className="spisok-tovarov-audit-subtitle">
+                  {t(
+                    "SpisokTovarov.AuditSubtitle",
+                    "История запусков пересчёта себестоимости"
+                  )}
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className="spisok-tovarov-audit-close"
+                onClick={closeAudit}
+              >
+                {t(
+                  "SpisokTovarov.AuditClose",
+                  "Закрыть"
+                )}
+              </button>
+            </div>
+
+            {auditLoading && (
+              <div className="spisok-tovarov-audit-loading">
+                {t(
+                  "SpisokTovarov.AuditLoadingText",
+                  "Загружаем аудит..."
+                )}
+              </div>
+            )}
+
+            {auditError && (
+              <div className="spisok-tovarov-audit-error">
+                {auditError}
+              </div>
+            )}
+
+            {!auditLoading &&
+              !auditError &&
+              auditRows.length === 0 && (
+                <div className="spisok-tovarov-audit-empty">
+                  {t(
+                    "SpisokTovarov.AuditEmpty",
+                    "Записей аудита нет."
+                  )}
+                </div>
+              )}
+
+            {!auditLoading &&
+              !auditError &&
+              auditRows.length > 0 && (
+                <>
+                  <div className="spisok-tovarov-audit-table-wrap">
+                    <table className="spisok-tovarov-audit-table">
+                      <thead>
+                        <tr>
+                          <th>
+                            {t(
+                              "SpisokTovarov.AuditCostDate",
+                              "Себестоимость с"
+                            )}
+                          </th>
+                          <th>
+                            {t(
+                              "SpisokTovarov.AuditMode",
+                              "Пересчёт"
+                            )}
+                          </th>
+                          <th>
+                            {t(
+                              "SpisokTovarov.AuditStarted",
+                              "Запуск"
+                            )}
+                          </th>
+                          <th>
+                            {t(
+                              "SpisokTovarov.AuditFinishedAt",
+                              "Завершение"
+                            )}
+                          </th>
+                          <th className="num">
+                            {t(
+                              "SpisokTovarov.AuditDuration",
+                              "Время"
+                            )}
+                          </th>
+                          <th>
+                            {t(
+                              "SpisokTovarov.AuditUser",
+                              "Пользователь"
+                            )}
+                          </th>
+                          <th className="num">
+                            {t(
+                              "SpisokTovarov.AuditDishes",
+                              "Блюд"
+                            )}
+                          </th>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {auditRows.map((row) => {
+                          const id = Number(
+                            row?.CodeSebList || 0
+                          );
+                          const detailList =
+                            Array.isArray(row?.List)
+                              ? row.List
+                              : [];
+                          const isSelected =
+                            id ===
+                            Number(
+                              selectedAudit?.CodeSebList ||
+                                0
+                            );
+
+                          return (
+                            <tr
+                              key={
+                                id ||
+                                `${row?.dat ?? ""}-${row?.UserName ?? ""}`
+                              }
+                              className={
+                                isSelected
+                                  ? "selected-row"
+                                  : ""
+                              }
+                              onClick={() =>
+                                setSelectedAuditId(
+                                  id || null
+                                )
+                              }
+                            >
+                              <td>
+                                {formatAuditDate(
+                                  row?.DateSeb
+                                )}
+                              </td>
+                              <td>
+                                {row?.CalkList
+                                  ? t(
+                                      "SpisokTovarov.AuditSelectedMode",
+                                      "Отобранные блюда"
+                                    )
+                                  : t(
+                                      "SpisokTovarov.AuditFullMode",
+                                      "Полный"
+                                    )}
+                              </td>
+                              <td>
+                                {formatAuditDateTime(
+                                  row?.dat
+                                )}
+                              </td>
+                              <td>
+                                {formatAuditDateTime(
+                                  row?.EndOK
+                                )}
+                              </td>
+                              <td className="num">
+                                {formatAuditDuration(
+                                  row?.TimeR
+                                )}
+                              </td>
+                              <td>
+                                {String(
+                                  row?.UserName ?? ""
+                                ).trim() || "—"}
+                              </td>
+                              <td className="num">
+                                {row?.CalkList
+                                  ? detailList.length
+                                  : ""}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {selectedAudit?.CalkList && (
+                    <div className="spisok-tovarov-audit-details">
+                      <div className="spisok-tovarov-audit-details-title">
+                        {t(
+                          "SpisokTovarov.AuditSelectedDishes",
+                          "Отобранные блюда"
+                        )}
+                        : {selectedAuditList.length}
+                      </div>
+
+                      {selectedAuditList.length > 0 ? (
+                        <div className="spisok-tovarov-audit-details-wrap">
+                          <table className="spisok-tovarov-audit-details-table">
+                            <thead>
+                              <tr>
+                                <th>
+                                  {t(
+                                    "SpisokTovarov.AuditDishName",
+                                    "Наименование"
+                                  )}
+                                </th>
+                                <th>
+                                  {t(
+                                    "SpisokTovarov.AuditWarehouse",
+                                    "Склад"
+                                  )}
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {selectedAuditList.map(
+                                (item, index) => (
+                                  <tr
+                                    key={`${selectedAudit?.CodeSebList ?? "audit"}-${index}-${item?.["Наименование"] ?? ""}`}
+                                  >
+                                    <td>
+                                      {String(
+                                        item?.["Наименование"] ??
+                                          ""
+                                      ).trim() || "—"}
+                                    </td>
+                                    <td>
+                                      {String(
+                                        item?.["Склад"] ??
+                                          ""
+                                      ).trim() || "—"}
+                                    </td>
+                                  </tr>
+                                )
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <div className="spisok-tovarov-audit-empty-details">
+                          {t(
+                            "SpisokTovarov.AuditNoSelectedDishes",
+                            "Список отобранных блюд пуст."
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+          </section>
+        </div>
+      )}
     </div>
   );
+}
+
+function formatAuditDate(value) {
+  const text = String(value ?? "").trim();
+
+  if (!text) {
+    return "—";
+  }
+
+  const match = text.match(
+    /^(\d{4})-(\d{2})-(\d{2})/
+  );
+
+  if (!match) {
+    return text;
+  }
+
+  return `${match[3]}.${match[2]}.${match[1]}`;
+}
+
+function formatAuditDateTime(value) {
+  const text = String(value ?? "").trim();
+
+  if (!text) {
+    return "—";
+  }
+
+  const match = text.match(
+    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/
+  );
+
+  if (!match) {
+    return text;
+  }
+
+  return `${match[3]}.${match[2]}.${match[1]} ${match[4]}:${match[5]}:${match[6]}`;
+}
+
+function formatAuditDuration(value) {
+  const text = String(value ?? "").trim();
+
+  if (!text) {
+    return "—";
+  }
+
+  const match = text.match(
+    /^(\d+):(\d{2}):(\d{2})(?:\.(\d+))?$/
+  );
+
+  if (!match) {
+    return text;
+  }
+
+  const hours = Number(match[1] || 0);
+  const minutes = Number(match[2] || 0);
+  const seconds = Number(match[3] || 0);
+  const fraction = Number(`0.${match[4] || "0"}`);
+
+  const roundedTotalSeconds = Math.round(
+    hours * 3600 +
+      minutes * 60 +
+      seconds +
+      fraction
+  );
+
+  const roundedHours = Math.floor(
+    roundedTotalSeconds / 3600
+  );
+  const roundedMinutes = Math.floor(
+    (roundedTotalSeconds % 3600) / 60
+  );
+  const roundedSeconds =
+    roundedTotalSeconds % 60;
+
+  return [
+    String(roundedHours).padStart(2, "0"),
+    String(roundedMinutes).padStart(2, "0"),
+    String(roundedSeconds).padStart(2, "0")
+  ].join(":");
 }
 
 function buildTovarovXml(rows) {

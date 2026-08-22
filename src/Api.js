@@ -142,7 +142,11 @@ export async function loadCeh(accessToken) {
 }
 
 export async function loadFop(accessToken) {
-  return apiGet("wf_Fops.php", accessToken);
+  const response = await fetchWithAuth(
+    "https://webback.bar-boss.com/wf_Directory.php?Action=Fop"
+  );
+
+  return await response.json();
 }
 
 export async function loadTypDish(accessToken) {

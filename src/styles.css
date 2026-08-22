@@ -1486,7 +1486,7 @@ select {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 17px 18px 13px;
+  padding: 13px 16px 10px;
   border-bottom: 1px solid rgba(78, 94, 73, 0.09);
 }
 
@@ -1514,7 +1514,9 @@ select {
 .home-action-list {
   display: flex;
   flex-direction: column;
-  padding: 7px;
+  gap: 2px;
+  padding: 5px 7px 7px;
+  background: #fbfcfa;
 }
 
 .home-action-button {
@@ -1523,13 +1525,14 @@ select {
   justify-content: space-between;
   gap: 14px;
   width: 100%;
-  padding: 11px 12px;
+  padding: 5px 10px;
   border: 0;
-  border-radius: 10px;
-  background: transparent;
+  border-radius: 8px;
+  background: #f5f8f3;
   color: #4b5848;
   font: inherit;
   font-size: 14px;
+  line-height: 1.15;
   text-align: left;
   cursor: pointer;
   transition: background-color 120ms ease,
@@ -1538,7 +1541,7 @@ select {
 }
 
 .home-action-button:hover {
-  background: #f0f4ee;
+  background: #edf3e9;
   color: #2f402c;
   transform: translateX(2px);
 }
@@ -13983,5 +13986,306 @@ html body .app-shell > .top-bar {
 @media (max-width: 700px) {
   .directory-page-postav .suppliers-table {
     min-width: 760px !important;
+  }
+}
+
+
+/* =========================================================
+   2026-08-20 — Dishes: контрастные служебные кнопки
+   Главная панель + раскрывающиеся пункты "Печать меню".
+   ========================================================= */
+
+/* Служебные действия в верхней строке списка блюд.
+   "Добавить" и "Сохранить" не трогаем — у них уже свои акцентные цвета. */
+.dishes-page .dishes-main-toolbar .dishes-print-menu-button,
+.dishes-page .dishes-main-toolbar .dishes-dish-card-button,
+.dishes-page .dishes-main-toolbar .dishes-happy-button,
+.dishes-page .dishes-main-toolbar .dishes-copy-button,
+.dishes-page .dishes-main-toolbar .dishes-production-button {
+  border-color: transparent !important;
+  background: linear-gradient(
+    135deg,
+    #5b9189 0%,
+    #3f766f 100%
+  ) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 10px rgba(45, 91, 84, 0.20) !important;
+  transition:
+    transform 120ms ease,
+    filter 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.dishes-page .dishes-main-toolbar .dishes-print-menu-button:hover:not(:disabled),
+.dishes-page .dishes-main-toolbar .dishes-dish-card-button:hover:not(:disabled),
+.dishes-page .dishes-main-toolbar .dishes-happy-button:hover:not(:disabled),
+.dishes-page .dishes-main-toolbar .dishes-copy-button:hover:not(:disabled),
+.dishes-page .dishes-main-toolbar .dishes-production-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.07);
+  box-shadow: 0 6px 13px rgba(45, 91, 84, 0.25) !important;
+}
+
+/* Открытая "Печать меню" / "Копировать калькуляцию" визуально заметнее. */
+.dishes-page .dishes-main-toolbar .dishes-print-menu-button.is-active,
+.dishes-page .dishes-main-toolbar .dishes-copy-button.is-active {
+  border-color: transparent !important;
+  background: linear-gradient(
+    135deg,
+    #356b64 0%,
+    #28564f 100%
+  ) !important;
+  color: #ffffff !important;
+  box-shadow:
+    0 5px 12px rgba(31, 76, 69, 0.27),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.18) !important;
+}
+
+/* Панель вариантов, появляющаяся после "Печать меню". */
+.dishes-page .dishes-print-menu-panel {
+  padding: 9px 10px !important;
+  border: 1px solid #9fc8c1 !important;
+  border-radius: 9px !important;
+  background: linear-gradient(
+    135deg,
+    #eef8f6 0%,
+    #e2f0ed 100%
+  ) !important;
+  box-shadow: 0 4px 11px rgba(52, 101, 94, 0.12);
+}
+
+/* Сами пять вариантов печати: уже не белые, но и не конкурируют
+   по насыщенности с главной панелью действий. */
+.dishes-page .dishes-print-menu-option {
+  min-height: 31px;
+  padding: 4px 11px;
+  border: 1px solid #83b5ad !important;
+  border-radius: 6px !important;
+  background: #d3e9e5 !important;
+  color: #244f49 !important;
+  font-weight: 700;
+  box-shadow: 0 2px 5px rgba(50, 98, 91, 0.10);
+  transition:
+    transform 120ms ease,
+    background 120ms ease,
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.dishes-page .dishes-print-menu-option:hover {
+  transform: translateY(-1px);
+  border-color: #5f9b91 !important;
+  background: #c0ddd7 !important;
+  color: #183f39 !important;
+  box-shadow: 0 4px 8px rgba(50, 98, 91, 0.16);
+}
+
+
+/* =========================================================
+   2026-08-20 — Список сырья / Аудит пересчёта себестоимости
+   ========================================================= */
+
+.spisok-tovarov-audit-button {
+  border-color: transparent !important;
+  border-radius: 9px !important;
+  background: linear-gradient(
+    135deg,
+    #5b9189 0%,
+    #3f766f 100%
+  ) !important;
+  color: #ffffff !important;
+  font-weight: 700;
+  box-shadow: 0 4px 10px rgba(45, 91, 84, 0.18);
+}
+
+.spisok-tovarov-audit-button:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+.spisok-tovarov-audit-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(20, 29, 27, 0.42);
+}
+
+.spisok-tovarov-audit-dialog {
+  width: min(1120px, 96vw);
+  max-height: min(820px, 92vh);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(74, 113, 106, 0.30);
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 24px 70px rgba(22, 38, 34, 0.26);
+}
+
+.spisok-tovarov-audit-header {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 13px 16px;
+  border-bottom: 1px solid #cfd9d2;
+  background: linear-gradient(
+    135deg,
+    #e5f2ef 0%,
+    #d7e9e5 100%
+  );
+}
+
+.spisok-tovarov-audit-header h3 {
+  margin: 0;
+  color: #274941;
+  font-size: 18px;
+}
+
+.spisok-tovarov-audit-subtitle {
+  margin-top: 3px;
+  color: #667870;
+  font-size: 12px;
+}
+
+.spisok-tovarov-audit-close {
+  min-height: 31px;
+  padding: 0 13px;
+  border: 1px solid #87aaa3;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #315f5a;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.spisok-tovarov-audit-close:hover {
+  background: #f2f8f6;
+}
+
+.spisok-tovarov-audit-loading,
+.spisok-tovarov-audit-empty,
+.spisok-tovarov-audit-error {
+  padding: 18px 16px;
+}
+
+.spisok-tovarov-audit-loading,
+.spisok-tovarov-audit-empty {
+  color: #64748b;
+}
+
+.spisok-tovarov-audit-error {
+  color: #991b1b;
+  background: #fff1f2;
+}
+
+.spisok-tovarov-audit-table-wrap {
+  flex: 0 1 auto;
+  min-height: 0;
+  max-height: 430px;
+  overflow: auto;
+  border-bottom: 1px solid #d7ded9;
+}
+
+.spisok-tovarov-audit-table,
+.spisok-tovarov-audit-details-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.spisok-tovarov-audit-table th,
+.spisok-tovarov-audit-table td,
+.spisok-tovarov-audit-details-table th,
+.spisok-tovarov-audit-details-table td {
+  padding: 6px 8px;
+  border: 1px solid #d8ded9;
+  vertical-align: top;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.spisok-tovarov-audit-table th,
+.spisok-tovarov-audit-details-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #edf3f0;
+  color: #33473f;
+  font-weight: 700;
+}
+
+.spisok-tovarov-audit-table tbody tr {
+  cursor: pointer;
+}
+
+.spisok-tovarov-audit-table tbody tr:hover td {
+  background: #f4f8f6;
+}
+
+.spisok-tovarov-audit-table tbody tr.selected-row td {
+  background: #d9ebe6 !important;
+}
+
+.spisok-tovarov-audit-table .num,
+.spisok-tovarov-audit-details-table .num {
+  text-align: right;
+}
+
+.spisok-tovarov-audit-details {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 12px 16px 16px;
+  overflow: hidden;
+  background: #fbfcfb;
+}
+
+.spisok-tovarov-audit-details-title {
+  margin-bottom: 7px;
+  color: #36564e;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.spisok-tovarov-audit-details-wrap {
+  max-height: 260px;
+  overflow: auto;
+  border: 1px solid #d4ddd7;
+  border-radius: 6px;
+  background: #ffffff;
+}
+
+.spisok-tovarov-audit-details-table th:first-child,
+.spisok-tovarov-audit-details-table td:first-child {
+  width: 72%;
+  white-space: normal;
+}
+
+.spisok-tovarov-audit-empty-details {
+  padding: 10px 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+@media (max-width: 800px) {
+  .spisok-tovarov-audit-overlay {
+    padding: 10px;
+  }
+
+  .spisok-tovarov-audit-dialog {
+    width: 100%;
+    max-height: 96vh;
+  }
+
+  .spisok-tovarov-audit-table-wrap {
+    overflow-x: auto;
+  }
+
+  .spisok-tovarov-audit-table {
+    min-width: 900px;
   }
 }

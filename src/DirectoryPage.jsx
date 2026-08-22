@@ -355,8 +355,15 @@ export default function DirectoryPage({
   );
 
   const visibleColumns = useMemo(
-    () => columns.filter((column) => !column.hidden),
-    [columns]
+    () =>
+      columns.filter((column) => {
+        if (typeof column?.hidden === "function") {
+          return !column.hidden({ context });
+        }
+
+        return !column.hidden;
+      }),
+    [columns, context]
   );
 
   const normalizedToolbarActions = Array.isArray(toolbarActions)
@@ -665,12 +672,129 @@ export default function DirectoryPage({
 
     if (xmlGroups.length > 0) {
       const xmlRoot = config?.xmlRoot || config?.apiAction || "Directory";
+      const normalizedApiAction = String(config?.apiAction ?? "")
+        .trim()
+        .toLowerCase();
+
+      const optionalSupplementalSections =
+        ["personal", "clients", "postav"].includes(normalizedApiAction)
+          ? new Set(["cardspdop", "cardssald"])
+          : new Set();
+
+      function getSupplementalContentFields(group) {
+        const section = String(group?.section ?? "")
+          .trim()
+          .toLowerCase();
+
+        if (!optionalSupplementalSections.has(section)) {
+          return null;
+        }
+
+        return group.fields.filter((fieldName) => {
+          if (fieldName === idField) {
+            return false;
+          }
+
+          // CardsSald: org identifies the organization, but by itself
+          // does not mean that a supplemental row has useful data.
+          if (section === "cardssald" && fieldName === "org") {
+            return false;
+          }
+
+          return true;
+        });
+      }
+
+      function isSupplementalFieldEmpty(row, fieldName) {
+        const column = columns.find((item) => item.field === fieldName);
+        const defaultValue = getColumnDefaultValue(column);
+        const rawValue =
+          row?.[fieldName] !== null && row?.[fieldName] !== undefined
+            ? row[fieldName]
+            : defaultValue ?? "";
+
+        if (column?.type === "boolean") {
+          return !normalizeBoolean(rawValue);
+        }
+
+        if (column?.type === "nullable-number") {
+          return (
+            rawValue === null ||
+            rawValue === undefined ||
+            String(rawValue).trim() === ""
+          );
+        }
+
+        return String(rawValue ?? "").trim() === "";
+      }
+
+      function supplementalFieldChanged(row, fieldName) {
+        if (row.__isNew) {
+          return false;
+        }
+
+        const original = originalRowsRef.current.get(row.__rowKey);
+
+        if (!original) {
+          return false;
+        }
+
+        const column = columns.find((item) => item.field === fieldName);
+
+        return (
+          comparableValue(row?.[fieldName], column?.type) !==
+          comparableValue(original?.[fieldName], column?.type)
+        );
+      }
+
+      function shouldSerializeGroupRow(row, group) {
+        const contentFields = getSupplementalContentFields(group);
+
+        // Main sections and all other directory sections keep the old behavior.
+        if (!contentFields) {
+          return true;
+        }
+
+        // A supplemental row is needed when it currently contains real data.
+        if (
+          contentFields.some(
+            (fieldName) => !isSupplementalFieldEmpty(row, fieldName)
+          )
+        ) {
+          return true;
+        }
+
+        // Existing rows must still be sent when a user cleared supplemental
+        // fields, otherwise the old values would remain in SQL Server.
+        if (
+          !row.__isNew &&
+          contentFields.some((fieldName) =>
+            supplementalFieldChanged(row, fieldName)
+          )
+        ) {
+          return true;
+        }
+
+        // New row + completely empty supplemental data:
+        // do not send CardsPDop/CardsSald with a temporary negative ID.
+        return false;
+      }
+
       let body = `<${xmlRoot}>`;
 
       xmlGroups.forEach((group) => {
+        const groupRows = changedRows.filter((row) =>
+          shouldSerializeGroupRow(row, group)
+        );
+
+        // If an optional supplemental block has no rows, omit the whole block.
+        if (groupRows.length === 0) {
+          return;
+        }
+
         body += `<${group.section}>`;
 
-        changedRows.forEach((row) => {
+        groupRows.forEach((row) => {
           body += "<row>";
 
           group.fields.forEach((fieldName) => {

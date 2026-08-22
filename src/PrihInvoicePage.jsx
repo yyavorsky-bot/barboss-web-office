@@ -843,10 +843,124 @@ function normalizeSupplierSearch(value, locale) {
     .toLocaleLowerCase(locale);
 }
 
+function getInvoiceSupplierId(data) {
+  return Number(
+    data?.Post ??
+      data?.IdPost ??
+      data?.IDPost ??
+      data?.PostID ??
+      data?.IdPostav ??
+      0
+  );
+}
+
+function getInvoiceSupplierName(data) {
+  const directName =
+    data?.NamePost ??
+    data?.["Поставщик"] ??
+    data?.SupplierName ??
+    data?.Supplier ??
+    "";
+
+  if (String(directName ?? "").trim()) {
+    return String(directName).trim();
+  }
+
+  const postav = data?.Postav;
+
+  if (
+    typeof postav === "string" &&
+    postav.trim() &&
+    !/^\d+$/.test(postav.trim())
+  ) {
+    return postav.trim();
+  }
+
+  return "";
+}
+
+function getSupplierNameById(list, id) {
+  const supplier = (Array.isArray(list) ? list : []).find(
+    (item) => Number(item?.ID || 0) === Number(id || 0)
+  );
+
+  return String(supplier?.Name ?? "");
+}
+
+function getSupplierIdByName(list, name, locale = "ru-RU") {
+  const normalizedName =
+    normalizeSupplierSearch(name, locale);
+
+  if (!normalizedName) {
+    return 0;
+  }
+
+  const supplier = (Array.isArray(list) ? list : []).find(
+    (item) =>
+      normalizeSupplierSearch(
+        item?.Name,
+        locale
+      ) === normalizedName
+  );
+
+  return Number(supplier?.ID || 0);
+}
+
+async function loadInvoiceSupplierOptions({
+  supplierOptions,
+  currentOrg,
+  fetchWithAuth
+}) {
+  if (
+    Array.isArray(supplierOptions) &&
+    supplierOptions.length > 0
+  ) {
+    return supplierOptions;
+  }
+
+  const url = new URL(
+    "https://webback.bar-boss.com/wf_Directory.php"
+  );
+
+  url.searchParams.set("Action", "Postav");
+  url.searchParams.set(
+    "org",
+    String(Number(currentOrg || 0))
+  );
+
+  const response = await fetchWithAuth(
+    url.toString(),
+    { method: "GET" }
+  );
+
+  const text = await response.text();
+
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error(
+      "Поставщики вернули не JSON: " +
+        text.substring(0, 300)
+    );
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      data?.error ||
+        data?.message ||
+        "Ошибка загрузки поставщиков"
+    );
+  }
+
+  return Array.isArray(data) ? data : [];
+}
+
 function SupplierSearch({
   value,
   options,
   placeholder,
+  fallbackText = "",
   disabled = false,
   onChange,
   t = (key, fallback = "") => fallback,
@@ -863,7 +977,9 @@ function SupplierSearch({
     [supplierList, value]
   );
 
-  const selectedText = selected?.Name || "";
+  const selectedText =
+    selected?.Name ||
+    String(fallbackText ?? "").trim();
   const [text, setText] = useState(selectedText);
   const [open, setOpen] = useState(false);
 
@@ -1190,9 +1306,12 @@ function PrihInvoicePrintReport({
 export default function PrihInvoicePage({
   invoiceId,
   initialInvoice = null,
+  invoiceListRow = null,
   mode = "edit",
   invoiceKind = "prih",
   currentSklad = "",
+  currentOrg = 0,
+  supplierOptions = [],
   login = "",
   fetchWithAuth,
   onBack,
@@ -1371,7 +1490,12 @@ useEffect(() => {
         IdSklPer: Number(invoiceData.IdSklPer || 0),
         IdSkl: Number(invoiceData.IdSkl || 0),
         Oplach: Boolean(invoiceData.Oplach),
-        Post: Number(invoiceData.Post || 0),
+        Post:
+          getInvoiceSupplierId(invoiceData) ||
+          getInvoiceSupplierId(invoiceListRow),
+        SupplierName:
+          getInvoiceSupplierName(invoiceData) ||
+          getInvoiceSupplierName(invoiceListRow),
         Form: Number(invoiceData.Form || 0),
         Bel: Boolean(invoiceData.Bel),
         Vozv: Boolean(Number(invoiceData.Vozv ?? 0)),
@@ -1422,25 +1546,48 @@ useEffect(() => {
         ? await zachGrossResponse.json()
         : [];
 
-      setHeader(normalizedHeader);
+      let resolvedHeader = normalizedHeader;
+
+      const loadedPostList =
+        await loadInvoiceSupplierOptions({
+          supplierOptions,
+          currentOrg,
+          fetchWithAuth
+        });
+
+      if (
+        Number(resolvedHeader.Post || 0) <= 0 &&
+        String(resolvedHeader.SupplierName ?? "").trim()
+      ) {
+        const supplierId = getSupplierIdByName(
+          loadedPostList,
+          resolvedHeader.SupplierName,
+          locale
+        );
+
+        if (supplierId > 0) {
+          resolvedHeader = {
+            ...resolvedHeader,
+            Post: supplierId
+          };
+        }
+      }
+
+      setHeader(resolvedHeader);
       setRows(loadedRows);
       setSklList(Array.isArray(sklData) ? sklData : []);
       setFormList(Array.isArray(formData) ? formData : []);
       setRawList(normalizeRawList(rawData));
       setZachGrossList(normalizeZachGrossList(zachGrossData));
+      setPostList(loadedPostList);
       setDeletedIds([]);
 
-      setOriginalState(normalizeInvoiceState(normalizedHeader, loadedRows));
-
-      if (Number(normalizedHeader.Post || 0) > 0) {
-        const postResponse = await fetchWithAuth(
-          "https://webback.bar-boss.com/wf_Postav.php?org=0"
-        );
-
-        const postData = await postResponse.json();
-
-        setPostList(Array.isArray(postData) ? postData : []);
-      }
+      setOriginalState(
+        normalizeInvoiceState(
+          resolvedHeader,
+          loadedRows
+        )
+      );
     } catch (err) {
       setError(err.message || t("PrihInvoice.LoadError", "Ошибка загрузки приходной накладной"));
     } finally {
@@ -1475,13 +1622,17 @@ const rawUrl =
 
 const [
   sklResponse,
-  postResponse,
+  postData,
   formResponse,
   rawResponse,
   zachGrossResponse
 ] = await Promise.all([
   fetchWithAuth("https://webback.bar-boss.com/wf_Podrazd.php"),
-  fetchWithAuth("https://webback.bar-boss.com/wf_Postav.php?org=0"),
+  loadInvoiceSupplierOptions({
+    supplierOptions,
+    currentOrg,
+    fetchWithAuth
+  }),
   fetchWithAuth("https://webback.bar-boss.com/wf_Valuts.php"),
   fetchWithAuth(rawUrl),
   isNew && loadedKind === "zach"
@@ -1490,7 +1641,6 @@ const [
 ]);
 
     const sklData = await sklResponse.json();
-    const postData = await postResponse.json();
     const formData = await formResponse.json();
     const rawData = await rawResponse.json();
     const zachGrossData = zachGrossResponse
@@ -1498,7 +1648,7 @@ const [
       : [];
 
 
-    const normalizedHeader = {
+    let normalizedHeader = {
       ...invoiceData,
       ID: Number(invoiceData.ID || 0),
       Invoice: invoiceData.Invoice || "",
@@ -1509,7 +1659,12 @@ const [
       IdSklPer: Number(invoiceData.IdSklPer || 0),
       IdSkl: Number(invoiceData.IdSkl || 0),
       Oplach: Boolean(invoiceData.Oplach),
-      Post: Number(invoiceData.Post || 0),
+      Post:
+          getInvoiceSupplierId(invoiceData) ||
+          getInvoiceSupplierId(invoiceListRow),
+        SupplierName:
+          getInvoiceSupplierName(invoiceData) ||
+          getInvoiceSupplierName(invoiceListRow),
       Form: Number(invoiceData.Form || 0),
       Bel: Boolean(invoiceData.Bel),
       Vozv: Boolean(Number(invoiceData.Vozv ?? 0)),
@@ -1517,6 +1672,24 @@ const [
       pf: normalizeBooleanValue(invoiceData.pf ?? invoiceData.Pf),
       zach: normalizeBooleanValue(invoiceData.zach ?? invoiceData.Zach)
     };
+
+    if (
+      Number(normalizedHeader.Post || 0) <= 0 &&
+      String(normalizedHeader.SupplierName ?? "").trim()
+    ) {
+      const supplierId = getSupplierIdByName(
+        postData,
+        normalizedHeader.SupplierName,
+        locale
+      );
+
+      if (supplierId > 0) {
+        normalizedHeader = {
+          ...normalizedHeader,
+          Post: supplierId
+        };
+      }
+    }
 
     const loadedRows = ensureSpecialRow(
       Array.isArray(invoiceData.items)
@@ -1921,6 +2094,16 @@ async function handleOpenPrintPreview() {
       header?.Invoice || "",
       idNakl
     );
+
+    if (!normalizedReport.Supplier) {
+      normalizedReport.Supplier =
+        getSupplierNameById(
+          postList,
+          header?.Post
+        ) ||
+        String(header?.SupplierName ?? "").trim() ||
+        getInvoiceSupplierName(invoiceListRow);
+    }
 
     if (isMoveInvoice) {
       normalizedReport.Kind = "move";
@@ -3210,17 +3393,31 @@ async function handleSave() {
   <SupplierSearch
     value={Number(header.Post || 0)}
     options={postList}
+    fallbackText={
+      header.SupplierName ||
+      getInvoiceSupplierName(invoiceListRow)
+    }
     placeholder={
       isNewMode
         ? t("PrihInvoice.SupplierSearchPlaceholder", "Начните вводить поставщика...")
         : t("PrihInvoice.NoSupplier", "Нет поставщика")
     }
-    disabled={!isNewMode && Number(header.Post || 0) === 0}
     t={t}
     locale={locale}
-    onChange={(value) =>
-      updateHeaderField("Post", Number(value || 0))
-    }
+    onChange={(value) => {
+      const supplierId = Number(value || 0);
+
+      updateHeaderField("Post", supplierId);
+      updateHeaderField(
+        "SupplierName",
+        supplierId
+          ? getSupplierNameById(
+              postList,
+              supplierId
+            )
+          : ""
+      );
+    }}
   />
 </label>
 

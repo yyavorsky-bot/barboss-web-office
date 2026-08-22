@@ -37,6 +37,10 @@ import OrdersDayPage from "./OrdersDayPage";
 import SchetViewPage from "./SchetViewPage";
 import DirectoryPage from "./DirectoryPage";
 import SubdivisionsPage from "./SubdivisionsPage";
+import ReportsPage from "./ReportsPage";
+import NeraschPage from "./NeraschPage";
+import SystemParametersPage from "./SystemParametersPage";
+import UsersPage from "./UsersPage";
 import "./styles.css";
 import "./prih-invoice-report.css";
 
@@ -50,6 +54,79 @@ function normalizeMenuActionKey(action) {
 
 function normalizeMenuCode(value) {
   return String(value ?? "").trim();
+}
+
+function getSkladCode(sklad) {
+  return String(
+    sklad?.Code ?? sklad?.ID ?? ""
+  );
+}
+
+function getSkladOrgCode(sklad) {
+  return String(
+    sklad?.Org ?? ""
+  ).trim();
+}
+
+function filterSkladsByOrg(sklads, org) {
+  const normalizedOrg = String(
+    org ?? "0"
+  ).trim();
+
+  if (
+    normalizedOrg === "" ||
+    normalizedOrg === "0"
+  ) {
+    return Array.isArray(sklads)
+      ? sklads
+      : [];
+  }
+
+  return (Array.isArray(sklads)
+    ? sklads
+    : []
+  ).filter(
+    (sklad) =>
+      getSkladOrgCode(sklad) ===
+      normalizedOrg
+  );
+}
+
+function getMenuChildren(item) {
+  const children =
+    item?.items ??
+    item?.Items ??
+    item?.Level3 ??
+    item?.level3 ??
+    [];
+
+  return Array.isArray(children) ? children : [];
+}
+
+function isMenuItemHiddenForLanguage(item, language) {
+  const code = normalizeMenuCode(item?.Code ?? item?.code);
+  const normalizedLanguage = normalizeLanguage(language);
+
+  if (
+    code === "05.01.16" &&
+    !["ru", "uk"].includes(normalizedLanguage)
+  ) {
+    return true;
+  }
+
+  const children = getMenuChildren(item);
+
+  if (children.length === 0) {
+    return false;
+  }
+
+  const hasVisibleChildren = children.some(
+    (child) => !isMenuItemHiddenForLanguage(child, language)
+  );
+
+  const action = item?.action ?? item?.Action ?? "";
+
+  return !hasVisibleChildren && !Boolean(action);
 }
 
 function menuItemMatchesSelection(item, selectedAction, selectedMenuCode) {
@@ -70,7 +147,7 @@ function menuItemMatchesSelection(item, selectedAction, selectedMenuCode) {
 }
 
 function menuItemContainsSelection(item, selectedAction, selectedMenuCode) {
-  const items = item?.items ?? item?.Items ?? [];
+  const items = getMenuChildren(item);
 
   if (menuItemMatchesSelection(item, selectedAction, selectedMenuCode)) {
     return true;
@@ -88,14 +165,17 @@ function MenuItem({
   level = 0,
   onSelect,
   selectedAction,
-  selectedMenuCode
+  selectedMenuCode,
+  language
 }) {
   const [isOpen, setIsOpen] = useState(false);
 
   const name = item.name ?? item.Name ?? "";
   const action = item.action ?? item.Action ?? "";
   const code = item.Code ?? item.code ?? "";
-  const items = item.items ?? item.Items ?? [];
+  const items = getMenuChildren(item).filter(
+    (child) => !isMenuItemHiddenForLanguage(child, language)
+  );
 
   const hasItems = Array.isArray(items) && items.length > 0;
   const hasAction = Boolean(action);
@@ -166,6 +246,7 @@ function MenuItem({
               onSelect={onSelect}
               selectedAction={selectedAction}
               selectedMenuCode={selectedMenuCode}
+              language={language}
             />
           ))}
         </div>
@@ -394,8 +475,7 @@ const DIRECTORY_MENU_CONFIGS = {
           "Post",
           "Slug",
           "Skr",
-          "isBonus",
-          "Bonus"
+          "isBonus"
         ]
       },
       {
@@ -476,13 +556,6 @@ const DIRECTORY_MENU_CONFIGS = {
         type: "text"
       },
       {
-        field: "Bonus",
-        labelKey: "Clients.Bonus",
-        fallback: "Бонус",
-        type: "number",
-        step: "any"
-      },
-      {
         field: "Dolg0",
         labelKey: "Clients.OpeningDebt",
         fallback: "Долг нач.",
@@ -555,7 +628,7 @@ const DIRECTORY_MENU_CONFIGS = {
         fallback: "Бонусная",
         type: "boolean",
         defaultValue: false,
-        hidden: true
+        hidden: ({ context }) => !Boolean(context?.bonusEnabled)
       }
     ]
   },
@@ -1433,6 +1506,12 @@ function isTenantMultiPoint(tenantInfo) {
   );
 }
 
+function isTenantBonusEnabled(tenantInfo) {
+  return parseBooleanFlag(
+    tenantInfo?.Bon ?? tenantInfo?.bon
+  );
+}
+
 function createLocalDate(year, month, day) {
   const date = new Date(year, month - 1, day);
 
@@ -1729,10 +1808,13 @@ export default function App() {
   const [menu, setMenu] = useState([]);
   const [selectedAction, setSelectedAction] = useState("");
   const [selectedMenuCode, setSelectedMenuCode] = useState("");
+  const [selectedApiAction, setSelectedApiAction] = useState("");
+  const [reportAll, setReportAll] = useState(1);
   const [loading, setLoading] = useState(false);
   const [workData, setWorkData] = useState(null);
   const [workTitle, setWorkTitle] = useState("");
   const [workLoading, setWorkLoading] = useState(false);
+  const [reportGenerationSeconds, setReportGenerationSeconds] = useState(0);
   const [workError, setWorkError] = useState("");
   const [sklads, setSklads] = useState([]);
   const [currentSklad, setCurrentSklad] = useState("");
@@ -1774,6 +1856,7 @@ export default function App() {
   const [spisanTovSelectedInvoiceId, setSpisanTovSelectedInvoiceId] = useState(null);
   const [spisanBludSelectedInvoiceId, setSpisanBludSelectedInvoiceId] = useState(null);
   const [prihInitialData, setPrihInitialData] = useState(null);
+  const [prihListRowHint, setPrihListRowHint] = useState(null);
   const [prihMode, setPrihMode] = useState("edit");
   const [prihWasSaved, setPrihWasSaved] = useState(false);
   const [invoiceKind, setInvoiceKind] = useState("prih");
@@ -1797,6 +1880,32 @@ export default function App() {
   const t = useMemo(() => {
     return (key, fallback = "") => translations[key] ?? fallback;
   }, [translations]);
+
+  useEffect(() => {
+    const isHeavyReport =
+      selectedAction.toLowerCase() === "wbr_reports" &&
+      ["05.03", "05.04", "05.07", "05.19", "05.08.10", "05.14.05"].includes(
+        normalizeMenuCode(selectedMenuCode)
+      );
+
+    if (!workLoading || !isHeavyReport) {
+      setReportGenerationSeconds(0);
+      return undefined;
+    }
+
+    const startedAt = Date.now();
+    setReportGenerationSeconds(0);
+
+    const timerId = window.setInterval(() => {
+      setReportGenerationSeconds(
+        Math.floor((Date.now() - startedAt) / 1000)
+      );
+    }, 250);
+
+    return () => {
+      window.clearInterval(timerId);
+    };
+  }, [workLoading, selectedAction, selectedMenuCode]);
 
   const groupsHappyDayOptions = useMemo(
     () => [
@@ -2152,6 +2261,7 @@ async function createPrihInvoice() {
       pf: false,
       zach: false
     });
+    setPrihListRowHint(null);
     setPrihMode("new");
     setSelectedAction("prih-invoice-card");
     setWorkTitle("Новая приходная накладная");
@@ -2209,6 +2319,7 @@ async function createPrihSpecialInvoice(kind) {
       pf: isPf,
       zach: isZach
     });
+    setPrihListRowHint(null);
     setPrihMode("new");
     setSelectedAction("prih-invoice-card");
     setWorkTitle(
@@ -2363,6 +2474,61 @@ async function loadPereuchetList(options = {}) {
     setWorkData(Array.isArray(data) ? data : []);
   } catch (err) {
     setWorkError(err.message || "Ошибка загрузки списка переучетов");
+  } finally {
+    setWorkLoading(false);
+  }
+}
+
+
+async function loadClientReportsNavigator() {
+  setWorkLoading(true);
+  setWorkError("");
+  setWorkData(null);
+
+  try {
+    const response = await fetchWithAuth(
+      "https://webback.bar-boss.com/wf_CliKass.php"
+    );
+
+    const text = await response.text();
+    let data;
+
+    try {
+      data = JSON.parse(text);
+    } catch {
+      throw new Error(
+        "Список клиентов вернул не JSON: " +
+          text.substring(0, 500)
+      );
+    }
+
+    if (
+      !response.ok ||
+      data?.status === "error"
+    ) {
+      throw new Error(
+        data?.error ||
+          data?.message ||
+          "Ошибка загрузки списка клиентов"
+      );
+    }
+
+    setWorkData({
+      report: "ClientReportsNavigator",
+      data: {
+        Clients: Array.isArray(data)
+          ? data
+          : []
+      }
+    });
+
+    return data;
+  } catch (error) {
+    setWorkError(
+      error?.message ||
+        "Ошибка загрузки списка клиентов"
+    );
+    return null;
   } finally {
     setWorkLoading(false);
   }
@@ -2600,6 +2766,7 @@ async function createMoveInvoice() {
     setPeremSelectedInvoiceId(Number(invoice.ID));
     setPrihInvoiceId(Number(invoice.ID));
     setPrihInitialData(moveInvoice);
+    setPrihListRowHint(null);
     setPrihMode("new");
     setSelectedAction("prih-invoice-card");
     setWorkTitle("Новая накладная перемещения");
@@ -2731,6 +2898,47 @@ function openPrihInvoice(invoiceOrId) {
     return;
   }
 
+  const rowSupplierName =
+    String(
+      row?.NamePost ??
+        row?.SupplierName ??
+        ""
+    ).trim();
+
+  const rowSupplierId = Number(
+    row?.Post ??
+      row?.IdPost ??
+      row?.IDPost ??
+      row?.PostID ??
+      row?.IdPostav ??
+      0
+  );
+
+  const supplierByName =
+    !rowSupplierId && rowSupplierName
+      ? (Array.isArray(postavList) ? postavList : []).find(
+          (item) =>
+            String(item?.Name ?? "")
+              .trim()
+              .toLocaleLowerCase() ===
+            rowSupplierName.toLocaleLowerCase()
+        )
+      : null;
+
+  const resolvedSupplierId =
+    rowSupplierId ||
+    Number(supplierByName?.ID || 0);
+
+  const rowHint = row
+    ? {
+        ...row,
+        Post: resolvedSupplierId,
+        NamePost:
+          rowSupplierName ||
+          String(supplierByName?.Name ?? "")
+      }
+    : null;
+
   const isPf = parseBooleanFlag(row?.pf ?? row?.Pf ?? 0);
   const isZach = parseBooleanFlag(row?.zach ?? row?.Zach ?? 0);
   const kind = isPf ? "pf" : isZach ? "zach" : "prih";
@@ -2740,6 +2948,7 @@ function openPrihInvoice(invoiceOrId) {
   setPrihSelectedInvoiceId(invoiceId);
   setPrihInvoiceId(invoiceId);
   setPrihInitialData(null);
+  setPrihListRowHint(rowHint);
   setPrihMode("edit");
   setSelectedAction("prih-invoice-card");
   setWorkTitle(
@@ -2771,7 +2980,7 @@ function findMenuItemByAction(items, targetAction, targetCode = "") {
       return item;
     }
 
-    const children = item?.items ?? item?.Items ?? [];
+    const children = getMenuChildren(item);
     const found = findMenuItemByAction(
       children,
       targetAction,
@@ -2883,6 +3092,190 @@ function openDishCalc(dishId) {
 function getCurrentOrgCode() {
   const n = Number(currentOrg);
   return Number.isFinite(n) ? n : 0;
+}
+
+function escapeReportXml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+function buildReportXml({
+  date1,
+  date2,
+  org,
+  all,
+  skl,
+  idPost,
+  idKli = 0
+}) {
+  const idPostXml =
+    idPost === null ||
+    idPost === undefined ||
+    idPost === ""
+      ? ""
+      : `<IdPost>${escapeReportXml(idPost)}</IdPost>`;
+
+  return `<Report><Date1>${escapeReportXml(date1)}</Date1><Date2>${escapeReportXml(date2)}</Date2><Org>${escapeReportXml(org)}</Org><All>${escapeReportXml(all)}</All><Skl>${escapeReportXml(skl)}</Skl><IdKli>${escapeReportXml(idKli ?? 0)}</IdKli>${idPostXml}</Report>`;
+}
+
+async function loadReport({
+  apiAction,
+  date1 = reportDateFrom,
+  date2 = reportDateTo,
+  org = getCurrentOrgCode(),
+  all = 1,
+  skl = currentSklad,
+  idPost,
+  idKli = 0
+}) {
+  const reportAction = String(apiAction ?? "").trim();
+
+  if (!reportAction) {
+    setWorkData(null);
+    setWorkError("Для отчёта не задан apiAction");
+    return null;
+  }
+
+  setWorkLoading(true);
+  setWorkError("");
+  setWorkData(null);
+
+  try {
+    const xml = buildReportXml({
+      date1,
+      date2,
+      org,
+      all,
+      skl,
+      idPost,
+      idKli
+    });
+
+    const url = new URL("https://webback.bar-boss.com/wr_Reports.php");
+    url.searchParams.set("Action", reportAction);
+
+    const response = await fetchWithAuth(url.toString(), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/xml; charset=utf-8"
+      },
+      body: xml
+    });
+
+    const text = await response.text();
+    let data;
+
+    try {
+      data = JSON.parse(text);
+    } catch {
+      throw new Error(
+        "Отчёт вернул не JSON: " + text.substring(0, 500)
+      );
+    }
+
+    if (!response.ok || data?.status === "error") {
+      throw new Error(
+        data?.error ||
+        data?.message ||
+        "Ошибка формирования отчёта"
+      );
+    }
+
+    setWorkData(data);
+    return data;
+  } catch (err) {
+    setWorkError(err?.message || "Ошибка формирования отчёта");
+    return null;
+  } finally {
+    setWorkLoading(false);
+  }
+}
+
+
+async function runReport({
+  apiAction,
+  date1 = reportDateFrom,
+  date2 = reportDateTo,
+  org = getCurrentOrgCode(),
+  all: requestedAll,
+  idPost,
+  idKli = 0
+}) {
+  const normalizedReportAction = String(apiAction ?? "").trim().toLowerCase();
+  const hasRequestedAll =
+    requestedAll === 0 ||
+    requestedAll === 1 ||
+    requestedAll === "0" ||
+    requestedAll === "1";
+  let all = hasRequestedAll
+    ? Number(requestedAll)
+    : ["spistov", "spisblud"].includes(
+        normalizedReportAction
+      )
+      ? 0
+      : 1;
+
+  if (
+    !hasRequestedAll &&
+    normalizedReportAction === "revenuedates"
+  ) {
+    all = window.confirm(
+      t("RevenueDates.AllDepartmentsQuestion", "По всем подразделениям?")
+    )
+      ? 1
+      : 0;
+
+    if (all === 0 && !currentSklad) {
+      window.alert(
+        t("RevenueDates.DepartmentRequired", "Не выбрано подразделение.")
+      );
+      setWorkLoading(false);
+      return null;
+    }
+  }
+
+  if (
+    ["spistov", "spisblud"].includes(
+      normalizedReportAction
+    ) &&
+    all === 0 &&
+    !currentSklad
+  ) {
+    window.alert(
+      t(
+        normalizedReportAction === "spisblud"
+          ? "SpisBlud.WarehouseRequired"
+          : "SpisTov.WarehouseRequired",
+        "Не выбран склад."
+      )
+    );
+    setWorkLoading(false);
+    return null;
+  }
+
+  setReportAll(all);
+
+  const requestAll =
+    ["spistov", "spisblud"].includes(
+      normalizedReportAction
+    )
+      ? 1
+      : all;
+
+  return loadReport({
+    apiAction,
+    date1,
+    date2,
+    org,
+    all: requestAll,
+    skl: currentSklad,
+    idPost,
+    idKli
+  });
 }
 
 async function loadSpisanBludList(options = {}) {
@@ -3735,6 +4128,9 @@ async function addDish({ sklad, group }) {
 
   const actionName = normalizeMenuAction(item.action);
   const menuCode = normalizeMenuCode(item.Code ?? item.code);
+  const apiAction = String(
+    item.apiAction ?? item.ApiAction ?? item.APIAction ?? ""
+  ).trim();
 
   if (hasUnsavedChanges) {
     const ok = window.confirm(unsavedChangesMessage);
@@ -3757,12 +4153,51 @@ async function addDish({ sklad, group }) {
 
   setSelectedMenuCode(menuCode);
   setSelectedAction(actionName);
+  setSelectedApiAction(
+    actionName.toLowerCase() === "wbr_reports" ? apiAction : ""
+  );
   setWorkTitle(item.name);
   setWorkLoading(true);
   setWorkError("");
   setWorkData(null);
 
   try {
+
+    if (menuCode === "09.01") {
+      const neraschData = await loadDirectoryData("Nerasch");
+      setWorkData(neraschData);
+      return;
+    }
+
+    if (menuCode === "09.02") {
+      const paramsData = await loadDirectoryData("Params");
+      setWorkData(paramsData);
+      return;
+    }
+
+    if (menuCode === "09.06") {
+      const usersData = await loadDirectoryData("Users");
+      setWorkData(usersData);
+      return;
+    }
+
+    if (
+      actionName.toLowerCase() === "wbr_reports" &&
+      menuCode === "05.12"
+    ) {
+      await loadClientReportsNavigator();
+      return;
+    }
+
+    if (actionName.toLowerCase() === "wbr_reports") {
+      await runReport({
+        apiAction,
+        date1: reportDateFrom,
+        date2: reportDateTo,
+        org: getCurrentOrgCode()
+      });
+      return;
+    }
 
     if (actionName.toLowerCase() === "wbo_directory") {
       await loadDirectoryByMenuCode(menuCode);
@@ -3945,12 +4380,44 @@ async function addDish({ sklad, group }) {
       const orgData = await loadOrganizations(loginData.accessToken);
       setOrganizations(orgData);
 
+      let initialOrg = "0";
+
       if (!loginData.tenant?.multiOrg) {
-        setCurrentOrg("1");
+        initialOrg = "1";
       } else if (Array.isArray(orgData) && orgData.length > 0) {
-        setCurrentOrg(String(orgData[0].ID));
-      } else {
-        setCurrentOrg("0");
+        initialOrg = String(orgData[0].ID);
+      }
+
+      setCurrentOrg(initialOrg);
+
+      if (Array.isArray(skladsData) && skladsData.length > 0) {
+        const initialSklads =
+          filterSkladsByOrg(
+            skladsData,
+            initialOrg
+          );
+
+        const currentInitialSklad =
+          String(
+            skladsData[0]?.ID ?? ""
+          );
+
+        const currentIsAllowed =
+          initialSklads.some(
+            (sklad) =>
+              getSkladCode(sklad) ===
+              currentInitialSklad
+          );
+
+        if (!currentIsAllowed) {
+          setCurrentSklad(
+            initialSklads[0]
+              ? getSkladCode(
+                  initialSklads[0]
+                )
+              : ""
+          );
+        }
       }
 
       const [groupsData, cehData, fopData, typDishData] =
@@ -4101,6 +4568,7 @@ async function saveDishes(xml) {
 
     setSelectedAction("");
     setSelectedMenuCode("");
+    setSelectedApiAction("");
     setWorkTitle("");
     setWorkData(null);
     setWorkLoading(false);
@@ -4114,6 +4582,41 @@ async function saveDishes(xml) {
     setViewOrderId(null);
     setViewSourceOrder(null);
     setDirectoryLookups({});
+  }
+
+  const visibleSklads =
+    filterSkladsByOrg(
+      sklads,
+      currentOrg
+    );
+
+  function applyCurrentSklad(nextSklad) {
+    setCurrentSklad(nextSklad);
+
+    if (
+      normalizeMenuActionKey(selectedAction).toLowerCase() ===
+      "wf_dishes.php"
+    ) {
+      loadDishes({
+        sklad: nextSklad,
+        skr: dishSkr,
+        group: dishGroup,
+        modif: dishModif
+      });
+    }
+
+    if (
+      normalizeMenuActionKey(selectedAction).toLowerCase() ===
+      "wf_prihlist.php"
+    ) {
+      loadPrihList({
+        sklad: nextSklad,
+        post: prihPost,
+        d1: prihDate1 || 0,
+        d2: prihDate2 || 0,
+        pf: prihPfMode ? 1 : 0
+      });
+    }
   }
 
   const currentOrganizationName =
@@ -4254,7 +4757,33 @@ async function saveDishes(xml) {
               setHasUnsavedChanges(false);
             }
 
+            const nextVisibleSklads =
+              filterSkladsByOrg(
+                sklads,
+                nextOrg
+              );
+
+            const currentSkladIsVisible =
+              nextVisibleSklads.some(
+                (sklad) =>
+                  getSkladCode(sklad) ===
+                  String(currentSklad)
+              );
+
             setCurrentOrg(nextOrg);
+
+            if (!currentSkladIsVisible) {
+              const firstVisibleSklad =
+                nextVisibleSklads[0];
+
+              applyCurrentSklad(
+                firstVisibleSklad
+                  ? getSkladCode(
+                      firstVisibleSklad
+                    )
+                  : ""
+              );
+            }
           }}
           title={t("App.Organization", "Организация")}
         >
@@ -4294,37 +4823,14 @@ async function saveDishes(xml) {
               setHasUnsavedChanges(false);
             }
 
-            setCurrentSklad(nextSklad);
-
-            if (
-              normalizeMenuActionKey(selectedAction).toLowerCase() ===
-              "wf_dishes.php"
-            ) {
-              loadDishes({
-                sklad: nextSklad,
-                skr: dishSkr,
-                group: dishGroup,
-                modif: dishModif
-              });
-            }
-
-            if (
-              normalizeMenuActionKey(selectedAction).toLowerCase() ===
-              "wf_prihlist.php"
-            ) {
-              loadPrihList({
-                sklad: nextSklad,
-                post: prihPost,
-                d1: prihDate1 || 0,
-                d2: prihDate2 || 0,
-                pf: prihPfMode ? 1 : 0
-              });
-            }
+            applyCurrentSklad(
+              nextSklad
+            );
           }}
           title={t("App.WarehouseTitle", "Склад / подразделение")}
         >
-          {sklads.map((sklad) => {
-            const code = sklad.Code ?? sklad.ID;
+          {visibleSklads.map((sklad) => {
+            const code = getSkladCode(sklad);
             const name = sklad.Name ?? sklad.NameSkl;
 
             return (
@@ -4374,15 +4880,20 @@ async function saveDishes(xml) {
   </div>
 
   <nav className="side-menu-scroll" aria-label={t("App.MainMenuAria", "Главное меню")}>
-    {menu.map((item, index) => (
-      <MenuItem
-        key={`${item.Code ?? item.code ?? item.name ?? item.Name}-${index}`}
-        item={item}
-        onSelect={openAction}
-        selectedAction={selectedAction}
-        selectedMenuCode={selectedMenuCode}
-      />
-    ))}
+    {menu
+      .filter(
+        (item) => !isMenuItemHiddenForLanguage(item, language)
+      )
+      .map((item, index) => (
+        <MenuItem
+          key={`${item.Code ?? item.code ?? item.name ?? item.Name}-${index}`}
+          item={item}
+          onSelect={openAction}
+          selectedAction={selectedAction}
+          selectedMenuCode={selectedMenuCode}
+          language={language}
+        />
+      ))}
   </nav>
 </aside>
 
@@ -4412,13 +4923,122 @@ async function saveDishes(xml) {
 />
   )}
 
-  {workLoading && <p>{t("App.Loading", "Загрузка...")}</p>}
+  {workLoading &&
+    !(
+      selectedAction.toLowerCase() === "wbr_reports" &&
+      ["05.03", "05.04", "05.07", "05.19", "05.08.10", "05.14.05"].includes(
+        normalizeMenuCode(selectedMenuCode)
+      )
+    ) && <p>{t("App.Loading", "Загрузка...")}</p>}
+
+  {workLoading &&
+    selectedAction.toLowerCase() === "wbr_reports" &&
+    ["05.03", "05.04", "05.07", "05.19", "05.08.10", "05.14.05"].includes(
+      normalizeMenuCode(selectedMenuCode)
+    ) && (
+      <div
+        className="oborot-generation-busy"
+        role="status"
+        aria-live="polite"
+      >
+        <div className="oborot-generation-busy-panel">
+          <div className="oborot-generation-spinner" />
+          <div>
+            {t(
+              "Oborot.Calculating",
+              "ФОРМИРУЕМ…"
+            )}{" "}
+            {reportGenerationSeconds}{" "}
+            {t(
+              "Common.SecondsShort",
+              "сек."
+            )}
+          </div>
+        </div>
+      </div>
+    )}
 
   {workError && (
     <div className="login-error">
       {workError}
     </div>
   )}
+
+  {!workLoading &&
+    !workError &&
+    workData &&
+    selectedAction.toLowerCase() === "wbr_reports" && (
+      <ReportsPage
+        code={selectedMenuCode}
+        apiAction={selectedApiAction}
+        data={workData}
+        dateFrom={reportDateFrom}
+        dateTo={reportDateTo}
+        organizationName={currentOrganizationName}
+        organizationId={getCurrentOrgCode()}
+        departmentName={currentSkladName}
+        departmentId={currentSklad}
+        all={reportAll}
+        locale={locale}
+        fetchWithAuth={fetchWithAuth}
+        bonusEnabled={isTenantBonusEnabled(tenant)}
+        multiOrg={Boolean(tenant?.multiOrg)}
+        t={t}
+        onReload={(options = {}) =>
+          runReport({
+            apiAction: selectedApiAction,
+            date1: reportDateFrom,
+            date2: reportDateTo,
+            org: getCurrentOrgCode(),
+            all: options?.all
+          })
+        }
+      />
+    )}
+
+  {!workLoading &&
+    !workError &&
+    workData &&
+    normalizeMenuCode(selectedMenuCode) === "09.02" && (
+      <SystemParametersPage
+        data={workData}
+        fetchWithAuth={fetchWithAuth}
+        readOnly={Boolean(user?.readOnly)}
+        sklads={sklads}
+        onDirtyChange={setHasUnsavedChanges}
+        t={t}
+      />
+    )}
+
+  {!workLoading &&
+    !workError &&
+    Array.isArray(workData) &&
+    normalizeMenuCode(selectedMenuCode) === "09.06" && (
+      <UsersPage
+        data={workData}
+        fetchWithAuth={fetchWithAuth}
+        readOnly={Boolean(user?.readOnly)}
+        onDirtyChange={setHasUnsavedChanges}
+        t={t}
+      />
+    )}
+
+  {!workLoading &&
+    !workError &&
+    Array.isArray(workData) &&
+    normalizeMenuCode(selectedMenuCode) === "09.01" && (
+      <NeraschPage
+        data={workData}
+        dateFrom={reportDateFrom}
+        dateTo={reportDateTo}
+        organizationId={getCurrentOrgCode()}
+        departmentId={currentSklad}
+        all={reportAll}
+        fetchWithAuth={fetchWithAuth}
+        locale={locale}
+        t={t}
+      />
+    )}
 
   {!workLoading &&
     !workError &&
@@ -4461,13 +5081,17 @@ async function saveDishes(xml) {
   {!workLoading &&
     !workError &&
     Array.isArray(workData) &&
-    selectedAction.toLowerCase() === "wbo_directory" && (
+    selectedAction.toLowerCase() === "wbo_directory" &&
+    normalizeMenuCode(selectedMenuCode) !== "09.01" &&
+    normalizeMenuCode(selectedMenuCode) !== "09.02" &&
+    normalizeMenuCode(selectedMenuCode) !== "09.06" && (
       <DirectoryPage
         data={workData}
         config={getDirectoryMenuConfig(selectedMenuCode)}
         lookupData={directoryLookups}
         context={{
-          currentOrg: getCurrentOrgCode()
+          currentOrg: getCurrentOrgCode(),
+          bonusEnabled: isTenantBonusEnabled(tenant)
         }}
         readOnly={Boolean(user?.readOnly)}
         selectedId={
@@ -4823,9 +5447,12 @@ onChangePost={async (nextPost) => {
 <PrihInvoicePage
   invoiceId={prihInvoiceId}
   initialInvoice={prihInitialData}
+  invoiceListRow={prihListRowHint}
   mode={prihMode}
   invoiceKind={invoiceKind}
   currentSklad={currentSklad}
+  currentOrg={getCurrentOrgCode()}
+  supplierOptions={postavList}
   login={String(user?.id ?? "")}
   fetchWithAuth={fetchWithAuth}
   onBack={backToInvoiceList}
@@ -4924,6 +5551,7 @@ onChangePost={async (nextPost) => {
     recalcDate={reportDateFrom}
     onStartSebest={startSebestRecalc}
     onCheckSebest={checkSebestRecalc}
+    fetchWithAuth={fetchWithAuth}
     readOnly={Boolean(user?.readOnly)}
     onDirtyChange={setHasUnsavedChanges}
     t={t}
@@ -5004,7 +5632,11 @@ onChangePost={async (nextPost) => {
   selectedAction !== "spisan-blud-invoice-card" &&
   selectedAction !== "wf_SpisokTovarov.php" &&
   selectedAction !== "wf_SpisokZakazov.php" &&
-  selectedAction.toLowerCase() !== "wbo_directory" && (
+  normalizeMenuCode(selectedMenuCode) !== "09.01" &&
+  normalizeMenuCode(selectedMenuCode) !== "09.02" &&
+  normalizeMenuCode(selectedMenuCode) !== "09.06" &&
+  selectedAction.toLowerCase() !== "wbo_directory" &&
+  selectedAction.toLowerCase() !== "wbr_reports" && (
     <pre className="json-view">
       {JSON.stringify(workData, null, 2)}
     </pre>

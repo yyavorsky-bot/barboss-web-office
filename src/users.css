@@ -1,0 +1,32 @@
+/* 09.06 — Пользователи */
+.users-page { min-width:0; padding:0 clamp(18px,3vw,52px) 28px; }
+.users-header { display:flex; align-items:flex-end; justify-content:space-between; gap:18px; margin-bottom:14px; padding:10px 0 9px; border-bottom:1px solid #d7e1dc; }
+.users-header h2 { margin:0 0 4px; color:#29473f; font-size:21px; }
+.users-subtitle { color:#718079; font-size:12px; }
+.users-toolbar { display:flex; align-items:center; justify-content:flex-end; gap:9px; }
+.users-add-button,.users-save-button { min-height:36px; padding:6px 14px; border-radius:9px !important; font-weight:800; }
+.users-add-button { border:1px solid #4f8278; background:linear-gradient(135deg,#5f978c 0%,#427a70 100%); color:#fff; cursor:pointer; }
+.users-add-button:disabled,.users-save-button:disabled,.users-delete-button:disabled { opacity:.5; cursor:default; }
+.users-saved { color:#2c6d4d; font-size:13px; font-weight:800; }
+.users-readonly { margin-bottom:10px; padding:8px 10px; border:1px solid #d4dfda; border-radius:7px; background:#f6f8f7; color:#66756f; font-size:13px; }
+.users-table-wrap { max-width:900px; overflow:hidden; border:1px solid #d5dfda; border-radius:11px; background:#fff; box-shadow:0 4px 15px rgba(45,70,62,.06); }
+.users-table { width:100%; border-collapse:collapse; table-layout:fixed; font-size:13px; }
+.users-table th,.users-table td { padding:7px 8px; border-bottom:1px solid #e5ebe8; vertical-align:middle; }
+.users-table th { background:#edf4f1; color:#3e5e55; font-weight:800; text-align:left; }
+.users-table tbody tr:last-child td { border-bottom:0; }
+.users-table tbody tr.selected-row td { background:#f0f7f4; }
+.users-table input[type="text"],.users-table input[type="password"] { width:100%; min-width:0; min-height:33px; padding:6px 9px; border:1px solid #b9c9c2; border-radius:7px; background:#fff; color:#21332d; font:inherit; }
+.users-table input[type="text"]:focus,.users-table input[type="password"]:focus { outline:none; border-color:#5e9489; box-shadow:0 0 0 2px rgba(87,142,131,.14); }
+.users-ro-col { width:150px; text-align:center !important; }
+.users-ro-col input { width:18px; height:18px; accent-color:#4d877c; }
+.users-action-col { width:46px; text-align:center !important; }
+.users-delete-button { width:28px; height:28px; padding:0; border:1px solid #d49a9a; border-radius:7px; background:#fff3f3; color:#a74949; font-size:18px; line-height:1; cursor:pointer; }
+.users-delete-button:hover:not(:disabled) { background:#fce5e5; }
+.users-empty { padding:24px !important; color:#7c8984; text-align:center; }
+@media (max-width:760px) {
+  .users-page { padding-left:10px; padding-right:10px; }
+  .users-header { align-items:stretch; flex-direction:column; }
+  .users-toolbar { justify-content:flex-start; }
+  .users-table-wrap { overflow-x:auto; }
+  .users-table { min-width:650px; }
+}

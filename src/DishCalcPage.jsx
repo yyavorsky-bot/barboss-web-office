@@ -666,6 +666,7 @@ function SearchableSelect({
   onChange,
   onCreateOption,
   onCreateError,
+  onEnterNext,
   t
 }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -712,9 +713,15 @@ function SearchableSelect({
     setSearchText("");
   }
 
-  function chooseItem(item) {
+  function chooseItem(item, moveNext = false) {
     onChange?.(Number(item.ID || 0));
     closeList();
+
+    if (moveNext) {
+      window.requestAnimationFrame(() => {
+        onEnterNext?.();
+      });
+    }
   }
 
   function clearValue() {
@@ -722,7 +729,7 @@ function SearchableSelect({
     closeList();
   }
 
-  async function createMissingOption() {
+  async function createMissingOption(moveNext = false) {
     const newName = searchText.trim();
 
     if (!newName || !onCreateOption || creating) {
@@ -754,7 +761,7 @@ function SearchableSelect({
         );
       }
 
-      chooseItem(createdItem);
+      chooseItem(createdItem, moveNext);
     } catch (err) {
       onCreateError?.(
         err instanceof Error
@@ -801,12 +808,12 @@ function SearchableSelect({
           e.preventDefault();
 
           if (exactMatch) {
-            chooseItem(exactMatch);
+            chooseItem(exactMatch, true);
             return;
           }
 
           if (filteredOptions.length === 1) {
-            chooseItem(filteredOptions[0]);
+            chooseItem(filteredOptions[0], true);
             return;
           }
 
@@ -815,7 +822,7 @@ function SearchableSelect({
             searchText.trim() &&
             onCreateOption
           ) {
-            await createMissingOption();
+            await createMissingOption(true);
           }
         }}
         onBlur={() => {
@@ -1267,6 +1274,59 @@ export default function DishCalcPage({
         row.ID === rowId ? { ...row, ...patch } : row
       )
     );
+  }
+
+  function getCalcTableRow(kind, rowId) {
+    const table = document.querySelector(
+      kind === "dish"
+        ? ".dish-calc-pf-table"
+        : ".dish-calc-raw-table"
+    );
+
+    if (!table) return null;
+
+    return (
+      Array.from(
+        table.querySelectorAll("tbody tr[data-calc-row-id]")
+      ).find(
+        (rowElement) =>
+          String(rowElement.dataset.calcRowId) === String(rowId)
+      ) ?? null
+    );
+  }
+
+  function focusCalcRowField(kind, rowId, field) {
+    window.requestAnimationFrame(() => {
+      const rowElement = getCalcTableRow(kind, rowId);
+      const input = rowElement?.querySelector(
+        `[data-calc-field="${field}"]`
+      );
+
+      if (!input) return;
+
+      input.focus();
+      input.select?.();
+    });
+  }
+
+  function focusNextCalcRowItem(kind, rowId) {
+    window.requestAnimationFrame(() => {
+      const currentRow = getCalcTableRow(kind, rowId);
+      const nextRow = currentRow?.nextElementSibling ?? null;
+      const input = nextRow?.querySelector(".dish-calc-search input");
+
+      if (!input) return;
+
+      input.focus();
+      input.select?.();
+    });
+  }
+
+  function handleCalcEnter(event, callback) {
+    if (event.key !== "Enter") return;
+
+    event.preventDefault();
+    callback?.();
   }
 
   async function handleRawSelect(rowId, codeTov) {
@@ -1876,6 +1936,7 @@ async function handleSave() {
                 {rawRows.map((row) => (
                   <tr
                     key={row.ID}
+                    data-calc-row-id={row.ID}
                     className={isRowDirty(row) ? "changed-row" : ""}
                   >
                     <td>
@@ -1894,6 +1955,9 @@ async function handleSave() {
                           )
                         }
                         onChange={(value) => handleRawSelect(row.ID, value)}
+                        onEnterNext={() =>
+                          focusCalcRowField("raw", row.ID, "qty")
+                        }
                         t={t}
                       />
                     </td>
@@ -1902,9 +1966,15 @@ async function handleSave() {
                       <input
                         type="number"
                         step="0.001"
+                        data-calc-field="qty"
                         value={row.Kolvo}
                         onChange={(e) =>
                           handleRawKolvoChange(row.ID, e.target.value)
+                        }
+                        onKeyDown={(e) =>
+                          handleCalcEnter(e, () =>
+                            focusCalcRowField("raw", row.ID, "netto")
+                          )
                         }
                       />
                     </td>
@@ -1913,11 +1983,17 @@ async function handleSave() {
                       <input
                         type="number"
                         step="0.001"
+                        data-calc-field="netto"
                         value={row.Netto}
                         onChange={(e) =>
                           updateRow(row.ID, {
                             Netto: Number(e.target.value || 0)
                           })
+                        }
+                        onKeyDown={(e) =>
+                          handleCalcEnter(e, () =>
+                            focusNextCalcRowItem("raw", row.ID)
+                          )
                         }
                       />
                     </td>
@@ -1994,6 +2070,7 @@ async function handleSave() {
                 {dishRows.map((row) => (
                   <tr
                     key={row.ID}
+                    data-calc-row-id={row.ID}
                     className={isRowDirty(row) ? "changed-row" : ""}
                   >
                     <td>
@@ -2002,6 +2079,9 @@ async function handleSave() {
                         options={dishList}
                         placeholder={t("DishCalc.DishSearchPlaceholder", "Найти блюдо / ПФ...")}
                         onChange={(value) => handleDishSelect(row.ID, value)}
+                        onEnterNext={() =>
+                          focusCalcRowField("dish", row.ID, "qty")
+                        }
                         t={t}
                       />
                     </td>
@@ -2010,11 +2090,17 @@ async function handleSave() {
                       <input
                         type="number"
                         step="0.001"
+                        data-calc-field="qty"
                         value={row.Kolvo}
                         onChange={(e) =>
                           updateRow(row.ID, {
                             Kolvo: Number(e.target.value || 0)
                           })
+                        }
+                        onKeyDown={(e) =>
+                          handleCalcEnter(e, () =>
+                            focusCalcRowField("dish", row.ID, "netto")
+                          )
                         }
                       />
                     </td>
@@ -2023,9 +2109,15 @@ async function handleSave() {
                       <input
                         type="number"
                         step="0.001"
+                        data-calc-field="netto"
                         value={row.Netto}
                         onChange={(e) =>
                           handleDishNettoChange(row.ID, e.target.value)
+                        }
+                        onKeyDown={(e) =>
+                          handleCalcEnter(e, () =>
+                            focusNextCalcRowItem("dish", row.ID)
+                          )
                         }
                       />
                     </td>

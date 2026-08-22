@@ -85,32 +85,57 @@ function numberToInput(value) {
   return String(Number(n.toFixed(3))).replace(".", ",");
 }
 
-function calcPlusExpression(value) {
+function calcFactExpression(value) {
   const text = String(value || "").trim();
 
-  if (!text.includes("+")) {
+  if (!text.includes("+") && !text.includes("*")) {
     return null;
   }
 
-  const parts = text
-    .split("+")
-    .map((part) => part.trim())
-    .filter(Boolean);
+  // Разрешаем только положительные числа, + и *.
+  // Минус, деление, скобки и любые другие символы намеренно не поддерживаем.
+  if (!/^[0-9\s.,+*]+$/.test(text)) {
+    return null;
+  }
 
-  if (parts.length === 0) {
+  const sumParts = text
+    .split("+")
+    .map((part) => part.trim());
+
+  if (
+    sumParts.length === 0 ||
+    sumParts.some((part) => !part)
+  ) {
     return null;
   }
 
   let sum = 0;
 
-  for (const part of parts) {
-    const n = Number(part.replace(",", "."));
+  for (const sumPart of sumParts) {
+    const multiplyParts = sumPart
+      .split("*")
+      .map((part) => part.trim());
 
-    if (!Number.isFinite(n)) {
+    if (
+      multiplyParts.length === 0 ||
+      multiplyParts.some((part) => !part)
+    ) {
       return null;
     }
 
-    sum += n;
+    let product = 1;
+
+    for (const part of multiplyParts) {
+      const n = Number(part.replace(",", "."));
+
+      if (!Number.isFinite(n)) {
+        return null;
+      }
+
+      product *= n;
+    }
+
+    sum += product;
   }
 
   return String(Number(sum.toFixed(3))).replace(".", ",");
@@ -1424,7 +1449,7 @@ export default function PereuchetPage({
     event.preventDefault();
 
     const value = event.currentTarget.value;
-    const result = calcPlusExpression(value);
+    const result = calcFactExpression(value);
 
     if (result !== null) {
       updatePerOnFact(index, result);
