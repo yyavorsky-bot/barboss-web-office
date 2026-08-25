@@ -1,0 +1,79 @@
+/*
+ * Единая визуальная подсветка выбранной строки для:
+ * - Карточки сырья
+ * - Список сырья
+ *
+ * Навигацию и состояние React не меняем: этот файл только убирает
+ * ложную "вторую выбранную" строку от :hover и сохраняет цвета изменений.
+ */
+
+/* =========================================================
+   Карточки сырья
+   ========================================================= */
+
+.cards-sirya-table tbody tr.selected-row td,
+.cards-sirya-table tbody tr.selected-row:hover td {
+  background: #c3e5dc !important;
+}
+
+.cards-sirya-table tbody tr:not(.selected-row):nth-child(odd):hover td {
+  background: #fffdf8 !important;
+}
+
+.cards-sirya-table tbody tr:not(.selected-row):nth-child(even):hover td {
+  background: #f6f1db !important;
+}
+
+/* =========================================================
+   Список сырья
+   ========================================================= */
+
+.spisok-tovarov-table tbody tr.selected-row:not(.changed-row) td,
+.spisok-tovarov-table tbody tr.selected-row:not(.changed-row):hover td {
+  background: #c3e5dc !important;
+}
+
+/* Изменённая строка остаётся янтарной. */
+.spisok-tovarov-table tbody tr.changed-row:not(.selected-row) td,
+.spisok-tovarov-table tbody tr.changed-row:not(.selected-row):hover td {
+  background: #fff1c9 !important;
+}
+
+/* Выбранная + изменённая — более насыщенный янтарный. */
+.spisok-tovarov-table tbody tr.selected-row.changed-row td,
+.spisok-tovarov-table tbody tr.selected-row.changed-row:hover td {
+  background: #f8e7b6 !important;
+}
+
+/* Hover не создаёт вторую зелёную строку. */
+.spisok-tovarov-table tbody tr:not(.selected-row):not(.changed-row):nth-child(odd):hover td {
+  background: #fffdf8 !important;
+}
+
+.spisok-tovarov-table tbody tr:not(.selected-row):not(.changed-row):nth-child(even):hover td {
+  background: #f6f1db !important;
+}
+
+/* Первый липкий столбец должен иметь тот же цвет, что и вся строка. */
+.spisok-tovarov-table tbody tr.selected-row:not(.changed-row) td:first-child,
+.spisok-tovarov-table tbody tr.selected-row:not(.changed-row):hover td:first-child {
+  background: #c3e5dc !important;
+}
+
+.spisok-tovarov-table tbody tr.changed-row:not(.selected-row) td:first-child,
+.spisok-tovarov-table tbody tr.changed-row:not(.selected-row):hover td:first-child {
+  background: #fff1c9 !important;
+}
+
+.spisok-tovarov-table tbody tr.selected-row.changed-row td:first-child,
+.spisok-tovarov-table tbody tr.selected-row.changed-row:hover td:first-child {
+  background: #f8e7b6 !important;
+}
+
+.spisok-tovarov-table tbody tr:not(.selected-row):not(.changed-row):nth-child(odd):hover td:first-child {
+  background: #fffdf8 !important;
+}
+
+.spisok-tovarov-table tbody tr:not(.selected-row):not(.changed-row):nth-child(even):hover td:first-child {
+  background: #f6f1db !important;
+}

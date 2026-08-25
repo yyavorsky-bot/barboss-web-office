@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import "./sirya-row-visual-fix.css";
 
 export default function SpisokTovarovPage({
   data,
@@ -339,6 +340,57 @@ export default function SpisokTovarovPage({
     });
   }
 
+  function handleRowArrowNavigation(event) {
+    if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+    if (event.altKey || event.ctrlKey || event.metaKey) return;
+
+    const target = event.target;
+
+    if (!(target instanceof HTMLElement)) return;
+    if (!target.matches("input, select, textarea")) return;
+
+    const currentRow = event.currentTarget;
+    const currentCell = target.closest("td");
+    const tbody = currentRow?.parentElement;
+
+    if (!currentCell || !tbody) return;
+
+    const tableRows = Array.from(tbody.children).filter(
+      (element) => element instanceof HTMLTableRowElement
+    );
+    const currentRowIndex = tableRows.indexOf(currentRow);
+    const currentCellIndex = Array.from(currentRow.children).indexOf(currentCell);
+
+    if (currentRowIndex < 0 || currentCellIndex < 0) return;
+
+    const direction = event.key === "ArrowDown" ? 1 : -1;
+    const nextRow = tableRows[currentRowIndex + direction];
+
+    // Не отдаём стрелку браузеру даже на первой/последней строке:
+    // number/select не меняют значение, а рабочая область не прокручивается.
+    event.preventDefault();
+
+    if (!nextRow) return;
+
+    const nextCell = nextRow.children[currentCellIndex];
+
+    if (!(nextCell instanceof HTMLTableCellElement)) return;
+
+    const nextControl = nextCell.querySelector(
+      "input:not(:disabled), select:not(:disabled), textarea:not(:disabled), button:not(:disabled)"
+    );
+
+    if (!(nextControl instanceof HTMLElement)) return;
+
+    nextControl.focus();
+
+    const nextTovarId = Number(nextRow.dataset.tovarId || 0);
+
+    if (nextTovarId) {
+      setSelectedId(nextTovarId);
+    }
+  }
+
   function updateField(id, field, value) {
     if (readOnly) return;
 
@@ -635,11 +687,13 @@ export default function SpisokTovarovPage({
               {rows.map((row) => (
                 <tr
                   key={row.ID}
+                  data-tovar-id={Number(row.ID || 0)}
                   className={[
                     selectedId === row.ID ? "selected-row" : "",
                     changedRows[row.ID] ? "changed-row" : ""
                   ].join(" ")}
                   onClick={() => setSelectedId(row.ID)}
+                  onKeyDown={handleRowArrowNavigation}
                 >
                   <td>
                     <input

@@ -1,0 +1,124 @@
+/* =========================================================
+   BarBo$$ Web Office — browser dark-theme guard
+   Loaded LAST from App.jsx on purpose.
+   The Web Office UI is light; browsers must not auto-darken
+   native form controls or replace their text with light colors.
+   ========================================================= */
+
+:root,
+html,
+body,
+#root {
+  color-scheme: only light !important;
+}
+
+/* Dishes list */
+.dishes-page,
+.dishes-page .data-table,
+.dishes-page .data-table th,
+.dishes-page .data-table td {
+  color: #243b36 !important;
+}
+
+.dishes-page input:not([type="checkbox"]):not([type="radio"]),
+.dishes-page select,
+.dishes-page textarea,
+.dishes-page option {
+  color: #243b36 !important;
+  -webkit-text-fill-color: #243b36 !important;
+  color-scheme: only light !important;
+}
+
+.dishes-page input:not([type="checkbox"]):not([type="radio"]):disabled,
+.dishes-page select:disabled,
+.dishes-page textarea:disabled {
+  color: #243b36 !important;
+  -webkit-text-fill-color: #243b36 !important;
+  opacity: 1 !important;
+}
+
+.dishes-page select,
+.dishes-page option,
+.dishes-page textarea {
+  background-color: #ffffff !important;
+}
+
+/* Keep editable table cells visually integrated with selected/changed rows. */
+.dishes-page .dishes-table input.table-input,
+.dishes-page .dishes-table input.table-input:disabled,
+.dishes-page .dishes-pf-table input,
+.dishes-page .dishes-pf-table input:disabled {
+  background-color: transparent !important;
+}
+
+/* Dish calculation editor */
+.dish-calc-page,
+.dish-calc-page .data-table,
+.dish-calc-page .data-table th,
+.dish-calc-page .data-table td,
+.dish-calc-page .calc-field,
+.dish-calc-page .calc-info {
+  color: #243b36 !important;
+}
+
+.dish-calc-page input:not([type="checkbox"]):not([type="radio"]),
+.dish-calc-page select,
+.dish-calc-page textarea,
+.dish-calc-page option {
+  color: #243b36 !important;
+  -webkit-text-fill-color: #243b36 !important;
+  color-scheme: only light !important;
+}
+
+.dish-calc-page input:not([type="checkbox"]):not([type="radio"]):disabled,
+.dish-calc-page select:disabled,
+.dish-calc-page textarea:disabled {
+  color: #243b36 !important;
+  -webkit-text-fill-color: #243b36 !important;
+  opacity: 1 !important;
+}
+
+.dish-calc-page select,
+.dish-calc-page option,
+.dish-calc-page textarea {
+  background-color: #ffffff !important;
+}
+
+.dish-calc-page .dish-calc-table input,
+.dish-calc-page .dish-calc-table input:disabled,
+.dish-calc-page .dish-calc-table select {
+  background-color: transparent !important;
+}
+
+/* Dishes auxiliary screens that are imported by DishesPage. */
+.dishes-happy-page,
+.dish-card-report-page,
+.calc-card-report-page,
+.dishes-menu-report-page {
+  color-scheme: only light !important;
+  color: #243b36 !important;
+}
+
+.dishes-happy-page input:not([type="checkbox"]):not([type="radio"]),
+.dishes-happy-page select,
+.dishes-happy-page textarea,
+.dishes-happy-page option {
+  color: #243b36 !important;
+  -webkit-text-fill-color: #243b36 !important;
+  color-scheme: only light !important;
+}
+
+.dish-card-report-sheet,
+.dish-card-report-table,
+.dish-card-report-table th,
+.dish-card-report-table td,
+.calc-card-report-sheet,
+.calc-card-report-table,
+.calc-card-report-table th,
+.calc-card-report-table td,
+.dishes-menu-report-sheet,
+.dishes-menu-report-table,
+.dishes-menu-report-table th,
+.dishes-menu-report-table td {
+  color: #243b36 !important;
+}

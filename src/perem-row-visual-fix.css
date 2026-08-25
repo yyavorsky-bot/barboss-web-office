@@ -1,0 +1,15 @@
+/* Накладные перемещения — выбранная строка должна оставаться
+   единственным визуальным выделением при навигации стрелками. */
+
+.move-list-page .move-list-table tbody tr.selected-row td,
+.move-list-page .move-list-table tbody tr.selected-row:hover td {
+  background: #c3e5dc !important;
+}
+
+.move-list-page .move-list-table tbody tr:not(.selected-row):nth-child(odd):hover td {
+  background: #fffdf8 !important;
+}
+
+.move-list-page .move-list-table tbody tr:not(.selected-row):nth-child(even):hover td {
+  background: #f6f1db !important;
+}

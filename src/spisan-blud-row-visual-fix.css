@@ -1,0 +1,12 @@
+.spisan-blud-list-table tbody tr.selected-row td,
+.spisan-blud-list-table tbody tr.selected-row:hover td {
+  background: #c3e5dc !important;
+}
+
+.spisan-blud-list-table tbody tr:not(.selected-row):nth-child(odd):hover td {
+  background: #fffdf8 !important;
+}
+
+.spisan-blud-list-table tbody tr:not(.selected-row):nth-child(even):hover td {
+  background: #f6f1db !important;
+}

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import "./spisan-blud-row-visual-fix.css";
 
 function formatDateTime(value, locale) {
   if (!value) return "";
@@ -33,6 +34,7 @@ export default function SpisanBludListPage({
   selectedInvoiceId = null,
   onOpen,
   onNew,
+  readOnly = false,
   t = (key, fallback = "") => fallback,
   locale = "ru-RU"
 }) {
@@ -130,6 +132,44 @@ export default function SpisanBludListPage({
     onOpen?.(row);
   }
 
+  function focusMainRow(invoiceId) {
+    window.requestAnimationFrame(() => {
+      const row = listWrapRef.current?.querySelector(
+        `[data-spisan-blud-id="${Number(invoiceId || 0)}"]`
+      );
+
+      if (!(row instanceof HTMLElement)) return;
+
+      row.focus({ preventScroll: true });
+      row.scrollIntoView({
+        block: "nearest",
+        inline: "nearest"
+      });
+    });
+  }
+
+  function handleMainRowKeyDown(event, invoiceId) {
+    if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+    if (event.altKey || event.ctrlKey || event.metaKey) return;
+
+    const currentIndex = rows.findIndex(
+      (row) => Number(row.ID) === Number(invoiceId)
+    );
+
+    if (currentIndex < 0) return;
+
+    // Стрелки работают только в главном списке списаний блюд.
+    event.preventDefault();
+
+    const direction = event.key === "ArrowDown" ? 1 : -1;
+    const nextRow = rows[currentIndex + direction];
+
+    if (!nextRow) return;
+
+    setSelectedId(Number(nextRow.ID));
+    focusMainRow(nextRow.ID);
+  }
+
   return (
   <div className="spisan-blud-list-page">
     <div className="spisan-blud-list-layout">
@@ -137,13 +177,15 @@ export default function SpisanBludListPage({
 <div className="spisan-blud-panel-title spisan-blud-list-header">
   <span>{t("SpisanBludList.Title", "Накладные списания блюд")}</span>
 
-  <button
-    type="button"
-    className="spisan-blud-new-button"
-    onClick={() => onNew?.()}
-  >
-    + {t("SpisanBludList.NewWriteoff", "Новое списание")}
-  </button>
+  {!readOnly && onNew && (
+    <button
+      type="button"
+      className="spisan-blud-new-button"
+      onClick={() => onNew?.()}
+    >
+      + {t("SpisanBludList.NewWriteoff", "Новое списание")}
+    </button>
+  )}
 </div>
 
         {rows.length === 0 && (
@@ -178,8 +220,18 @@ export default function SpisanBludListPage({
                       ? selectedRowRef
                       : null
                   }
+                  data-spisan-blud-id={Number(row.ID || 0)}
                   className={Number(row.ID) === Number(selectedNakl?.ID) ? "selected-row" : ""}
-                  onClick={() => setSelectedId(Number(row.ID))}
+                  tabIndex={
+                    Number(selectedId) === Number(row.ID) ? 0 : -1
+                  }
+                  onKeyDown={(event) =>
+                    handleMainRowKeyDown(event, row.ID)
+                  }
+                  onClick={(event) => {
+                    setSelectedId(Number(row.ID));
+                    event.currentTarget.focus({ preventScroll: true });
+                  }}
                 >
                   <td>{formatDateTime(row.DateP, locale)}</td>
                   <td title={row.NazvSpisania ?? ""}>{row.NazvSpisania}</td>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { exportReportFile } from "./reportExport.js";
 import "./dish-calc-reports.css";
 
@@ -13,6 +14,74 @@ function formatQty(value) {
 function normalizeDate(value) {
   if (!value) return "";
   return String(value).slice(0, 10);
+}
+
+function getCurrentLocalDate() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function extractSavedDishId(result, fallbackId = 0) {
+  const source = Array.isArray(result) ? result[0] ?? {} : result ?? {};
+  const candidates = [
+    source?.CodeBl,
+    source?.ID,
+    source?.id,
+    source?.IdDish,
+    source?.IdBl,
+    source?.CodeDish,
+    source?.dish?.CodeBl,
+    source?.data?.CodeBl,
+    source?.result?.CodeBl
+  ];
+
+  for (const candidate of candidates) {
+    const id = Number(candidate || 0);
+    if (id > 0) return id;
+  }
+
+  const fallback = Number(fallbackId || 0);
+  return fallback > 0 ? fallback : 0;
+}
+
+function normalizeDishHeaderForCompare(dish) {
+  if (!dish) return null;
+
+  return {
+    CodeBl: Number(dish.CodeBl || 0),
+    Shk: dish.Shk ?? "",
+    Name1: String(dish.Name1 ?? ""),
+    Name2: String(dish.Name2 ?? ""),
+    NameForFP: String(dish.NameForFP ?? ""),
+    Price: Number(dish.Price || 0),
+    Ves: Number(dish.Ves || 0),
+    Price2: Number(dish.Price2 || 0),
+    EdVes: String(dish.EdVes ?? ""),
+    Grupp: Number(dish.Grupp || 0),
+    Sklad: Number(dish.Sklad || 0),
+    Nep: Boolean(dish.Nep),
+    Skr: Boolean(dish.Skr),
+    Akc: Boolean(dish.Akc),
+    Ceh: Number(dish.Ceh || 0),
+    Typ: Number(dish.Typ || 0),
+    GruppNal: Number(dish.GruppNal || 0),
+    CodePr: Number(dish.CodePr || 0),
+    PLU: Number(dish.PLU || 0),
+    Peresch: Number(dish.Peresch || 0),
+    Kit: Number(dish.Kit || 0),
+    Konsum: Number(dish.Konsum || 0),
+    Deliv: Boolean(dish.Deliv),
+    UKT: String(dish.UKT ?? ""),
+    Modif: Number(dish.Modif || 0),
+    Tall: Number(dish.Tall || 0),
+    Wlist: Number(dish.Wlist || 0),
+    Minuts: Number(dish.Minuts || 0),
+    Rem: String(dish.Rem ?? ""),
+    Otobr: Boolean(dish.Otobr)
+  };
 }
 
 function getUniqueDatesDesc(items) {
@@ -41,6 +110,58 @@ function makeTempId() {
   return -Date.now() - Math.floor(Math.random() * 1000);
 }
 
+function createEmptyCalcRow(kind) {
+  return {
+    ID: makeTempId(),
+    Kind: kind === "dish" ? "dish" : "raw",
+    CodeTov: 0,
+    CodeDish: 0,
+    Kolvo: 0,
+    Netto: 0,
+    Price: 0,
+    SumSeb: 0
+  };
+}
+
+function isBlankCalcDraftRow(row) {
+  return (
+    Number(row?.ID || 0) < 0 &&
+    Number(row?.CodeTov || 0) === 0 &&
+    Number(row?.CodeDish || 0) === 0 &&
+    Number(row?.Kolvo || 0) === 0 &&
+    Number(row?.Netto || 0) === 0 &&
+    Number(row?.Price || 0) === 0 &&
+    Number(row?.SumSeb || 0) === 0
+  );
+}
+
+function ensureCalcDraftRows(sourceRows) {
+  const source = Array.isArray(sourceRows) ? sourceRows : [];
+  const nextRows = [];
+  let rawDraft = null;
+  let dishDraft = null;
+
+  for (const row of source) {
+    if (!isBlankCalcDraftRow(row)) {
+      nextRows.push(row);
+      continue;
+    }
+
+    if (row?.Kind === "dish") {
+      if (!dishDraft) {
+        dishDraft = row;
+      }
+    } else if (!rawDraft) {
+      rawDraft = row;
+    }
+  }
+
+  nextRows.push(rawDraft || createEmptyCalcRow("raw"));
+  nextRows.push(dishDraft || createEmptyCalcRow("dish"));
+
+  return nextRows;
+}
+
 function normalizeCalcItem(row) {
   return {
     ID: Number(row.ID || 0),
@@ -58,7 +179,9 @@ function normalizeCalcState(calcDate, rem, rows, deletedIds = []) {
   return {
     Date: calcDate || "",
     Rem: rem || "",
-    items: rows.map(normalizeCalcItem),
+    items: rows
+      .filter((row) => !isBlankCalcDraftRow(row))
+      .map(normalizeCalcItem),
     deletedIds: deletedIds.map(Number)
   };
 }
@@ -667,11 +790,15 @@ function SearchableSelect({
   onCreateOption,
   onCreateError,
   onEnterNext,
+  disabled = false,
+  popupPortal = false,
   t
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [creating, setCreating] = useState(false);
+  const [popupStyle, setPopupStyle] = useState(null);
+  const rootRef = useRef(null);
 
   const selectedItem = useMemo(() => {
     const numericValue = Number(value || 0);
@@ -707,6 +834,43 @@ function SearchableSelect({
   const inputValue = isOpen
     ? searchText
     : selectedItem?.Name || "";
+
+  useEffect(() => {
+    if (!isOpen || !popupPortal) {
+      setPopupStyle(null);
+      return undefined;
+    }
+
+    function updatePopupPosition() {
+      const root = rootRef.current;
+      if (!root) return;
+
+      const rect = root.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const spaceBelow = Math.max(0, viewportHeight - rect.bottom - 8);
+      const spaceAbove = Math.max(0, rect.top - 8);
+      const openAbove = spaceBelow < 150 && spaceAbove > spaceBelow;
+      const maxHeight = Math.max(90, Math.min(260, openAbove ? spaceAbove : spaceBelow));
+
+      setPopupStyle({
+        left: `${Math.round(rect.left)}px`,
+        width: `${Math.round(rect.width)}px`,
+        maxHeight: `${Math.round(maxHeight)}px`,
+        ...(openAbove
+          ? { bottom: `${Math.round(viewportHeight - rect.top + 2)}px`, top: "auto" }
+          : { top: `${Math.round(rect.bottom + 2)}px`, bottom: "auto" })
+      });
+    }
+
+    updatePopupPosition();
+    window.addEventListener("resize", updatePopupPosition);
+    window.addEventListener("scroll", updatePopupPosition, true);
+
+    return () => {
+      window.removeEventListener("resize", updatePopupPosition);
+      window.removeEventListener("scroll", updatePopupPosition, true);
+    };
+  }, [isOpen, popupPortal]);
 
   function closeList() {
     setIsOpen(false);
@@ -778,15 +942,80 @@ function SearchableSelect({
     }
   }
 
+  const popup = isOpen ? (
+    <div
+      className={[
+        "searchable-select-list",
+        popupPortal ? "dish-calc-search-portal-list" : ""
+      ]
+        .filter(Boolean)
+        .join(" ")}
+      style={popupPortal ? popupStyle ?? { visibility: "hidden" } : undefined}
+    >
+      {Number(value || 0) > 0 && (
+        <button
+          type="button"
+          className="searchable-select-option muted"
+          onMouseDown={(e) => {
+            e.preventDefault();
+            clearValue();
+          }}
+        >
+          {t("DishCalc.ClearSelection", "Очистить выбор")}
+        </button>
+      )}
+
+      {filteredOptions.length === 0 && (
+        onCreateOption && searchText.trim() ? (
+          <button
+            type="button"
+            className="searchable-select-option muted"
+            disabled={creating}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              createMissingOption();
+            }}
+          >
+            {creating
+              ? t("DishCalc.AddingRawMaterial", "Добавление...")
+              : `${t(
+                  "DishCalc.AddRawMaterialPrefix",
+                  "Добавить"
+                )} «${searchText.trim()}»`}
+          </button>
+        ) : (
+          <div className="searchable-select-empty">
+            {t("DishCalc.NothingFound", "Ничего не найдено")}
+          </div>
+        )
+      )}
+
+      {filteredOptions.map((item) => (
+        <button
+          key={item.ID}
+          type="button"
+          className="searchable-select-option"
+          onMouseDown={(e) => {
+            e.preventDefault();
+            chooseItem(item);
+          }}
+        >
+          {item.Name}
+        </button>
+      ))}
+    </div>
+  ) : null;
+
   return (
-    <div className="searchable-select dish-calc-search">
+    <div ref={rootRef} className="searchable-select dish-calc-search">
       <input
         type="text"
         value={inputValue}
         placeholder={placeholder}
-        disabled={creating}
+        disabled={disabled || creating}
         autoComplete="off"
         onFocus={() => {
+          if (disabled) return;
           setIsOpen(true);
           setSearchText("");
         }}
@@ -806,6 +1035,17 @@ function SearchableSelect({
           }
 
           e.preventDefault();
+
+          // Если значение уже выбрано (обычно мышью), следующий Enter должен
+          // переходить в поле количества. Раньше searchText был пустым,
+          // filteredOptions содержал весь список и Enter ничего не делал.
+          if (selectedItem && !searchText.trim()) {
+            closeList();
+            window.requestAnimationFrame(() => {
+              onEnterNext?.();
+            });
+            return;
+          }
 
           if (exactMatch) {
             chooseItem(exactMatch, true);
@@ -830,63 +1070,32 @@ function SearchableSelect({
         }}
       />
 
-      {isOpen && (
-        <div className="searchable-select-list">
-          {Number(value || 0) > 0 && (
-            <button
-              type="button"
-              className="searchable-select-option muted"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                clearValue();
-              }}
-            >
-              {t("DishCalc.ClearSelection", "Очистить выбор")}
-            </button>
-          )}
-
-          {filteredOptions.length === 0 && (
-            onCreateOption && searchText.trim() ? (
-              <button
-                type="button"
-                className="searchable-select-option muted"
-                disabled={creating}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  createMissingOption();
-                }}
-              >
-                {creating
-                  ? t("DishCalc.AddingRawMaterial", "Добавление...")
-                  : `${t(
-                      "DishCalc.AddRawMaterialPrefix",
-                      "Добавить"
-                    )} «${searchText.trim()}»`}
-              </button>
-            ) : (
-              <div className="searchable-select-empty">
-                {t("DishCalc.NothingFound", "Ничего не найдено")}
-              </div>
-            )
-          )}
-
-          {filteredOptions.map((item) => (
-            <button
-              key={item.ID}
-              type="button"
-              className="searchable-select-option"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                chooseItem(item);
-              }}
-            >
-              {item.Name}
-            </button>
-          ))}
-        </div>
-      )}
+      {popupPortal && popup && typeof document !== "undefined"
+        ? createPortal(popup, document.body)
+        : popup}
     </div>
   );
+}
+
+function parseDishCalcBooleanFlag(value) {
+  if (value === true || value === 1) return true;
+
+  const normalized = String(value ?? "").trim().toLowerCase();
+  return normalized === "true" || normalized === "1" || normalized === "yes";
+}
+
+function getDishCalcTaxGroupOptions(moldova) {
+  const letters = parseDishCalcBooleanFlag(moldova)
+    ? ["A", "B", "C", "D", "E"]
+    : ["А", "Б", "В", "Г", "Д", "Е", "Ж", "З"];
+
+  return [
+    { value: 0, label: "" },
+    ...letters.map((label, index) => ({
+      value: index + 1,
+      label
+    }))
+  ];
 }
 
 export default function DishCalcPage({
@@ -895,6 +1104,15 @@ export default function DishCalcPage({
   fetchWithAuth,
   onBack,
   onDirtyChange,
+  readOnly = false,
+  newDish = null,
+  dishGroups = [],
+  dishCehs = [],
+  dishFops = [],
+  dishTypes = [],
+  moldova = false,
+  onSaveNewDish,
+  onNewDishCreated,
   t = (key, fallback = "") => fallback,
   locale = "ru-RU"
 }) {
@@ -910,6 +1128,8 @@ export default function DishCalcPage({
   const [rem, setRem] = useState("");
   const [sebestDish, setSebestDish] = useState(0);
   const [dishName, setDishName] = useState("");
+  const [dishHeader, setDishHeader] = useState(null);
+  const [originalDishHeader, setOriginalDishHeader] = useState(null);
   const [sourceDate, setSourceDate] = useState("");
   const [calcDate, setCalcDate] = useState("");
 
@@ -929,6 +1149,12 @@ export default function DishCalcPage({
   const [reportLoading, setReportLoading] = useState(false);
   const [reportError, setReportError] = useState("");
   const [reportExportLoading, setReportExportLoading] = useState(false);
+
+  const isNewDishMode = Boolean(
+    newDish && Number(dishId || 0) < 0
+  );
+
+  const dishTaxGroupOptions = getDishCalcTaxGroupOptions(moldova);
 
   const unsavedChangesMessage = t(
     "DishCalc.UnsavedChangesWarning",
@@ -953,10 +1179,19 @@ export default function DishCalcPage({
 
   const currentState = normalizeCalcState(calcDate, rem, rows, deletedIds);
 
-  const isDirty = Boolean(
+  const calcDirty = Boolean(
     originalState &&
       JSON.stringify(currentState) !== JSON.stringify(originalState)
   );
+
+  const dishHeaderDirty = Boolean(
+    isNewDishMode &&
+      originalDishHeader &&
+      JSON.stringify(normalizeDishHeaderForCompare(dishHeader)) !==
+        JSON.stringify(normalizeDishHeaderForCompare(originalDishHeader))
+  );
+
+  const isDirty = calcDirty || dishHeaderDirty;
 
   useEffect(() => {
     onDirtyChange?.(isDirty);
@@ -1016,6 +1251,39 @@ export default function DishCalcPage({
     setReportError("");
 
     try {
+      if (isNewDishMode) {
+        const [rawResponse, dishResponse] = await Promise.all([
+          fetchWithAuth("https://webback.bar-boss.com/wf_SpisokTovarovCalc.php"),
+          fetchWithAuth(
+            `https://webback.bar-boss.com/wf_DishPF.php?Sklad=${encodeURIComponent(currentSklad || 1)}`
+          )
+        ]);
+
+        const rawData = await rawResponse.json();
+        const dishData = await dishResponse.json();
+        const today = getCurrentLocalDate();
+        const initialHeader = {
+          ...newDish,
+          CodeBl: Number(newDish?.CodeBl || dishId || 0)
+        };
+
+        setRawList(Array.isArray(rawData) ? rawData : []);
+        setDishList(Array.isArray(dishData) ? dishData : []);
+        setAllRows([]);
+        setCalcDates([today]);
+        setRows(ensureCalcDraftRows([]));
+        setDishHeader(initialHeader);
+        setOriginalDishHeader(initialHeader);
+        setDishName(initialHeader.Name1 ?? "");
+        setRem("");
+        setSebestDish(0);
+        setSourceDate(today);
+        setCalcDate(today);
+        setDeletedIds([]);
+        setOriginalState(normalizeCalcState(today, "", [], []));
+        return;
+      }
+
       const [calcResponse, rawResponse, dishResponse] = await Promise.all([
         fetchWithAuth(
           `https://webback.bar-boss.com/wf_DishCalc.php?ID=${encodeURIComponent(dishId)}`
@@ -1070,7 +1338,9 @@ export default function DishCalcPage({
 
       setAllRows(loadedAllRows);
       setCalcDates(dates);
-      setRows(visibleRows);
+      setRows(readOnly ? visibleRows : ensureCalcDraftRows(visibleRows));
+      setDishHeader(null);
+      setOriginalDishHeader(null);
       setDishName(calcData.Name ?? "");
       setRem(calcData.Rem ?? "");
       setSebestDish(Number(calcData.SebestDish || 0));
@@ -1088,13 +1358,17 @@ export default function DishCalcPage({
         )
       );
     } catch (err) {
-      setError(err.message || t("DishCalc.LoadError", "Ошибка загрузки калькуляционной карты"));
+      setError(
+        err.message ||
+          t("DishCalc.LoadError", "Ошибка загрузки калькуляционной карты")
+      );
     } finally {
       setLoading(false);
     }
   }
 
   function isRowDirty(row) {
+    if (isBlankCalcDraftRow(row)) return false;
     if (!originalState) return false;
 
     const originalRow = originalState.items.find(
@@ -1119,6 +1393,8 @@ export default function DishCalcPage({
   }
 
   function handleSourceDateChange(value) {
+    if (isNewDishMode) return;
+
     const selectedDate = normalizeDate(value);
 
     if (selectedDate === sourceDate) {
@@ -1138,7 +1414,7 @@ export default function DishCalcPage({
 
     setSourceDate(selectedDate);
     setCalcDate(selectedDate);
-    setRows(visibleRows);
+    setRows(readOnly ? visibleRows : ensureCalcDraftRows(visibleRows));
     setRem(restoredRem);
     setDeletedIds([]);
 
@@ -1156,7 +1432,36 @@ export default function DishCalcPage({
     setPrintBaseData(null);
   }
 
+  function updateDishHeaderField(field, value) {
+    if (readOnly || !isNewDishMode) return;
+
+    setDishHeader((prev) => {
+      if (!prev) return prev;
+
+      const next = {
+        ...prev,
+        [field]: value
+      };
+
+      if (field === "Name1") {
+        setDishName(String(value ?? ""));
+      }
+
+      return next;
+    });
+    setError("");
+  }
+
   async function createRawMaterial(name) {
+    if (readOnly) {
+      throw new Error(
+        t(
+          "DishCalc.ReadOnly",
+          "Калькуляционная карта доступна только для просмотра."
+        )
+      );
+    }
+
     const normalizedName = String(name ?? "").trim();
 
     if (!normalizedName) {
@@ -1269,9 +1574,13 @@ export default function DishCalcPage({
   }
 
   function updateRow(rowId, patch) {
+    if (readOnly) return;
+
     setRows((prevRows) =>
-      prevRows.map((row) =>
-        row.ID === rowId ? { ...row, ...patch } : row
+      ensureCalcDraftRows(
+        prevRows.map((row) =>
+          row.ID === rowId ? { ...row, ...patch } : row
+        )
       )
     );
   }
@@ -1330,128 +1639,182 @@ export default function DishCalcPage({
   }
 
   async function handleRawSelect(rowId, codeTov) {
+    if (readOnly) return;
+
     const value = Number(codeTov || 0);
+
+    setRows((prevRows) =>
+      ensureCalcDraftRows(
+        prevRows.map((row) =>
+          row.ID === rowId
+            ? {
+                ...row,
+                CodeTov: value,
+                CodeDish: 0,
+                ...(value > 0
+                  ? {}
+                  : {
+                      Price: 0,
+                      SumSeb: 0
+                    })
+              }
+            : row
+        )
+      )
+    );
+
+    if (value <= 0) return;
+
     const price = await loadRawPrice(value);
 
     setRows((prevRows) =>
-      prevRows.map((row) => {
-        if (row.ID !== rowId) return row;
+      ensureCalcDraftRows(
+        prevRows.map((row) => {
+          if (
+            row.ID !== rowId ||
+            Number(row.CodeTov || 0) !== value
+          ) {
+            return row;
+          }
 
-        const kolvo = Number(row.Kolvo || 0);
+          const kolvo = Number(row.Kolvo || 0);
 
-        return {
-          ...row,
-          CodeTov: value,
-          CodeDish: 0,
-          Price: price,
-          SumSeb: roundMoney(price * kolvo)
-        };
-      })
+          return {
+            ...row,
+            Price: price,
+            SumSeb: roundMoney(price * kolvo)
+          };
+        })
+      )
     );
   }
 
   function handleRawKolvoChange(rowId, value) {
+    if (readOnly) return;
+
     const kolvo = Number(value || 0);
 
     setRows((prevRows) =>
-      prevRows.map((row) => {
-        if (row.ID !== rowId) return row;
+      ensureCalcDraftRows(
+        prevRows.map((row) => {
+          if (row.ID !== rowId) return row;
 
-        const price = Number(row.Price || 0);
+          const price = Number(row.Price || 0);
 
-        return {
-          ...row,
-          Kolvo: kolvo,
-          SumSeb: roundMoney(price * kolvo)
-        };
-      })
+          return {
+            ...row,
+            Kolvo: kolvo,
+            SumSeb: roundMoney(price * kolvo)
+          };
+        })
+      )
     );
   }
 
   async function handleDishSelect(rowId, codeDish) {
-    const value = Number(codeDish || 0);
+    if (readOnly) return;
 
+    const value = Number(codeDish || 0);
     const currentRow = rows.find((row) => row.ID === rowId);
     const netto = Number(currentRow?.Netto || currentRow?.Kolvo || 0);
+
+    setRows((prevRows) =>
+      ensureCalcDraftRows(
+        prevRows.map((row) =>
+          row.ID === rowId
+            ? {
+                ...row,
+                CodeTov: 0,
+                CodeDish: value,
+                ...(value > 0
+                  ? {}
+                  : {
+                      Price: 0,
+                      SumSeb: 0
+                    })
+              }
+            : row
+        )
+      )
+    );
+
+    if (value <= 0) return;
 
     const sebData = await loadDishPfSeb(value, netto);
 
     setRows((prevRows) =>
-      prevRows.map((row) =>
-        row.ID === rowId
-          ? {
-              ...row,
-              CodeTov: 0,
-              CodeDish: value,
-              Price: sebData.Price,
-              SumSeb: sebData.SumSeb
-            }
-          : row
+      ensureCalcDraftRows(
+        prevRows.map((row) =>
+          row.ID === rowId &&
+          Number(row.CodeDish || 0) === value
+            ? {
+                ...row,
+                Price: sebData.Price,
+                SumSeb: sebData.SumSeb
+              }
+            : row
+        )
       )
     );
   }
 
   async function handleDishNettoChange(rowId, value) {
+    if (readOnly) return;
+
     const netto = Number(value || 0);
     const currentRow = rows.find((row) => row.ID === rowId);
 
     if (!currentRow) return;
 
     const codeDish = Number(currentRow.CodeDish || 0);
+
+    setRows((prevRows) =>
+      ensureCalcDraftRows(
+        prevRows.map((row) =>
+          row.ID === rowId
+            ? {
+                ...row,
+                Netto: netto,
+                Kolvo: netto
+              }
+            : row
+        )
+      )
+    );
+
+    if (codeDish <= 0) return;
+
     const sebData = await loadDishPfSeb(codeDish, netto);
 
     setRows((prevRows) =>
-      prevRows.map((row) =>
-        row.ID === rowId
-          ? {
-              ...row,
-              Netto: netto,
-              Kolvo: netto,
-              Price: sebData.Price,
-              SumSeb: sebData.SumSeb
-            }
-          : row
+      ensureCalcDraftRows(
+        prevRows.map((row) =>
+          row.ID === rowId &&
+          Number(row.CodeDish || 0) === codeDish &&
+          Number(row.Netto || 0) === netto
+            ? {
+                ...row,
+                Price: sebData.Price,
+                SumSeb: sebData.SumSeb
+              }
+            : row
+        )
       )
     );
   }
 
-  function addRawRow() {
-    setRows((prevRows) => [
-      ...prevRows,
-      {
-        ID: makeTempId(),
-        Kind: "raw",
-        CodeTov: 0,
-        CodeDish: 0,
-        Kolvo: 0,
-        Netto: 0,
-        Price: 0,
-        SumSeb: 0
-      }
-    ]);
-  }
-
-  function addDishRow() {
-    setRows((prevRows) => [
-      ...prevRows,
-      {
-        ID: makeTempId(),
-        Kind: "dish",
-        CodeTov: 0,
-        CodeDish: 0,
-        Kolvo: 0,
-        Netto: 0,
-        Price: 0,
-        SumSeb: 0
-      }
-    ]);
-  }
-
   function deleteRow(rowId) {
+    if (readOnly) return;
+
+    const targetRow = rows.find((row) => row.ID === rowId);
+    if (isBlankCalcDraftRow(targetRow)) return;
+
     const ok = window.confirm(t("DishCalc.DeleteConfirm", "Удалить строку?"));
     if (!ok) return;
 
-    setRows((prevRows) => prevRows.filter((row) => row.ID !== rowId));
+    setRows((prevRows) =>
+      ensureCalcDraftRows(prevRows.filter((row) => row.ID !== rowId))
+    );
 
     if (rowId > 0) {
       setDeletedIds((prev) => [...prev, rowId]);
@@ -1464,13 +1827,15 @@ export default function DishCalcPage({
       SourceDate: sourceDate,
       Date: calcDate,
       Rem: rem,
-      items: rows.map((row) => ({
-        ID: Number(row.ID || 0),
-        CodeTov: Number(row.CodeTov || 0),
-        CodeDish: Number(row.CodeDish || 0),
-        Kolvo: Number(row.Kolvo || 0),
-        Netto: Number(row.Netto || 0)
-      })),
+      items: rows
+        .filter((row) => !isBlankCalcDraftRow(row))
+        .map((row) => ({
+          ID: Number(row.ID || 0),
+          CodeTov: Number(row.CodeTov || 0),
+          CodeDish: Number(row.CodeDish || 0),
+          Kolvo: Number(row.Kolvo || 0),
+          Netto: Number(row.Netto || 0)
+        })),
       deletedIds
     };
   }
@@ -1487,7 +1852,7 @@ function xmlNum(value) {
   return String(Number(value || 0)).replace(",", ".");
 }
 
-function buildSaveXml() {
+function buildSaveXml(targetDishId = dishId) {
   const itemsXml = rows
     .filter((row) => Number(row.CodeTov || 0) > 0 || Number(row.CodeDish || 0) > 0)
     .map((row) => {
@@ -1501,7 +1866,7 @@ function buildSaveXml() {
     .join("\n");
 
   return `<Calc>
-  <Head IDinDish="${Number(dishId || 0)}" SourceDate="${escapeXml(sourceDate)}" Date="${escapeXml(calcDate)}" />
+  <Head IDinDish="${Number(targetDishId || 0)}" SourceDate="${escapeXml(sourceDate)}" Date="${escapeXml(calcDate)}" />
 
   <Items>
 ${itemsXml}
@@ -1515,13 +1880,40 @@ ${deletedXml}
 </Calc>`;
 }
 
-async function handleSave() {
-  if (saveLoading || !isDirty) return;
+async function saveCalculationForDish(targetDishId) {
+  const xml = buildSaveXml(targetDishId);
+  const response = await fetchWithAuth(
+    "https://webback.bar-boss.com/wf_DishCalcSave.php",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/xml; charset=utf-8"
+      },
+      body: xml
+    }
+  );
 
-  const xml = buildSaveXml();
+  const data = await response.json();
+
+  if (data.status !== "ok") {
+    throw new Error(
+      data.error ||
+        t(
+          "DishCalc.SaveError",
+          "Ошибка сохранения калькуляционной карты"
+        )
+    );
+  }
+
+  return data;
+}
+
+async function handleSave() {
+  if (readOnly || saveLoading || !isDirty) return;
 
   setSaveLoading(true);
   setSaveSuccess(false);
+  setError("");
 
   if (saveSuccessTimerRef.current) {
     window.clearTimeout(saveSuccessTimerRef.current);
@@ -1529,24 +1921,83 @@ async function handleSave() {
   }
 
   try {
-    const response = await fetchWithAuth(
-      "https://webback.bar-boss.com/wf_DishCalcSave.php",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/xml; charset=utf-8"
-        },
-        body: xml
+    if (isNewDishMode) {
+      const name = String(dishHeader?.Name1 ?? "").trim();
+
+      if (!name) {
+        throw new Error(
+          t(
+            "DishCalc.NewDishNameRequired",
+            "Введите название нового блюда."
+          )
+        );
       }
-    );
 
-    const data = await response.json();
+      let savedHeader = {
+        ...dishHeader,
+        Name1: name
+      };
+      let realDishId = Number(savedHeader.CodeBl || 0);
 
-    if (data.status !== "ok") {
-      alert(data.error || t("DishCalc.SaveError", "Ошибка сохранения калькуляционной карты"));
+      if (dishHeaderDirty || realDishId < 0) {
+        if (typeof onSaveNewDish !== "function") {
+          throw new Error(
+            t(
+              "DishCalc.NewDishSaveUnavailable",
+              "Сохранение нового блюда не настроено."
+            )
+          );
+        }
+
+        const dishResult = await onSaveNewDish(savedHeader);
+        realDishId = extractSavedDishId(dishResult, realDishId);
+
+        if (realDishId <= 0) {
+          throw new Error(
+            t(
+              "DishCalc.NewDishIdMissing",
+              "Сервер не вернул код созданного блюда."
+            )
+          );
+        }
+
+        savedHeader = {
+          ...savedHeader,
+          CodeBl: realDishId
+        };
+
+        setDishHeader(savedHeader);
+        setOriginalDishHeader(savedHeader);
+        setDishName(savedHeader.Name1 || "");
+      }
+
+      if (calcDirty) {
+        try {
+          await saveCalculationForDish(realDishId);
+        } catch (calcError) {
+          throw new Error(
+            t(
+              "DishCalc.NewDishCalcSaveError",
+              "Блюдо сохранено, но калькуляцию сохранить не удалось: {error}"
+            ).replace(
+              "{error}",
+              calcError?.message ||
+                t(
+                  "DishCalc.SaveError",
+                  "Ошибка сохранения калькуляционной карты"
+                )
+            )
+          );
+        }
+      }
+
+      onDirtyChange?.(false);
+      setSaveSuccess(true);
+      onNewDishCreated?.(realDishId, savedHeader);
       return;
     }
 
+    await saveCalculationForDish(dishId);
     await loadAll();
     onDirtyChange?.(false);
     setSaveSuccess(true);
@@ -1556,13 +2007,30 @@ async function handleSave() {
       saveSuccessTimerRef.current = null;
     }, 2800);
   } catch (err) {
-    alert(err.message || t("DishCalc.SaveError", "Ошибка сохранения калькуляционной карты"));
+    const message =
+      err?.message ||
+      t(
+        "DishCalc.SaveError",
+        "Ошибка сохранения калькуляционной карты"
+      );
+
+    setError(message);
+    window.alert(message);
   } finally {
     setSaveLoading(false);
   }
 }
 
   async function fetchCalcCardReport(typ) {
+    if (isNewDishMode) {
+      throw new Error(
+        t(
+          "DishCalc.NewDishSaveBeforeReport",
+          "Сначала сохраните новое блюдо."
+        )
+      );
+    }
+
     const reportDate = sourceDate || calcDate;
     const apiDate = formatApiDate(reportDate);
 
@@ -1763,7 +2231,12 @@ async function handleSave() {
 
           <div className="calc-dish-title dish-calc-title dish-calc-editor-title">
             <span>{t("DishCalc.TitlePrefix", "Калькуляционная карта:")}</span>
-            <strong>{dishName || `ID ${dishId}`}</strong>
+            <strong>
+              {dishName ||
+                (isNewDishMode
+                  ? t("DishCalc.NewDish", "Новое блюдо")
+                  : `ID ${dishId}`)}
+            </strong>
           </div>
         </div>
 
@@ -1772,6 +2245,7 @@ async function handleSave() {
           <span>{t("DishCalc.LoadDate", "Дата загрузки")}</span>
           <select
             value={sourceDate}
+            disabled={isNewDishMode}
             onChange={(e) => handleSourceDateChange(e.target.value)}
           >
             {calcDates.length === 0 && (
@@ -1791,20 +2265,23 @@ async function handleSave() {
           <input
             type="date"
             value={calcDate}
-            onChange={(e) => setCalcDate(e.target.value)}
+            disabled={readOnly}
+            onChange={(e) => {
+              if (!readOnly) setCalcDate(e.target.value);
+            }}
           />
         </div>
 
         <div className="calc-info">
           <span>{t("DishCalc.DishCost", "Себестоимость блюда:")}</span>
-          <strong>{formatMoney(sebestDish)}</strong>
+          <strong>{formatMoney(isNewDishMode ? totalSeb : sebestDish)}</strong>
         </div>
 
         <div className="dish-calc-save-status-cell">
           <button
             type="button"
             className="primary-button dish-calc-save-button"
-            disabled={!isDirty || saveLoading}
+            disabled={readOnly || !isDirty || saveLoading}
             onClick={handleSave}
           >
             {saveLoading
@@ -1824,13 +2301,273 @@ async function handleSave() {
           className={`primary-button dish-calc-print-button ${
             printMenuOpen ? "is-active" : ""
           }`}
-          disabled={loading || saveLoading || !sourceDate}
+          disabled={isNewDishMode || loading || saveLoading || !sourceDate}
           onClick={handleTogglePrintMenu}
         >
           {t("DishCalc.Print", "Печать")}
         </button>
         </div>
       </div>
+
+      {isNewDishMode && dishHeader && (
+        <section className="dish-calc-new-dish-panel">
+          <div className="dish-calc-new-dish-grid">
+            <label className="calc-field dish-calc-new-dish-name-field">
+              <span>{t("Dishes.Name", "Название")}</span>
+              <input
+                type="text"
+                value={dishHeader.Name1 ?? ""}
+                autoFocus
+                disabled={readOnly}
+                onChange={(e) =>
+                  updateDishHeaderField("Name1", e.target.value)
+                }
+              />
+            </label>
+
+            <label className="calc-field">
+              <span>{t("Dishes.Barcode", "Штрихкод")}</span>
+              <input
+                type="number"
+                value={dishHeader.Shk ?? ""}
+                disabled={readOnly}
+                onChange={(e) =>
+                  updateDishHeaderField(
+                    "Shk",
+                    e.target.value === "" ? "" : Number(e.target.value)
+                  )
+                }
+              />
+            </label>
+
+            <label className="calc-field">
+              <span>{t("Dishes.EnglishName", "Eng")}</span>
+              <input
+                type="text"
+                value={dishHeader.Name2 ?? ""}
+                disabled={readOnly}
+                onChange={(e) =>
+                  updateDishHeaderField("Name2", e.target.value)
+                }
+              />
+            </label>
+
+            <label className="calc-field">
+              <span>{t("Dishes.Price", "Цена")}</span>
+              <input
+                type="number"
+                step="0.01"
+                value={dishHeader.Price ?? ""}
+                disabled={readOnly}
+                onChange={(e) =>
+                  updateDishHeaderField(
+                    "Price",
+                    e.target.value === "" ? 0 : Number(e.target.value)
+                  )
+                }
+              />
+            </label>
+
+            <label className="calc-field">
+              <span>{t("Dishes.Weight", "Вес")}</span>
+              <input
+                type="number"
+                step="0.001"
+                value={dishHeader.Ves ?? ""}
+                disabled={readOnly}
+                onChange={(e) =>
+                  updateDishHeaderField(
+                    "Ves",
+                    e.target.value === "" ? 0 : Number(e.target.value)
+                  )
+                }
+              />
+            </label>
+
+            <label className="calc-field">
+              <span>{t("Dishes.Unit", "Ед.")}</span>
+              <input
+                type="text"
+                value={dishHeader.EdVes ?? ""}
+                disabled={readOnly}
+                onChange={(e) =>
+                  updateDishHeaderField("EdVes", e.target.value)
+                }
+              />
+            </label>
+
+            <label className="calc-field">
+              <span>{t("Dishes.Group", "Группа")}</span>
+              <select
+                value={String(dishHeader.Grupp ?? 0)}
+                disabled={readOnly}
+                onChange={(e) =>
+                  updateDishHeaderField("Grupp", Number(e.target.value || 0))
+                }
+              >
+                <option value="0"></option>
+                {(Array.isArray(dishGroups) ? dishGroups : []).map((item) => (
+                  <option key={item.ID} value={String(item.ID)}>
+                    {item.Name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="calc-field">
+              <span>{t("Dishes.Workshop", "Цех")}</span>
+              <select
+                value={String(dishHeader.Ceh ?? 0)}
+                disabled={readOnly}
+                onChange={(e) =>
+                  updateDishHeaderField("Ceh", Number(e.target.value || 0))
+                }
+              >
+                <option value="0"></option>
+                {(Array.isArray(dishCehs) ? dishCehs : []).map((item) => (
+                  <option key={item.ID} value={String(item.ID)}>
+                    {item.Name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="calc-field">
+              <span>{t("Dishes.Organization", "Предпр.")}</span>
+              <select
+                value={String(dishHeader.CodePr ?? 0)}
+                disabled={readOnly}
+                onChange={(e) =>
+                  updateDishHeaderField("CodePr", Number(e.target.value || 0))
+                }
+              >
+                <option value="0"></option>
+                {(Array.isArray(dishFops) ? dishFops : []).map((item) => (
+                  <option key={item.ID} value={String(item.ID)}>
+                    {item.Name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="calc-field">
+              <span>{t("Dishes.Type", "Тип")}</span>
+              <select
+                value={String(dishHeader.Typ ?? 0)}
+                disabled={readOnly}
+                onChange={(e) =>
+                  updateDishHeaderField("Typ", Number(e.target.value || 0))
+                }
+              >
+                <option value="0"></option>
+                {(Array.isArray(dishTypes) ? dishTypes : []).map((item) => (
+                  <option key={item.ID} value={String(item.ID)}>
+                    {item.Name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="calc-field">
+              <span>{t("Directory.TaxGroup", "Налоговая группа")}</span>
+              <select
+                value={String(Number(dishHeader.GruppNal || 0))}
+                disabled={readOnly}
+                onChange={(e) =>
+                  updateDishHeaderField(
+                    "GruppNal",
+                    Number(e.target.value || 0)
+                  )
+                }
+              >
+                {dishTaxGroupOptions.map((item) => (
+                  <option key={item.value} value={String(item.value)}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="calc-field">
+              <span>{t("Dishes.Uktzed", "УКТЗ.")}</span>
+              <input
+                type="text"
+                value={dishHeader.UKT ?? ""}
+                disabled={readOnly}
+                onChange={(e) =>
+                  updateDishHeaderField("UKT", e.target.value)
+                }
+              />
+            </label>
+
+            <div className="dish-calc-new-dish-checks">
+              <label className="toolbar-check">
+                <input
+                  type="checkbox"
+                  checked={Boolean(dishHeader.Nep)}
+                  disabled={readOnly}
+                  onChange={(e) =>
+                    updateDishHeaderField("Nep", e.target.checked)
+                  }
+                />
+                {t("Dishes.NonProduct", "НеП.")}
+              </label>
+
+              <label className="toolbar-check">
+                <input
+                  type="checkbox"
+                  checked={Boolean(dishHeader.Skr)}
+                  disabled={readOnly}
+                  onChange={(e) =>
+                    updateDishHeaderField("Skr", e.target.checked)
+                  }
+                />
+                {t("Dishes.HiddenShort", "Скр.")}
+              </label>
+
+              <label className="toolbar-check">
+                <input
+                  type="checkbox"
+                  checked={Boolean(dishHeader.Akc)}
+                  disabled={readOnly}
+                  onChange={(e) =>
+                    updateDishHeaderField("Akc", e.target.checked)
+                  }
+                />
+                {t("Dishes.FiscalPrint", "ФП")}
+              </label>
+
+              <label className="toolbar-check">
+                <input
+                  type="checkbox"
+                  checked={Boolean(dishHeader.Deliv)}
+                  disabled={readOnly}
+                  onChange={(e) =>
+                    updateDishHeaderField("Deliv", e.target.checked)
+                  }
+                />
+                {t("Dishes.Delivery", "Дост.")}
+              </label>
+
+              <label className="toolbar-check">
+                <input
+                  type="checkbox"
+                  checked={Boolean(dishHeader.Otobr)}
+                  disabled={readOnly}
+                  onChange={(e) =>
+                    updateDishHeaderField("Otobr", e.target.checked)
+                  }
+                />
+                {t("Dishes.Selection", "Отбор")}
+              </label>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {error && (
+        <div className="login-error dish-calc-editor-error">{error}</div>
+      )}
 
       {printMenuOpen && (
         <div className="dish-calc-print-menu">
@@ -1889,17 +2626,19 @@ async function handleSave() {
         </div>
       )}
 
+      {readOnly && (
+        <div className="dish-calc-readonly-note">
+          {t(
+            "DishCalc.ReadOnly",
+            "Калькуляционная карта доступна только для просмотра."
+          )}
+        </div>
+      )}
+
       <div className="calc-layout dish-calc-editor-layout">
         <section className="calc-panel dish-calc-editor-panel">
           <div className="calc-panel-title dish-calc-panel-title">
             <span>{t("DishCalc.RawMaterials", "Сырьё")}</span>
-            <button
-              type="button"
-              className="dish-calc-add-row-button"
-              onClick={addRawRow}
-            >
-              + {t("DishCalc.AddRow", "Строка")}
-            </button>
           </div>
 
           <div className="table-wrap calc-table-wrap dish-calc-table-wrap">
@@ -1937,7 +2676,12 @@ async function handleSave() {
                   <tr
                     key={row.ID}
                     data-calc-row-id={row.ID}
-                    className={isRowDirty(row) ? "changed-row" : ""}
+                    className={[
+                      isRowDirty(row) ? "changed-row" : "",
+                      isBlankCalcDraftRow(row) ? "dish-calc-draft-row" : ""
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
                   >
                     <td>
                       <SearchableSelect
@@ -1958,6 +2702,8 @@ async function handleSave() {
                         onEnterNext={() =>
                           focusCalcRowField("raw", row.ID, "qty")
                         }
+                        disabled={readOnly}
+                        popupPortal={isNewDishMode}
                         t={t}
                       />
                     </td>
@@ -1968,6 +2714,7 @@ async function handleSave() {
                         step="0.001"
                         data-calc-field="qty"
                         value={row.Kolvo}
+                        disabled={readOnly}
                         onChange={(e) =>
                           handleRawKolvoChange(row.ID, e.target.value)
                         }
@@ -1985,6 +2732,7 @@ async function handleSave() {
                         step="0.001"
                         data-calc-field="netto"
                         value={row.Netto}
+                        disabled={readOnly}
                         onChange={(e) =>
                           updateRow(row.ID, {
                             Netto: Number(e.target.value || 0)
@@ -2007,15 +2755,17 @@ async function handleSave() {
                     </td>
 
                     <td>
-                      <button
-                        type="button"
-                        className="small-danger-button dish-calc-delete-button"
-                        title={t("DishCalc.DeleteRow", "Удалить строку")}
-                        aria-label={t("DishCalc.DeleteRow", "Удалить строку")}
-                        onClick={() => deleteRow(row.ID)}
-                      >
-                        ×
-                      </button>
+                      {!readOnly && !isBlankCalcDraftRow(row) && (
+                        <button
+                          type="button"
+                          className="small-danger-button dish-calc-delete-button"
+                          title={t("DishCalc.DeleteRow", "Удалить строку")}
+                          aria-label={t("DishCalc.DeleteRow", "Удалить строку")}
+                          onClick={() => deleteRow(row.ID)}
+                        >
+                          ×
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -2027,13 +2777,6 @@ async function handleSave() {
         <section className="calc-panel dish-calc-editor-panel">
           <div className="calc-panel-title dish-calc-panel-title">
             <span>{t("DishCalc.DishesSemiFinished", "Блюда / полуфабрикаты")}</span>
-            <button
-              type="button"
-              className="dish-calc-add-row-button"
-              onClick={addDishRow}
-            >
-              + {t("DishCalc.AddRow", "Строка")}
-            </button>
           </div>
 
           <div className="table-wrap calc-table-wrap dish-calc-table-wrap">
@@ -2071,7 +2814,12 @@ async function handleSave() {
                   <tr
                     key={row.ID}
                     data-calc-row-id={row.ID}
-                    className={isRowDirty(row) ? "changed-row" : ""}
+                    className={[
+                      isRowDirty(row) ? "changed-row" : "",
+                      isBlankCalcDraftRow(row) ? "dish-calc-draft-row" : ""
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
                   >
                     <td>
                       <SearchableSelect
@@ -2082,6 +2830,8 @@ async function handleSave() {
                         onEnterNext={() =>
                           focusCalcRowField("dish", row.ID, "qty")
                         }
+                        disabled={readOnly}
+                        popupPortal={isNewDishMode}
                         t={t}
                       />
                     </td>
@@ -2092,6 +2842,7 @@ async function handleSave() {
                         step="0.001"
                         data-calc-field="qty"
                         value={row.Kolvo}
+                        disabled={readOnly}
                         onChange={(e) =>
                           updateRow(row.ID, {
                             Kolvo: Number(e.target.value || 0)
@@ -2111,6 +2862,7 @@ async function handleSave() {
                         step="0.001"
                         data-calc-field="netto"
                         value={row.Netto}
+                        disabled={readOnly}
                         onChange={(e) =>
                           handleDishNettoChange(row.ID, e.target.value)
                         }
@@ -2131,15 +2883,17 @@ async function handleSave() {
                     </td>
 
                     <td>
-                      <button
-                        type="button"
-                        className="small-danger-button dish-calc-delete-button"
-                        title={t("DishCalc.DeleteRow", "Удалить строку")}
-                        aria-label={t("DishCalc.DeleteRow", "Удалить строку")}
-                        onClick={() => deleteRow(row.ID)}
-                      >
-                        ×
-                      </button>
+                      {!readOnly && !isBlankCalcDraftRow(row) && (
+                        <button
+                          type="button"
+                          className="small-danger-button dish-calc-delete-button"
+                          title={t("DishCalc.DeleteRow", "Удалить строку")}
+                          aria-label={t("DishCalc.DeleteRow", "Удалить строку")}
+                          onClick={() => deleteRow(row.ID)}
+                        >
+                          ×
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -2154,7 +2908,10 @@ async function handleSave() {
           <span>{t("DishCalc.Technology", "Технология приготовления")}</span>
           <textarea
             value={rem}
-            onChange={(e) => setRem(e.target.value)}
+            disabled={readOnly}
+            onChange={(e) => {
+              if (!readOnly) setRem(e.target.value);
+            }}
             rows={5}
           />
         </label>

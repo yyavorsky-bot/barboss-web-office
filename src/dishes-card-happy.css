@@ -544,3 +544,113 @@
   .dish-card-report-table th:nth-child(7),
   .dish-card-report-table td:nth-child(7) { width: 14%; }
 }
+
+/* =========================================================
+ * 2026-08-23 — Карточка блюда / Счастливые часы:
+ * защита от тёмной темы браузера
+ * ========================================================= */
+.dish-card-report-page,
+.dishes-happy-page {
+  color-scheme: light;
+  color: #1f2937;
+}
+
+/* Карточка блюда — светлый отчётный лист. */
+.dish-card-report-sheet,
+.dish-card-report-table,
+.dish-card-report-table th,
+.dish-card-report-table td {
+  color: #1f2937;
+}
+
+/* Счастливые часы — таблица остаётся светлой независимо от темы ОС/браузера. */
+.dishes-happy-card,
+.dishes-happy-table,
+.dishes-happy-table td {
+  color: #243b36;
+}
+
+.dishes-happy-page input:not([type="checkbox"]):not([type="radio"]),
+.dishes-happy-page select,
+.dishes-happy-page textarea {
+  color: #243b36;
+  -webkit-text-fill-color: #243b36;
+}
+
+.dishes-happy-page input:not([type="checkbox"]):not([type="radio"]):disabled,
+.dishes-happy-page select:disabled,
+.dishes-happy-page textarea:disabled {
+  color: #243b36;
+  -webkit-text-fill-color: #243b36;
+  opacity: 1;
+}
+
+.dishes-happy-page input::placeholder,
+.dishes-happy-page textarea::placeholder {
+  color: #7a8b86;
+  -webkit-text-fill-color: #7a8b86;
+  opacity: 1;
+}
+
+
+/* =========================================================
+ * 2026-08-24 — Список блюд: выделение строки при ↑ / ↓
+ * ========================================================= */
+
+/*
+ * Реально выбранная строка должна заметно отличаться от простого наведения
+ * мыши. Это особенно важно после перехода ↑ / ↓: курсор мыши физически
+ * остаётся над исходной строкой и продолжает держать на ней :hover.
+ */
+.dishes-page .dishes-table tbody tr.selected-row td,
+.dishes-page .dishes-table tbody tr.selected-row:hover td {
+  background: #c3e5dc !important;
+}
+
+/* Выбранная + изменённая строка сохраняет тёплый признак изменения. */
+.dishes-page .dishes-table tbody tr.selected-row.changed-row td,
+.dishes-page .dishes-table tbody tr.selected-row.changed-row:hover td {
+  background: #f2dda4 !important;
+}
+
+/*
+ * Для обычной строки hover вообще не меняет фон. После перехода ↑ / ↓
+ * исходная строка под неподвижным курсором выглядит точно как остальные.
+ */
+/*
+ * Hover обычной строки сохраняет исходный zebra-фон.
+ * Это убирает «след» от строки, с которой начали навигацию ↑ / ↓.
+ */
+.dishes-page .dishes-table tbody tr:not(.selected-row):not(.changed-row):nth-child(odd):hover td {
+  background: #fffdf8 !important;
+}
+
+.dishes-page .dishes-table tbody tr:not(.selected-row):not(.changed-row):nth-child(even):hover td {
+  background: #F6F1DB !important;
+}
+
+
+/* =========================================================
+ * 2026-08-24 — Список блюд: компактная группа налогов
+ * ========================================================= */
+.dishes-page .dishes-table th.dishes-tax-group-column,
+.dishes-page .dishes-table td.dishes-tax-group-column {
+  width: 64px;
+  min-width: 64px;
+  max-width: 64px;
+}
+
+.dishes-page .dishes-table th.dishes-tax-group-column {
+  padding-left: 4px;
+  padding-right: 4px;
+  white-space: normal;
+  line-height: 1.05;
+}
+
+.dishes-page .dishes-table .dishes-tax-group-select {
+  width: 100%;
+  min-width: 0;
+  padding-left: 2px;
+  padding-right: 2px;
+  text-align: center;
+}

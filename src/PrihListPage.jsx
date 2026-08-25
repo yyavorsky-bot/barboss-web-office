@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import "./prih-scan-match.css";
 
 function normalizeSearchText(value) {
   return String(value ?? "")
@@ -214,6 +215,7 @@ export default function PrihListPage({
   date1,
   date2,
   pfMode = false,
+  readOnly = false,
   selectedInvoiceId,
   onSelectInvoice,
   onChangePost,
@@ -239,6 +241,16 @@ export default function PrihListPage({
   const displayDate2 = normalizeDateInputValue(
     date2 || period?.Date2
   );
+
+  const selectedRow =
+    rows.find(
+      (row) => Number(row.ID) === Number(selectedId)
+    ) ?? null;
+
+  function openSelectedInvoice() {
+    if (!selectedRow) return;
+    onOpenInvoice?.(selectedRow);
+  }
 
   useEffect(() => {
     const targetId = Number(selectedInvoiceId || 0);
@@ -268,6 +280,44 @@ export default function PrihListPage({
 
     setSelectedId(numericId);
     onSelectInvoice?.(numericId);
+  }
+
+  function focusInvoiceRow(invoiceId) {
+    window.requestAnimationFrame(() => {
+      const row = listRootRef.current?.querySelector(
+        `[data-invoice-id="${Number(invoiceId || 0)}"]`
+      );
+
+      if (!(row instanceof HTMLElement)) return;
+
+      row.focus({ preventScroll: true });
+      row.scrollIntoView({
+        block: "nearest",
+        inline: "nearest"
+      });
+    });
+  }
+
+  function handleInvoiceRowKeyDown(event, invoiceId) {
+    if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+    if (event.altKey || event.ctrlKey || event.metaKey) return;
+
+    const currentIndex = rows.findIndex(
+      (row) => Number(row.ID) === Number(invoiceId)
+    );
+
+    if (currentIndex < 0) return;
+
+    // На первой/последней строке стрелку браузеру не отдаём.
+    event.preventDefault();
+
+    const direction = event.key === "ArrowDown" ? 1 : -1;
+    const nextRow = rows[currentIndex + direction];
+
+    if (!nextRow) return;
+
+    selectInvoice(nextRow.ID);
+    focusInvoiceRow(nextRow.ID);
   }
 
   return (
@@ -333,7 +383,19 @@ export default function PrihListPage({
             Применить
           </button>
 
-          {!pfMode && onCreateInvoice && (
+          {onOpenInvoice && (
+            <button
+              type="button"
+              className="prih-open-button prih-open-selected-button"
+              disabled={!selectedRow}
+              onClick={openSelectedInvoice}
+              title="Открыть выбранную накладную"
+            >
+              Открыть
+            </button>
+          )}
+
+          {!readOnly && !pfMode && onCreateInvoice && (
             <button
               type="button"
               className="prih-create-button"
@@ -343,7 +405,7 @@ export default function PrihListPage({
             </button>
           )}
 
-          {pfMode && (
+          {!readOnly && pfMode && (
             <>
               <button
                 type="button"
@@ -386,7 +448,6 @@ export default function PrihListPage({
               <col className="prih-col-updated" />
               <col className="prih-col-paid" />
               <col className="prih-col-return" />
-              <col className="prih-col-action" />
             </colgroup>
             <thead>
               <tr>
@@ -399,7 +460,6 @@ export default function PrihListPage({
                 <th>Изменил</th>
                 <th>Оплачено</th>
                 <th>Возврат</th>
-                <th></th>
               </tr>
             </thead>
 
@@ -408,12 +468,38 @@ export default function PrihListPage({
                 <tr
                   key={row.ID}
                   data-invoice-id={Number(row.ID || 0)}
-                  className={
+                  className={[
                     Number(selectedId) === Number(row.ID)
                       ? "selected-row"
+                      : "",
+                    Number(row.Nerasp || 0) > 0
+                      ? "prih-has-unrecognized"
                       : ""
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                  title={
+                    Number(row.Nerasp || 0) > 0
+                      ? `${t(
+                          "PrihList.UnrecognizedItems",
+                          "Нераспознанных товаров"
+                        )}: ${Number(row.Nerasp || 0)}`
+                      : undefined
                   }
-                  onClick={() => selectInvoice(row.ID)}
+                  tabIndex={
+                    Number(selectedId) === Number(row.ID) ? 0 : -1
+                  }
+                  onKeyDown={(event) =>
+                    handleInvoiceRowKeyDown(event, row.ID)
+                  }
+                  onClick={(event) => {
+                    selectInvoice(row.ID);
+                    event.currentTarget.focus({ preventScroll: true });
+                  }}
+                  onDoubleClick={() => {
+                    selectInvoice(row.ID);
+                    onOpenInvoice?.(row);
+                  }}
                 >
                   <td>{row.Invoice}</td>
                   <td>{row.DateP}</td>
@@ -429,19 +515,6 @@ export default function PrihListPage({
                   </td>
                   <td className="center">
                     {row.Vozv ? "✓" : ""}
-                  </td>
-                  <td className="center">
-                    <button
-                      type="button"
-                      className="small-action-button prih-open-button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        selectInvoice(row.ID);
-                        onOpenInvoice?.(row);
-                      }}
-                    >
-                      Открыть
-                    </button>
                   </td>
                 </tr>
               ))}

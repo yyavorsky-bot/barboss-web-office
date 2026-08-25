@@ -404,3 +404,87 @@
   }
 }
 
+
+
+/* =========================================================
+ * Карточка блюда — вложенный отчет «Входит в блюда»
+ * ========================================================= */
+
+.dish-card-in-pf-section {
+  margin-top: 20px;
+}
+
+.dish-card-in-pf-section > h2 {
+  margin: 0 0 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #b8c0cc;
+  color: #334155;
+  font-size: 15px;
+  line-height: 1.15;
+}
+
+.dish-card-in-pf-loading {
+  padding: 8px 2px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.dish-card-in-pf-error {
+  margin-bottom: 6px;
+}
+
+.dish-card-report-table.dish-card-in-pf-table {
+  table-layout: fixed;
+}
+
+.dish-card-report-table.dish-card-in-pf-table th:nth-child(1),
+.dish-card-report-table.dish-card-in-pf-table td:nth-child(1) {
+  width: 70%;
+}
+
+.dish-card-report-table.dish-card-in-pf-table th:nth-child(2),
+.dish-card-report-table.dish-card-in-pf-table td:nth-child(2) {
+  width: 18%;
+}
+
+.dish-card-report-table.dish-card-in-pf-table th:nth-child(3),
+.dish-card-report-table.dish-card-in-pf-table td:nth-child(3) {
+  width: 12%;
+  text-align: center;
+}
+
+.dish-card-in-pf-table input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  vertical-align: middle;
+  opacity: 1;
+}
+
+@media print {
+  .dish-card-in-pf-section {
+    margin-top: 4mm;
+    break-inside: auto;
+  }
+
+  .dish-card-in-pf-section > h2 {
+    margin-bottom: 1mm;
+    padding-bottom: 0.7mm;
+    font-size: 10pt;
+  }
+
+  .dish-card-report-table.dish-card-in-pf-table th:nth-child(1),
+  .dish-card-report-table.dish-card-in-pf-table td:nth-child(1) {
+    width: 70%;
+  }
+
+  .dish-card-report-table.dish-card-in-pf-table th:nth-child(2),
+  .dish-card-report-table.dish-card-in-pf-table td:nth-child(2) {
+    width: 18%;
+  }
+
+  .dish-card-report-table.dish-card-in-pf-table th:nth-child(3),
+  .dish-card-report-table.dish-card-in-pf-table td:nth-child(3) {
+    width: 12%;
+  }
+}

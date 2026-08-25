@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { exportReportFile } from "./reportExport.js";
 import "./kassa-report.css";
 
@@ -887,6 +887,7 @@ export default function KassaPage({
   onReceiveRevenue,
   onLoadSupplierInvoices,
   onDirtyChange,
+  readOnly = false,
   t = (key, fallback = "") => fallback,
   locale = "ru-RU"
 }) {
@@ -894,7 +895,9 @@ export default function KassaPage({
   const [selectedRashodId, setSelectedRashodId] = useState(null);
   const [editPrihRows, setEditPrihRows] = useState([]);
   const [editRashodRows, setEditRashodRows] = useState([]);
-  const [nextTempId, setNextTempId] = useState(-1);
+  const nextTempIdRef = useRef(-1);
+  const kassaDateInputRef = useRef(null);
+  const protectedDateChangeRef = useRef(null);
   const [hasChanges, setHasChanges] = useState(false);
   const [saving, setSaving] = useState(false);
   const [receivingRevenue, setReceivingRevenue] = useState(false);
@@ -911,9 +914,88 @@ export default function KassaPage({
 
   const orgId = Number(currentOrg || 0);
   const valutId = Number(currentValut || 0);
-  const readOnly = orgId === 0;
-  const canEdit = orgId > 0;
+  const organizationReadOnly = orgId === 0;
+  const canEdit = orgId > 0 && !readOnly;
+  const isReadOnly = Boolean(readOnly || organizationReadOnly);
   const isDirty = Boolean(canEdit && hasChanges);
+
+  protectedDateChangeRef.current = handleProtectedDateChange;
+
+  useEffect(() => {
+    const styleElement = document.createElement("style");
+    styleElement.dataset.kassaEditorPolish = "true";
+    styleElement.textContent = `
+      .kassa-page .kassa-report-open-button {
+        min-height: 34px !important;
+        padding: 0 14px !important;
+        border: 1px solid #aebdcb !important;
+        border-radius: 8px !important;
+        background: #e3eaf1 !important;
+        color: #30485f !important;
+        font-weight: 700 !important;
+        box-shadow: 0 1px 2px rgba(36, 58, 78, 0.08) !important;
+      }
+      .kassa-page .kassa-report-open-button:not(:disabled):hover {
+        background: #d5e0ea !important;
+        border-color: #8fa5b8 !important;
+        color: #213a50 !important;
+      }
+      .kassa-page .kassa-revenue-button {
+        min-height: 34px !important;
+        padding: 0 15px !important;
+        border: 1px solid #83aa98 !important;
+        border-radius: 8px !important;
+        background: #d6e9df !important;
+        color: #24513f !important;
+        font-weight: 700 !important;
+        box-shadow: 0 1px 2px rgba(36, 81, 63, 0.10) !important;
+      }
+      .kassa-page .kassa-revenue-button:not(:disabled):hover {
+        background: #c2decf !important;
+        border-color: #648f7b !important;
+        color: #173f30 !important;
+        box-shadow: 0 2px 5px rgba(36, 81, 63, 0.14) !important;
+      }
+      .kassa-page .kassa-report-open-button:disabled,
+      .kassa-page .kassa-revenue-button:disabled {
+        opacity: 0.55 !important;
+      }
+    `;
+    document.head.appendChild(styleElement);
+
+    return () => {
+      styleElement.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (reportKind) return undefined;
+
+    const input = kassaDateInputRef.current;
+    if (!input) return undefined;
+
+    const handleNativeChange = () => {
+      protectedDateChangeRef.current?.(input.value);
+    };
+
+    input.addEventListener("change", handleNativeChange);
+
+    return () => {
+      input.removeEventListener("change", handleNativeChange);
+    };
+  }, [reportKind]);
+
+  useEffect(() => {
+    if (reportKind) return;
+
+    const input = kassaDateInputRef.current;
+    if (!input) return;
+
+    const nextValue = formatDateForInput(kassaDate);
+    if (input.value !== nextValue) {
+      input.value = nextValue;
+    }
+  }, [kassaDate, reportKind]);
 
   useEffect(() => {
     onDirtyChange?.(isDirty);
@@ -1008,45 +1090,52 @@ export default function KassaPage({
   }, [rashodRows, orgId, valutId]);
 
   useEffect(() => {
-    setEditPrihRows(
-      filteredPrihRows.map((row) => ({
-        ID: Number(row.ID || 0),
-        Dat: formatDateForInput(row.Dat || kassaDate),
-        Org: Number(row.Org || orgId || 0),
-        Valuts: Number(row.Valuts || valutId || 0),
-        Summa: normalizeNumber(row.Summa),
-        KodKl: normalizeNumber(row.KodKl),
-        KodZatrat: normalizeNumber(row.KodZatrat),
-        Rem: normalizeText(row.Rem),
-        Deleted: 0,
-        _changed: false
-      }))
-    );
+    nextTempIdRef.current = -1;
 
-    setEditRashodRows(
-      filteredRashodRows.map((row) => ({
-        ID: Number(row.ID || 0),
-        Dat: formatDateForInput(row.Dat || kassaDate),
-        Org: Number(row.Org || orgId || 0),
-        Valuts: Number(row.Valuts || valutId || 0),
-        Summa: normalizeNumber(row.Summa),
-        KodPost: normalizeNumber(row.KodPost),
-        KodZatrat: normalizeNumber(row.KodZatrat),
-        Rem: normalizeText(row.Rem),
-        Deleted: 0,
-        _changed: false
-      }))
-    );
+    const nextPrihRows = filteredPrihRows.map((row) => ({
+      ID: Number(row.ID || 0),
+      Dat: formatDateForInput(row.Dat || kassaDate),
+      Org: Number(row.Org || orgId || 0),
+      Valuts: Number(row.Valuts || valutId || 0),
+      Summa: normalizeNumber(row.Summa),
+      KodKl: normalizeNumber(row.KodKl),
+      KodZatrat: normalizeNumber(row.KodZatrat),
+      Rem: normalizeText(row.Rem),
+      Deleted: 0,
+      _changed: false,
+      _isDraft: false
+    }));
+
+    const nextRashodRows = filteredRashodRows.map((row) => ({
+      ID: Number(row.ID || 0),
+      Dat: formatDateForInput(row.Dat || kassaDate),
+      Org: Number(row.Org || orgId || 0),
+      Valuts: Number(row.Valuts || valutId || 0),
+      Summa: normalizeNumber(row.Summa),
+      KodPost: normalizeNumber(row.KodPost),
+      KodZatrat: normalizeNumber(row.KodZatrat),
+      Rem: normalizeText(row.Rem),
+      Deleted: 0,
+      _changed: false,
+      _isDraft: false
+    }));
+
+    if (canEdit) {
+      nextPrihRows.push(createPrihDraftRow());
+      nextRashodRows.push(createRashodDraftRow());
+    }
+
+    setEditPrihRows(nextPrihRows);
+    setEditRashodRows(nextRashodRows);
 
     setSelectedPrihId(null);
     setSelectedRashodId(null);
     setHasChanges(false);
     setSaveError("");
-    setNextTempId(-1);
     setInvoiceRows([]);
     setInvoiceSupplier(null);
     setInvoiceTargetRowId(null);
-    }, [data, kassaDate, orgId, valutId]);
+  }, [data, kassaDate, orgId, valutId]);
 
   const visiblePrihRows = useMemo(
     () => editPrihRows.filter((row) => Number(row.Deleted || 0) !== 1),
@@ -1153,98 +1242,242 @@ export default function KassaPage({
   }
 
   function makeTempId() {
-    const id = nextTempId;
-    setNextTempId((value) => value - 1);
+    const id = nextTempIdRef.current;
+    nextTempIdRef.current -= 1;
     return id;
   }
 
+  function createPrihDraftRow() {
+    return {
+      ID: makeTempId(),
+      Dat: formatDateForInput(kassaDate),
+      Org: orgId,
+      Valuts: valutId,
+      Summa: 0,
+      KodKl: 0,
+      KodZatrat: 0,
+      Rem: "",
+      Deleted: 0,
+      _changed: false,
+      _isDraft: true
+    };
+  }
+
+  function createRashodDraftRow() {
+    return {
+      ID: makeTempId(),
+      Dat: formatDateForInput(kassaDate),
+      Org: orgId,
+      Valuts: valutId,
+      Summa: 0,
+      KodPost: 0,
+      KodZatrat: 0,
+      Rem: "",
+      Deleted: 0,
+      _changed: false,
+      _isDraft: true
+    };
+  }
+
+  function isPrihRowMeaningful(row) {
+    if (!row) return false;
+
+    return (
+      Number(row.Summa || 0) !== 0 ||
+      Number(row.KodKl || 0) !== 0 ||
+      Number(row.KodZatrat || 0) !== 0 ||
+      normalizeText(row.Rem).trim() !== "" ||
+      formatDateForInput(row.Dat) !== formatDateForInput(kassaDate)
+    );
+  }
+
+  function isRashodRowMeaningful(row) {
+    if (!row) return false;
+
+    return (
+      Number(row.Summa || 0) !== 0 ||
+      Number(row.KodPost || 0) !== 0 ||
+      Number(row.KodZatrat || 0) !== 0 ||
+      normalizeText(row.Rem).trim() !== "" ||
+      formatDateForInput(row.Dat) !== formatDateForInput(kassaDate)
+    );
+  }
+
+  function ensureTrailingPrihDraftRow(sourceRows) {
+    if (!canEdit) {
+      return sourceRows.filter((row) => !row._isDraft);
+    }
+
+    let blankDraft = null;
+    const rowsWithoutBlankDrafts = [];
+
+    for (const row of sourceRows) {
+      if (row._isDraft && !isPrihRowMeaningful(row)) {
+        if (!blankDraft) blankDraft = row;
+        continue;
+      }
+
+      rowsWithoutBlankDrafts.push(row);
+    }
+
+    return [...rowsWithoutBlankDrafts, blankDraft || createPrihDraftRow()];
+  }
+
+  function ensureTrailingRashodDraftRow(sourceRows) {
+    if (!canEdit) {
+      return sourceRows.filter((row) => !row._isDraft);
+    }
+
+    let blankDraft = null;
+    const rowsWithoutBlankDrafts = [];
+
+    for (const row of sourceRows) {
+      if (row._isDraft && !isRashodRowMeaningful(row)) {
+        if (!blankDraft) blankDraft = row;
+        continue;
+      }
+
+      rowsWithoutBlankDrafts.push(row);
+    }
+
+    return [...rowsWithoutBlankDrafts, blankDraft || createRashodDraftRow()];
+  }
+
   function markChanged() {
+    if (!canEdit) return;
+
     setHasChanges(true);
     setSaveError("");
   }
 
   function updatePrihRow(id, field, value) {
-    setEditPrihRows((rows) =>
-      rows.map((row) =>
-        Number(row.ID) === Number(id)
-          ? {
-              ...row,
-              [field]: ["Summa", "KodKl", "KodZatrat"].includes(field)
-                ? normalizeNumber(value)
-                : normalizeText(value),
-              _changed: true
-            }
-          : row
-      )
+    if (!canEdit) return;
+
+    const nextValue = ["Summa", "KodKl", "KodZatrat"].includes(field)
+      ? normalizeNumber(value)
+      : normalizeText(value);
+
+    const currentRow = editPrihRows.find(
+      (row) => Number(row.ID) === Number(id)
     );
-    markChanged();
+    const candidate = currentRow
+      ? { ...currentRow, [field]: nextValue }
+      : null;
+    const shouldMark =
+      Boolean(currentRow && !currentRow._isDraft) ||
+      isPrihRowMeaningful(candidate);
+
+    setEditPrihRows((rows) => {
+      const nextRows = rows.map((row) => {
+        if (Number(row.ID) !== Number(id)) return row;
+
+        const nextRow = { ...row, [field]: nextValue };
+        const meaningful = isPrihRowMeaningful(nextRow);
+        const isNew = Number(nextRow.ID) < 0;
+
+        return {
+          ...nextRow,
+          _changed: row._isDraft ? meaningful : true,
+          _isDraft: isNew ? !meaningful : false
+        };
+      });
+
+      return ensureTrailingPrihDraftRow(nextRows);
+    });
+
+    if (shouldMark) {
+      markChanged();
+    }
   }
 
   function updateRashodRow(id, field, value) {
-    setEditRashodRows((rows) =>
-      rows.map((row) =>
-        Number(row.ID) === Number(id)
-          ? {
-              ...row,
-              [field]: ["Summa", "KodPost", "KodZatrat"].includes(field)
-                ? normalizeNumber(value)
-                : normalizeText(value),
-              _changed: true
-            }
-          : row
-      )
+    if (!canEdit) return;
+
+    const nextValue = ["Summa", "KodPost", "KodZatrat"].includes(field)
+      ? normalizeNumber(value)
+      : normalizeText(value);
+
+    const currentRow = editRashodRows.find(
+      (row) => Number(row.ID) === Number(id)
     );
-    markChanged();
+    const candidate = currentRow
+      ? { ...currentRow, [field]: nextValue }
+      : null;
+    const shouldMark =
+      Boolean(currentRow && !currentRow._isDraft) ||
+      isRashodRowMeaningful(candidate);
+
+    setEditRashodRows((rows) => {
+      const nextRows = rows.map((row) => {
+        if (Number(row.ID) !== Number(id)) return row;
+
+        const nextRow = { ...row, [field]: nextValue };
+        const meaningful = isRashodRowMeaningful(nextRow);
+        const isNew = Number(nextRow.ID) < 0;
+
+        return {
+          ...nextRow,
+          _changed: row._isDraft ? meaningful : true,
+          _isDraft: isNew ? !meaningful : false
+        };
+      });
+
+      return ensureTrailingRashodDraftRow(nextRows);
+    });
+
+    if (shouldMark) {
+      markChanged();
+    }
   }
 
-  function addPrihRow() {
-    if (!canEdit) return;
+  function getKassaTableRow(kind, rowId) {
+    const table = document.querySelector(
+      kind === "prih" ? ".kassa-prih-table" : ".kassa-rashod-table"
+    );
 
-    const id = makeTempId();
+    if (!table) return null;
 
-    setEditPrihRows((rows) => [
-      ...rows,
-      {
-        ID: id,
-        Dat: kassaDate || "",
-        Org: orgId,
-        Valuts: valutId,
-        Summa: 0,
-        KodKl: 0,
-        KodZatrat: 0,
-        Rem: "",
-        Deleted: 0,
-        _changed: true
-      }
-    ]);
-
-    setSelectedPrihId(id);
-    markChanged();
+    return (
+      Array.from(table.querySelectorAll("tbody tr[data-kassa-row-id]")).find(
+        (rowElement) =>
+          String(rowElement.dataset.kassaRowId) === String(rowId)
+      ) || null
+    );
   }
 
-  function addRashodRow() {
-    if (!canEdit) return;
+  function focusKassaField(kind, rowId, field) {
+    window.requestAnimationFrame(() => {
+      const rowElement = getKassaTableRow(kind, rowId);
+      const control = rowElement?.querySelector(
+        `[data-kassa-field="${field}"]`
+      );
 
-    const id = makeTempId();
+      if (!control) return;
 
-    setEditRashodRows((rows) => [
-      ...rows,
-      {
-        ID: id,
-        Dat: kassaDate || "",
-        Org: orgId,
-        Valuts: valutId,
-        Summa: 0,
-        KodPost: 0,
-        KodZatrat: 0,
-        Rem: "",
-        Deleted: 0,
-        _changed: true
-      }
-    ]);
+      control.focus();
+      control.select?.();
+    });
+  }
 
-    setSelectedRashodId(id);
-    markChanged();
+  function focusNextKassaRow(kind, rowId) {
+    window.requestAnimationFrame(() => {
+      const rowElement = getKassaTableRow(kind, rowId);
+      const nextRow = rowElement?.nextElementSibling || null;
+      const control = nextRow?.querySelector('[data-kassa-field="date"]');
+
+      if (!control) return;
+
+      control.focus();
+      control.select?.();
+    });
+  }
+
+  function handleKassaEnter(event, callback) {
+    if (event.key !== "Enter") return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    callback?.();
   }
 
   function deletePrihRow(id) {
@@ -1313,8 +1546,12 @@ export default function KassaPage({
     };
   }
 function buildKassaXml() {
-  const prihRows = editPrihRows.map(cleanPrihRow);
-  const rashodRows = editRashodRows.map(cleanRashodRow);
+  const prihRows = editPrihRows
+    .filter((row) => !row._isDraft)
+    .map(cleanPrihRow);
+  const rashodRows = editRashodRows
+    .filter((row) => !row._isDraft)
+    .map(cleanRashodRow);
 
   const activePrihXml = prihRows
     .filter((row) => Number(row.Deleted || 0) !== 1)
@@ -1382,7 +1619,7 @@ function buildKassaXml() {
 
 
   async function receiveRevenue() {
-    if (hasChanges || saving || receivingRevenue) return;
+    if (!canEdit || hasChanges || saving || receivingRevenue) return;
 
     try {
       setReceivingRevenue(true);
@@ -1442,6 +1679,7 @@ function buildKassaXml() {
   }
 
   function applyInvoiceDebt(invoice) {
+    if (!canEdit) return;
     if (invoiceTargetRowId === null || invoiceTargetRowId === undefined) return;
 
     updateRashodRow(invoiceTargetRowId, "Summa", invoice.Dolg);
@@ -1651,10 +1889,10 @@ async function saveChanges() {
           </button>
 
           <input
+            ref={kassaDateInputRef}
             type="date"
             className="kassa-main-date-input"
-            value={kassaDate || ""}
-            onChange={(event) => handleProtectedDateChange(event.target.value)}
+            defaultValue={formatDateForInput(kassaDate)}
             onKeyDown={(event) => {
               if (event.key === "ArrowUp" || event.key === "ArrowDown") {
                 event.preventDefault();
@@ -1681,14 +1919,16 @@ async function saveChanges() {
             {t("Kassa.Refresh", "Обновить")}
           </button>
 
-          <button
-            type="button"
-            className={`save-button kassa-save-button ${hasChanges ? "save-button-active" : ""}`}
-            onClick={saveChanges}
-            disabled={!canEdit || !hasChanges || saving}
-          >
-            {saving ? t("Kassa.Saving", "Сохранение...") : t("Kassa.Save", "Сохранить")}
-          </button>
+          {canEdit && (
+            <button
+              type="button"
+              className={`save-button kassa-save-button ${hasChanges ? "save-button-active" : ""}`}
+              onClick={saveChanges}
+              disabled={!hasChanges || saving}
+            >
+              {saving ? t("Kassa.Saving", "Сохранение...") : t("Kassa.Save", "Сохранить")}
+            </button>
+          )}
         </div>
 
         <div className="kassa-report-buttons" role="group" aria-label={t("KassaReport.Reports", "Отчёты кассы")}>
@@ -1721,15 +1961,17 @@ async function saveChanges() {
         </div>
 
         <div className="kassa-valut-panel">
-          <button
-            type="button"
-            className="small-action-button receive-revenue-button kassa-revenue-button"
-            onClick={receiveRevenue}
-            disabled={hasChanges || saving || receivingRevenue}
-            title={hasChanges ? t("Kassa.SaveFirstHint", "Сначала сохраните или обновите данные") : ""}
-          >
-            {receivingRevenue ? t("Kassa.Receiving", "Прием...") : t("Kassa.ReceiveRevenue", "Прием выручки")}
-          </button>
+          {canEdit && (
+            <button
+              type="button"
+              className="small-action-button receive-revenue-button kassa-revenue-button"
+              onClick={receiveRevenue}
+              disabled={hasChanges || saving || receivingRevenue}
+              title={hasChanges ? t("Kassa.SaveFirstHint", "Сначала сохраните или обновите данные") : ""}
+            >
+              {receivingRevenue ? t("Kassa.Receiving", "Прием...") : t("Kassa.ReceiveRevenue", "Прием выручки")}
+            </button>
+          )}
 
           <span>{t("Kassa.PaymentType", "Тип оплаты")}</span>
 
@@ -1747,12 +1989,17 @@ async function saveChanges() {
         </div>
       </div>
 
-      {readOnly && (
+      {isReadOnly && (
         <div className="readonly-notice">
-          {t(
-            "Kassa.ReadOnlyNotice",
-            "Режим просмотра: выберите конкретную организацию для добавления и редактирования кассовых операций."
-          )}
+          {readOnly
+            ? t(
+                "Kassa.UserReadOnlyNotice",
+                "Касса доступна только для просмотра."
+              )
+            : t(
+                "Kassa.ReadOnlyNotice",
+                "Режим просмотра: выберите конкретную организацию для добавления и редактирования кассовых операций."
+              )}
         </div>
       )}
 
@@ -1847,8 +2094,12 @@ async function saveChanges() {
                     <td className="text-right">{formatMoney(invoice.Oplach, locale)}</td>
                     <td
                       className="text-right invoice-debt-cell"
-                      title={t("Kassa.ApplyDebtHint", "Двойной клик: поставить сумму в расход")}
-                      onDoubleClick={() => applyInvoiceDebt(invoice)}
+                      title={
+                        canEdit
+                          ? t("Kassa.ApplyDebtHint", "Двойной клик: поставить сумму в расход")
+                          : ""
+                      }
+                      onDoubleClick={canEdit ? () => applyInvoiceDebt(invoice) : undefined}
                     >
                       {formatMoney(invoice.Dolg, locale)}
                     </td>
@@ -1874,9 +2125,6 @@ async function saveChanges() {
           <div className="kassa-panel-title">
             <span>{t("Kassa.CashIncome", "Приход в кассу")}</span>
 
-            <button type="button" className="kassa-add-button" disabled={!canEdit} onClick={addPrihRow}>
-              + {t("Kassa.Add", "Добавить")}
-            </button>
           </div>
 
           <div className="kassa-table-wrap">
@@ -1905,6 +2153,7 @@ async function saveChanges() {
                 {visiblePrihRows.map((row) => (
                   <tr
                     key={`prih-${row.ID}`}
+                    data-kassa-row-id={row.ID}
                     className={[
                       row.ID === selectedPrihId ? "selected-row" : "",
                       row._changed ? "changed-row" : ""
@@ -1916,9 +2165,15 @@ async function saveChanges() {
                         <input
                           className="table-input kassa-date-input"
                           type="date"
+                          data-kassa-field="date"
                           value={formatDateForInput(row.Dat)}
                           onChange={(event) =>
                             updatePrihRow(row.ID, "Dat", event.target.value)
+                          }
+                          onKeyDown={(event) =>
+                            handleKassaEnter(event, () =>
+                              focusKassaField("prih", row.ID, "amount")
+                            )
                           }
                         />
                       ) : (
@@ -1931,9 +2186,15 @@ async function saveChanges() {
                           className="table-input text-right"
                           type="number"
                           step="0.01"
+                          data-kassa-field="amount"
                           value={row.Summa}
                           onChange={(event) =>
                             updatePrihRow(row.ID, "Summa", event.target.value)
+                          }
+                          onKeyDown={(event) =>
+                            handleKassaEnter(event, () =>
+                              focusKassaField("prih", row.ID, "party")
+                            )
                           }
                         />
                       ) : (
@@ -1944,9 +2205,15 @@ async function saveChanges() {
                       {canEdit ? (
                         <select
                           className="table-select"
+                          data-kassa-field="party"
                           value={row.KodKl || 0}
                           onChange={(event) =>
                             updatePrihRow(row.ID, "KodKl", event.target.value)
+                          }
+                          onKeyDown={(event) =>
+                            handleKassaEnter(event, () =>
+                              focusKassaField("prih", row.ID, "category")
+                            )
                           }
                         >
                           <option value={0}>—</option>
@@ -1964,9 +2231,15 @@ async function saveChanges() {
                       {canEdit ? (
                         <select
                           className="table-select"
+                          data-kassa-field="category"
                           value={row.KodZatrat || 0}
                           onChange={(event) =>
                             updatePrihRow(row.ID, "KodZatrat", event.target.value)
+                          }
+                          onKeyDown={(event) =>
+                            handleKassaEnter(event, () =>
+                              focusKassaField("prih", row.ID, "note")
+                            )
                           }
                         >
                           <option value={0}>—</option>
@@ -1985,9 +2258,15 @@ async function saveChanges() {
                         <input
                           className="table-input"
                           type="text"
+                          data-kassa-field="note"
                           value={row.Rem || ""}
                           onChange={(event) =>
                             updatePrihRow(row.ID, "Rem", event.target.value)
+                          }
+                          onKeyDown={(event) =>
+                            handleKassaEnter(event, () =>
+                              focusNextKassaRow("prih", row.ID)
+                            )
                           }
                         />
                       ) : (
@@ -1995,19 +2274,20 @@ async function saveChanges() {
                       )}
                     </td>
                     <td className="action-column">
-                      <button
-                        type="button"
-                        className="small-danger-button kassa-delete-button"
-                        title={t("Kassa.DeleteRow", "Удалить строку")}
-                        aria-label={t("Kassa.DeleteRow", "Удалить строку")}
-                        disabled={!canEdit}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          deletePrihRow(row.ID);
-                        }}
-                      >
-                        ×
-                      </button>
+                      {canEdit && !row._isDraft && (
+                        <button
+                          type="button"
+                          className="small-danger-button kassa-delete-button"
+                          title={t("Kassa.DeleteRow", "Удалить строку")}
+                          aria-label={t("Kassa.DeleteRow", "Удалить строку")}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            deletePrihRow(row.ID);
+                          }}
+                        >
+                          ×
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -2028,9 +2308,6 @@ async function saveChanges() {
           <div className="kassa-panel-title">
             <span>{t("Kassa.CashExpense", "Расход из кассы")}</span>
 
-            <button type="button" className="kassa-add-button" disabled={!canEdit} onClick={addRashodRow}>
-              + {t("Kassa.Add", "Добавить")}
-            </button>
           </div>
 
           <div className="kassa-table-wrap">
@@ -2061,6 +2338,7 @@ async function saveChanges() {
                 {visibleRashodRows.map((row) => (
                   <tr
                     key={`rashod-${row.ID}`}
+                    data-kassa-row-id={row.ID}
                     className={[
                       row.ID === selectedRashodId ? "selected-row" : "",
                       row._changed ? "changed-row" : ""
@@ -2072,9 +2350,15 @@ async function saveChanges() {
                         <input
                           className="table-input kassa-date-input"
                           type="date"
+                          data-kassa-field="date"
                           value={formatDateForInput(row.Dat)}
                           onChange={(event) =>
                             updateRashodRow(row.ID, "Dat", event.target.value)
+                          }
+                          onKeyDown={(event) =>
+                            handleKassaEnter(event, () =>
+                              focusKassaField("rashod", row.ID, "amount")
+                            )
                           }
                         />
                       ) : (
@@ -2087,9 +2371,15 @@ async function saveChanges() {
                           className="table-input text-right"
                           type="number"
                           step="0.01"
+                          data-kassa-field="amount"
                           value={row.Summa}
                           onChange={(event) =>
                             updateRashodRow(row.ID, "Summa", event.target.value)
+                          }
+                          onKeyDown={(event) =>
+                            handleKassaEnter(event, () =>
+                              focusKassaField("rashod", row.ID, "party")
+                            )
                           }
                         />
                       ) : (
@@ -2100,9 +2390,15 @@ async function saveChanges() {
                       {canEdit ? (
                         <select
                           className="table-select"
+                          data-kassa-field="party"
                           value={row.KodPost || 0}
                           onChange={(event) =>
                             updateRashodRow(row.ID, "KodPost", event.target.value)
+                          }
+                          onKeyDown={(event) =>
+                            handleKassaEnter(event, () =>
+                              focusKassaField("rashod", row.ID, "category")
+                            )
                           }
                         >
                           <option value={0}>—</option>
@@ -2120,12 +2416,18 @@ async function saveChanges() {
                       {canEdit ? (
                         <select
                           className="table-select"
+                          data-kassa-field="category"
                           value={row.KodZatrat || 0}
                           onChange={(event) =>
                             updateRashodRow(
                               row.ID,
                               "KodZatrat",
                               event.target.value
+                            )
+                          }
+                          onKeyDown={(event) =>
+                            handleKassaEnter(event, () =>
+                              focusKassaField("rashod", row.ID, "note")
                             )
                           }
                         >
@@ -2145,9 +2447,15 @@ async function saveChanges() {
                         <input
                           className="table-input"
                           type="text"
+                          data-kassa-field="note"
                           value={row.Rem || ""}
                           onChange={(event) =>
                             updateRashodRow(row.ID, "Rem", event.target.value)
+                          }
+                          onKeyDown={(event) =>
+                            handleKassaEnter(event, () =>
+                              focusNextKassaRow("rashod", row.ID)
+                            )
                           }
                         />
                       ) : (
@@ -2168,19 +2476,20 @@ async function saveChanges() {
                       </button>
                     </td>
                     <td className="action-column">
-                      <button
-                        type="button"
-                        className="small-danger-button kassa-delete-button"
-                        title={t("Kassa.DeleteRow", "Удалить строку")}
-                        aria-label={t("Kassa.DeleteRow", "Удалить строку")}
-                        disabled={!canEdit}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          deleteRashodRow(row.ID);
-                        }}
-                      >
-                        ×
-                      </button>
+                      {canEdit && !row._isDraft && (
+                        <button
+                          type="button"
+                          className="small-danger-button kassa-delete-button"
+                          title={t("Kassa.DeleteRow", "Удалить строку")}
+                          aria-label={t("Kassa.DeleteRow", "Удалить строку")}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            deleteRashodRow(row.ID);
+                          }}
+                        >
+                          ×
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

@@ -208,6 +208,7 @@ export default function SchetViewPage({
   fetchWithAuth,
   onBack,
   onDirtyChange,
+  readOnly = false,
   t = (_key, fallback = "") => fallback,
   locale = "ru-RU"
 }) {
@@ -237,7 +238,7 @@ export default function SchetViewPage({
     formatDateTimeValue(value, locale);
 
   const paymentLocked = Number(sourceOrder?.SumKred || 0) > 0;
-  const canSaveZakaz = Boolean(headerChanged || bodyChanged);
+  const canSaveZakaz = Boolean(!readOnly && (headerChanged || bodyChanged));
   const advanceChanged = useMemo(
     () =>
       Object.values(advanceInputs).some(
@@ -245,7 +246,7 @@ export default function SchetViewPage({
       ),
     [advanceInputs]
   );
-  const isDirty = Boolean(canSaveZakaz || advanceChanged);
+  const isDirty = Boolean(!readOnly && (canSaveZakaz || advanceChanged));
 
   useEffect(() => {
     onDirtyChange?.(isDirty);
@@ -331,7 +332,7 @@ export default function SchetViewPage({
     try {
       const [cliJson, discountJson, dishesJson] = await Promise.all([
         loadJson("https://webback.bar-boss.com/wf_CliKass.php"),
-        loadJson("https://webback.bar-boss.com/wf_Discount.php"),
+        loadJson("https://webback.bar-boss.com/wf_Directory.php?Action=Discount"),
         loadJson("https://webback.bar-boss.com/wf_DishesAll.php")
       ]);
       setClients(Array.isArray(cliJson) ? cliJson : []);
@@ -441,16 +442,21 @@ export default function SchetViewPage({
   }
 
   function updateHeader(field, value) {
+    if (readOnly) return;
+
     setHeader((prev) => ({ ...prev, [field]: value }));
     setHeaderChanged(true);
   }
 
   function canEditHeader(field) {
+    if (readOnly) return false;
     if (!paymentLocked) return true;
     return field === "Anul";
   }
 
   function updateBodyRow(rowId, field, value) {
+    if (readOnly) return;
+
     setBodyRows((prev) =>
       prev.map((row) => {
         if (Number(row.ID) !== Number(rowId)) return row;
@@ -508,7 +514,7 @@ export default function SchetViewPage({
   }
 
   async function saveZakaz() {
-    if (!header) return;
+    if (readOnly || !header) return;
 
     if (advanceChanged && !confirmDiscardChanges(advanceChanged)) {
       return;
@@ -579,6 +585,8 @@ export default function SchetViewPage({
   }
 
   function updateAdvanceInput(field, value) {
+    if (readOnly) return;
+
     setAdvanceInputs((prev) => ({ ...prev, [field]: value }));
   }
 
@@ -591,7 +599,7 @@ export default function SchetViewPage({
   }
 
   async function saveAdvanceChange() {
-    if (!advanceChange) return;
+    if (readOnly || !advanceChange) return;
 
     if (canSaveZakaz && !confirmDiscardChanges(canSaveZakaz)) {
       return;
@@ -707,10 +715,18 @@ export default function SchetViewPage({
             </span>
           )}
         </div>
-        <button type="button" className={`save-button schet-view-save-button ${canSaveZakaz ? "save-button-active" : ""}`} disabled={!canSaveZakaz || saving} onClick={saveZakaz}>{t("SchetView.Save", "Сохранить")}</button>
+        {!readOnly && (
+          <button type="button" className={`save-button schet-view-save-button ${canSaveZakaz ? "save-button-active" : ""}`} disabled={!canSaveZakaz || saving} onClick={saveZakaz}>{t("SchetView.Save", "Сохранить")}</button>
+        )}
       </div>
 
-      {paymentLocked && (
+      {readOnly && (
+        <div className="readonly-notice">
+          {t("SchetView.ReadOnlyNotice", "Режим только чтение: изменения счета недоступны.")}
+        </div>
+      )}
+
+      {!readOnly && paymentLocked && (
         <div
           className="readonly-notice schet-payment-locked-notice"
           style={PAYMENT_LOCKED_NOTICE_STYLE}
@@ -731,7 +747,7 @@ export default function SchetViewPage({
         }`}
       >
         <div className="schet-header-grid">
-          <label className="schet-field"><span>{t("SchetView.WaiterLabel", "Официант:")}</span><select value={header.IdOf} disabled={paymentLocked} onChange={(event) => updateHeader("IdOf", Number(event.target.value))}><option value="0">{t("SchetView.NotSelected", "Не выбран")}</option>{selectedWaiterOptions.map((item) => <option key={item.ID} value={item.ID}>{item.Name || item.NameOf}</option>)}</select></label>
+          <label className="schet-field"><span>{t("SchetView.WaiterLabel", "Официант:")}</span><select value={header.IdOf} disabled={!canEditHeader("IdOf")} onChange={(event) => updateHeader("IdOf", Number(event.target.value))}><option value="0">{t("SchetView.NotSelected", "Не выбран")}</option>{selectedWaiterOptions.map((item) => <option key={item.ID} value={item.ID}>{item.Name || item.NameOf}</option>)}</select></label>
           <label className="schet-field"><span>{t("SchetView.BillNumber", "Номер счета:")}</span><input value={header.Number} disabled /></label>
           <label className="schet-field"><span>{t("SchetView.CloseDate", "Дата закрытия:")}</span><input type="datetime-local" value={header.DatOp} disabled={!canEditHeader("DatOp")} onChange={(event) => updateHeader("DatOp", event.target.value)} /></label>
           <label className="schet-field schet-field-wide"><span>{t("SchetView.Note", "Примечание:")}</span><input value={header.Rem} disabled={!canEditHeader("Rem")} onChange={(event) => updateHeader("Rem", event.target.value)} /></label>
@@ -755,7 +771,9 @@ export default function SchetViewPage({
         </div>
         <div className="schet-panel-buttons">
           <button type="button" className="small-action-button schet-panel-button schet-gold-button" onClick={loadAdvances}>{t("SchetView.AdvancesPayments", "Авансы/оплаты")}</button>
-          <button type="button" className="small-action-button schet-panel-button schet-gold-button" onClick={loadAdvanceChange}>{t("SchetView.ChangePaymentForm", "Изменение формы оплаты")}</button>
+          {!readOnly && (
+            <button type="button" className="small-action-button schet-panel-button schet-gold-button" onClick={loadAdvanceChange}>{t("SchetView.ChangePaymentForm", "Изменение формы оплаты")}</button>
+          )}
         </div>
       </section>
 
@@ -879,6 +897,7 @@ export default function SchetViewPage({
                       <input
                         className="table-input text-right"
                         value={advanceInputs[field]}
+                        disabled={readOnly}
                         onChange={(event) =>
                           updateAdvanceInput(field, event.target.value)
                         }
@@ -900,14 +919,16 @@ export default function SchetViewPage({
                   parseNumber(advanceInputs.Expirenza)
               )}
             </span>
-            <button
-              type="button"
-              className="primary-button schet-payment-save-button"
-              disabled={saving}
-              onClick={saveAdvanceChange}
-            >
-              {t("SchetView.SavePaymentForm", "Сохранить форму оплаты")}
-            </button>
+            {!readOnly && (
+              <button
+                type="button"
+                className="primary-button schet-payment-save-button"
+                disabled={saving}
+                onClick={saveAdvanceChange}
+              >
+                {t("SchetView.SavePaymentForm", "Сохранить форму оплаты")}
+              </button>
+            )}
           </div>
         </section>
       )}
@@ -970,7 +991,7 @@ export default function SchetViewPage({
                     <SearchableSelect
                       value={row.IdTov}
                       options={dishes}
-                      disabled={paymentLocked || row.Modif}
+                      disabled={readOnly || paymentLocked || row.Modif}
                       onChange={(value) =>
                         updateBodyRow(row.ID, "IdTov", Number(value))
                       }
@@ -986,7 +1007,7 @@ export default function SchetViewPage({
                       }}
                       className="table-input text-right"
                       value={row.Kolvo}
-                      disabled={paymentLocked}
+                      disabled={readOnly || paymentLocked}
                       onChange={(event) =>
                         updateBodyRow(row.ID, "Kolvo", event.target.value)
                       }
@@ -996,7 +1017,7 @@ export default function SchetViewPage({
                     <input
                       className="table-input text-right"
                       value={row.Price}
-                      disabled={paymentLocked}
+                      disabled={readOnly || paymentLocked}
                       onChange={(event) =>
                         updateBodyRow(row.ID, "Price", event.target.value)
                       }
@@ -1007,7 +1028,7 @@ export default function SchetViewPage({
                     <input
                       className="table-input text-right"
                       value={row.Discount}
-                      disabled={paymentLocked}
+                      disabled={readOnly || paymentLocked}
                       onChange={(event) =>
                         updateBodyRow(row.ID, "Discount", event.target.value)
                       }
@@ -1017,7 +1038,7 @@ export default function SchetViewPage({
                     <input
                       type="checkbox"
                       checked={row.Bel}
-                      disabled={paymentLocked}
+                      disabled={readOnly || paymentLocked}
                       onChange={(event) =>
                         updateBodyRow(row.ID, "Bel", event.target.checked)
                       }
@@ -1027,7 +1048,7 @@ export default function SchetViewPage({
                     <input
                       type="checkbox"
                       checked={row.Anul}
-                      disabled={paymentLocked}
+                      disabled={readOnly || paymentLocked}
                       onChange={(event) =>
                         updateBodyRow(row.ID, "Anul", event.target.checked)
                       }

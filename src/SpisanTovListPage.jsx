@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import "./spisan-tov-row-visual-fix.css";
 
 function formatDate(value, locale) {
   if (!value) return "";
@@ -37,6 +38,7 @@ export default function SpisanTovListPage({
   selectedInvoiceId = null,
   onOpen,
   onNew,
+  readOnly = false,
   t = (key, fallback = "") => fallback,
   locale = "ru-RU"
 }) {
@@ -134,6 +136,44 @@ export default function SpisanTovListPage({
     onOpen?.(row);
   }
 
+  function focusMainRow(invoiceId) {
+    window.requestAnimationFrame(() => {
+      const row = listWrapRef.current?.querySelector(
+        `[data-spisan-tov-id="${Number(invoiceId || 0)}"]`
+      );
+
+      if (!(row instanceof HTMLElement)) return;
+
+      row.focus({ preventScroll: true });
+      row.scrollIntoView({
+        block: "nearest",
+        inline: "nearest"
+      });
+    });
+  }
+
+  function handleMainRowKeyDown(event, invoiceId) {
+    if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+    if (event.altKey || event.ctrlKey || event.metaKey) return;
+
+    const currentIndex = rows.findIndex(
+      (row) => Number(row.ID) === Number(invoiceId)
+    );
+
+    if (currentIndex < 0) return;
+
+    // Стрелки работают только в главном списке списаний сырья.
+    event.preventDefault();
+
+    const direction = event.key === "ArrowDown" ? 1 : -1;
+    const nextRow = rows[currentIndex + direction];
+
+    if (!nextRow) return;
+
+    setSelectedId(Number(nextRow.ID));
+    focusMainRow(nextRow.ID);
+  }
+
   return (
   <div className="spisan-tov-list-page">
     <div className="spisan-tov-list-layout">
@@ -141,7 +181,7 @@ export default function SpisanTovListPage({
         <div className="spisan-tov-panel-title spisan-tov-list-header">
           <span>{t("SpisanTovList.Title", "Накладные списания сырья")}</span>
 
-          {onNew && (
+          {!readOnly && onNew && (
             <button
               type="button"
               className="spisan-tov-new-button"
@@ -188,8 +228,18 @@ export default function SpisanTovListPage({
                       ? selectedRowRef
                       : null
                   }
+                  data-spisan-tov-id={Number(row.ID || 0)}
                   className={Number(row.ID) === Number(selectedNakl?.ID) ? "selected-row" : ""}
-                  onClick={() => setSelectedId(Number(row.ID))}
+                  tabIndex={
+                    Number(selectedId) === Number(row.ID) ? 0 : -1
+                  }
+                  onKeyDown={(event) =>
+                    handleMainRowKeyDown(event, row.ID)
+                  }
+                  onClick={(event) => {
+                    setSelectedId(Number(row.ID));
+                    event.currentTarget.focus({ preventScroll: true });
+                  }}
                 >
                   <td>{formatDate(row.DatP, locale)}</td>
                   <td>{row.Nakl}</td>

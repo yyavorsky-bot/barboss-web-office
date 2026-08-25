@@ -21,6 +21,233 @@ function roundMoney(value) {
   return Math.round(Number(value || 0) * 100) / 100;
 }
 
+function roundQuantity(value) {
+  return Math.round(Number(value || 0) * 1000) / 1000;
+}
+
+function formatEditableNumber(value) {
+  const number = Number(value || 0);
+  return Number.isFinite(number) ? String(number) : "0";
+}
+
+function evaluateArithmeticExpression(value) {
+  const source = String(value ?? "")
+    .trim()
+    .replaceAll(",", ".")
+    .replaceAll("×", "*")
+    .replaceAll("÷", "/")
+    .replace(/\s+/g, "");
+
+  if (!source) {
+    return 0;
+  }
+
+  let position = 0;
+
+  function peek() {
+    return source[position] ?? "";
+  }
+
+  function consume(char) {
+    if (peek() !== char) {
+      throw new Error("Unexpected character");
+    }
+
+    position += 1;
+  }
+
+  function parseNumber() {
+    const start = position;
+    let dots = 0;
+
+    while (position < source.length) {
+      const char = source[position];
+
+      if (char >= "0" && char <= "9") {
+        position += 1;
+        continue;
+      }
+
+      if (char === ".") {
+        dots += 1;
+
+        if (dots > 1) {
+          throw new Error("Invalid number");
+        }
+
+        position += 1;
+        continue;
+      }
+
+      break;
+    }
+
+    if (start === position || source.slice(start, position) === ".") {
+      throw new Error("Number expected");
+    }
+
+    const number = Number(source.slice(start, position));
+
+    if (!Number.isFinite(number)) {
+      throw new Error("Invalid number");
+    }
+
+    return number;
+  }
+
+  function parseFactor() {
+    const char = peek();
+
+    if (char === "+") {
+      position += 1;
+      return parseFactor();
+    }
+
+    if (char === "-") {
+      position += 1;
+      return -parseFactor();
+    }
+
+    if (char === "(") {
+      consume("(");
+      const value = parseExpression();
+      consume(")");
+      return value;
+    }
+
+    return parseNumber();
+  }
+
+  function parseTerm() {
+    let value = parseFactor();
+
+    while (peek() === "*" || peek() === "/") {
+      const operator = peek();
+      position += 1;
+      const right = parseFactor();
+
+      if (operator === "*") {
+        value *= right;
+      } else {
+        if (right === 0) {
+          throw new Error("Division by zero");
+        }
+
+        value /= right;
+      }
+    }
+
+    return value;
+  }
+
+  function parseExpression() {
+    let value = parseTerm();
+
+    while (peek() === "+" || peek() === "-") {
+      const operator = peek();
+      position += 1;
+      const right = parseTerm();
+
+      value = operator === "+" ? value + right : value - right;
+    }
+
+    return value;
+  }
+
+  try {
+    const result = parseExpression();
+
+    if (position !== source.length || !Number.isFinite(result)) {
+      return null;
+    }
+
+    return result;
+  } catch {
+    return null;
+  }
+}
+
+function ExpressionNumberInput({
+  value,
+  cellIndex,
+  onCommit,
+  onEnterNext,
+  className = "",
+  title = "",
+  disabled = false
+}) {
+  const [text, setText] = useState(formatEditableNumber(value));
+  const [invalid, setInvalid] = useState(false);
+
+  useEffect(() => {
+    setText(formatEditableNumber(value));
+    setInvalid(false);
+  }, [value]);
+
+  function commit() {
+    const result = evaluateArithmeticExpression(text);
+
+    if (result === null) {
+      setInvalid(true);
+      return false;
+    }
+
+    const accepted = onCommit?.(result);
+
+    if (accepted === false) {
+      setInvalid(true);
+      return false;
+    }
+
+    const committedValue =
+      typeof accepted === "number" && Number.isFinite(accepted)
+        ? accepted
+        : result;
+
+    setText(formatEditableNumber(committedValue));
+    setInvalid(false);
+    return true;
+  }
+
+  return (
+    <input
+      data-cell={cellIndex}
+      type="text"
+      inputMode="decimal"
+      className={className}
+      value={text}
+      title={title}
+      aria-invalid={invalid}
+      disabled={disabled}
+      style={invalid ? { borderColor: "#c62828", outlineColor: "#c62828" } : undefined}
+      onFocus={(event) => event.currentTarget.select()}
+      onChange={(event) => {
+        setText(event.target.value);
+        setInvalid(false);
+      }}
+      onBlur={commit}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          setText(formatEditableNumber(value));
+          setInvalid(false);
+          return;
+        }
+
+        if (event.key !== "Enter") {
+          return;
+        }
+
+        event.preventDefault();
+
+        if (commit()) {
+          setTimeout(() => onEnterNext?.(cellIndex), 0);
+        }
+      }}
+    />
+  );
+}
+
 
 function formatReportDate(value, locale = "ru-RU") {
   if (!value) return "";
@@ -56,6 +283,43 @@ function formatReportMoney(value, locale = "ru-RU") {
 
 function makeTempId() {
   return -Date.now() - Math.floor(Math.random() * 1000);
+}
+
+function createEmptySpisanTovRow() {
+  return {
+    CodeSpi: makeTempId(),
+    CodeTov: 0,
+    Kolvo: 0,
+    Price: 0,
+    Summ: 0,
+    Name: ""
+  };
+}
+
+function isBlankSpisanTovDraftRow(row) {
+  return (
+    Number(row?.CodeSpi || 0) < 0 &&
+    Number(row?.CodeTov || 0) <= 0 &&
+    Number(row?.Kolvo || 0) === 0 &&
+    Number(row?.Price || 0) === 0 &&
+    Number(row?.Summ || 0) === 0 &&
+    !String(row?.Name || "").trim()
+  );
+}
+
+function ensureTrailingSpisanTovDraftRow(sourceRows) {
+  const source = Array.isArray(sourceRows) ? sourceRows : [];
+  const existingDraft = [...source]
+    .reverse()
+    .find(isBlankSpisanTovDraftRow);
+  const actualRows = source.filter(
+    (row) => !isBlankSpisanTovDraftRow(row)
+  );
+
+  return [
+    ...actualRows,
+    existingDraft || createEmptySpisanTovRow()
+  ];
 }
 
 const UNSAVED_CHANGES_MESSAGE =
@@ -102,7 +366,9 @@ function normalizeState(header, rows) {
       DatP: normalizeDate(header.DatP),
       Rem: header.Rem || ""
     },
-    items: rows.map(normalizeItem)
+    items: rows
+      .filter((row) => !isBlankSpisanTovDraftRow(row))
+      .map(normalizeItem)
   };
 }
 
@@ -113,6 +379,7 @@ function SearchableSelect({
   onChange,
   onEnterNext,
   cellIndex,
+  disabled = false,
   t = (key, fallback = "") => fallback
 }) {
   const selected = options.find((item) => Number(item.ID) === Number(value));
@@ -140,6 +407,7 @@ function SearchableSelect({
   }, [text, options]);
 
   function choose(item) {
+    if (disabled) return;
     onChange(Number(item.ID || 0));
     setText(item.Name || "");
     setOpen(false);
@@ -155,6 +423,7 @@ function SearchableSelect({
         data-cell={cellIndex}
         value={text}
         placeholder={placeholder}
+        disabled={disabled}
         onFocus={() => setOpen(true)}
         onChange={(e) => {
           setText(e.target.value);
@@ -179,7 +448,7 @@ function SearchableSelect({
         }}
       />
 
-      {open && (
+      {open && !disabled && (
         <div className="searchable-select-list">
           {filtered.length === 0 && (
             <div className="searchable-select-empty">{t("SpisanTovInvoice.SearchNothingFound", "Ничего не найдено")}</div>
@@ -347,6 +616,7 @@ export default function SpisanTovInvoicePage({
   initialData,
   currentSklad,
   fetchWithAuth,
+  readOnly = false,
   onBack,
   onDirtyChange,
   t = (key, fallback = "") => fallback,
@@ -373,7 +643,7 @@ export default function SpisanTovInvoicePage({
 
   const currentState = header ? normalizeState(header, rows) : null;
 
-  const isDirty = Boolean(
+  const isDirty = !readOnly && Boolean(
     deletedIds.length > 0 ||
       (
         originalState &&
@@ -411,7 +681,7 @@ export default function SpisanTovInvoicePage({
     loadData();
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialData, currentSklad]);
+  }, [initialData, currentSklad, readOnly]);
 
   async function loadData() {
     if (!initialData) return;
@@ -454,7 +724,11 @@ const normalizedHeader = {
         : [];
 
       setHeader(normalizedHeader);
-      setRows(loadedRows);
+      setRows(
+        readOnly
+          ? loadedRows
+          : ensureTrailingSpisanTovDraftRow(loadedRows)
+      );
       setZatrList(Array.isArray(zatrData) ? zatrData : []);
       setRawList(normalizeRawList(rawData));
       setDeletedIds([]);
@@ -467,6 +741,7 @@ const normalizedHeader = {
   }
 
   function isRowDirty(row) {
+    if (isBlankSpisanTovDraftRow(row)) return false;
     if (!originalState) return false;
 
     const originalRow = originalState.items.find(
@@ -491,6 +766,7 @@ const normalizedHeader = {
   }
 
   function updateHeaderField(field, value) {
+    if (readOnly) return;
     setHeader((prev) => ({
       ...prev,
       [field]: value
@@ -498,14 +774,19 @@ const normalizedHeader = {
   }
 
   function updateRow(rowId, patch) {
-    setRows((prevRows) =>
-      prevRows.map((row) => {
+    if (readOnly) return;
+    setRows((prevRows) => {
+      const nextRows = prevRows.map((row) => {
         if (row.CodeSpi !== rowId) return row;
 
         const nextRow = {
           ...row,
           ...patch
         };
+
+        if ("Kolvo" in patch) {
+          nextRow.Kolvo = roundQuantity(nextRow.Kolvo);
+        }
 
         if ("Kolvo" in patch || "Price" in patch) {
           nextRow.Summ = roundMoney(
@@ -514,29 +795,30 @@ const normalizedHeader = {
         }
 
         return nextRow;
-      })
-    );
-  }
+      });
 
-  function addRow() {
-    setRows((prevRows) => [
-      ...prevRows,
-      {
-        CodeSpi: makeTempId(),
-        CodeTov: 0,
-        Kolvo: 0,
-        Price: 0,
-        Summ: 0,
-        Name: ""
-      }
-    ]);
+      return ensureTrailingSpisanTovDraftRow(nextRows);
+    });
   }
 
   function deleteRow(rowId) {
+    if (readOnly) return;
+    const rowToDelete = rows.find(
+      (row) => Number(row.CodeSpi) === Number(rowId)
+    );
+
+    if (!rowToDelete || isBlankSpisanTovDraftRow(rowToDelete)) {
+      return;
+    }
+
     const ok = window.confirm(t("SpisanTovInvoice.DeleteRowConfirm", "Удалить строку?"));
     if (!ok) return;
 
-    setRows((prevRows) => prevRows.filter((row) => row.CodeSpi !== rowId));
+    setRows((prevRows) =>
+      ensureTrailingSpisanTovDraftRow(
+        prevRows.filter((row) => row.CodeSpi !== rowId)
+      )
+    );
 
     if (rowId > 0) {
       setDeletedIds((prev) => [...prev, rowId]);
@@ -556,20 +838,13 @@ const normalizedHeader = {
     }
   }
 
-  function handleCellKeyDown(e) {
-    if (e.key !== "Enter") return;
-
-    e.preventDefault();
-    focusNextCell(e.currentTarget.dataset.cell);
-  }
-
   function buildSaveXml() {
     const itemsXml = rows
       .filter((row) => Number(row.CodeTov || 0) > 0)
       .map((row) => {
         return `    <Item ID="${Number(row.CodeSpi || 0)}" Tov="${Number(
           row.CodeTov || 0
-        )}" Kolvo="${Number(row.Kolvo || 0)}" Price="${Number(
+        )}" Kolvo="${roundQuantity(row.Kolvo || 0)}" Price="${Number(
           row.Price || 0
         )}" />`;
       })
@@ -620,13 +895,15 @@ ${deletedXml}
       expense: getExpenseName(),
       note: header?.Rem || "",
       total: totalSumm,
-      rows: rows.map((row) => ({
-        ID: Number(row.CodeSpi || 0),
-        Name: row.Name || "",
-        Kolvo: Number(row.Kolvo || 0),
-        Price: Number(row.Price || 0),
-        Summ: Number(row.Summ || 0)
-      }))
+      rows: rows
+        .filter((row) => Number(row.CodeTov || 0) > 0)
+        .map((row) => ({
+          ID: Number(row.CodeSpi || 0),
+          Name: row.Name || "",
+          Kolvo: roundQuantity(row.Kolvo || 0),
+          Price: Number(row.Price || 0),
+          Summ: Number(row.Summ || 0)
+        }))
     };
   }
 
@@ -729,6 +1006,8 @@ ${deletedXml}
   }
 
   async function handleSave() {
+    if (readOnly) return;
+
     if (Number(header?.IDzatr || 0) <= 0) {
       alert(t("SpisanTovInvoice.ExpenseRequired", "!!! Выберите статью затрат."));
       return;
@@ -817,7 +1096,7 @@ ${deletedXml}
         <button
           type="button"
           className="primary-button spisan-tov-invoice-save-button"
-          disabled={!isDirty}
+          disabled={readOnly || !isDirty}
           onClick={handleSave}
         >
           {t("SpisanTovInvoice.Save", "Сохранить")}
@@ -826,7 +1105,10 @@ ${deletedXml}
         <button
           type="button"
           className="toolbar-button"
-          disabled={isDirty || rows.length === 0}
+          disabled={
+            isDirty ||
+            !rows.some((row) => Number(row.CodeTov || 0) > 0)
+          }
           onClick={handleOpenPrintPreview}
         >
           {t("Common.Print", "Печать")}
@@ -843,6 +1125,7 @@ ${deletedXml}
           <span>{t("SpisanTovInvoice.Number", "Номер")}</span>
           <input
             value={header.Nakl}
+            disabled={readOnly}
             onChange={(e) => updateHeaderField("Nakl", e.target.value)}
           />
         </label>
@@ -852,6 +1135,7 @@ ${deletedXml}
           <input
             type="date"
             value={header.DatP}
+            disabled={readOnly}
             onChange={(e) => updateHeaderField("DatP", e.target.value)}
           />
         </label>
@@ -861,6 +1145,7 @@ ${deletedXml}
 
           <select
             value={header.IDzatr}
+            disabled={readOnly}
             onChange={(e) =>
               updateHeaderField("IDzatr", Number(e.target.value || 0))
             }
@@ -880,6 +1165,7 @@ ${deletedXml}
 
   <input
     value={header.Rem || ""}
+    disabled={readOnly}
     onChange={(e) => updateHeaderField("Rem", e.target.value)}
   />
 </label>
@@ -893,14 +1179,6 @@ ${deletedXml}
 
       <div className="calc-panel-title prih-items-title spisan-tov-invoice-items-title">
         <span>{t("SpisanTovInvoice.ContentsTitle", "Содержимое списания")}</span>
-
-        <button
-          type="button"
-          className="prih-add-row-button spisan-tov-invoice-add-row-button"
-          onClick={addRow}
-        >
-          + {t("SpisanTovInvoice.AddRow", "строка")}
-        </button>
       </div>
 
       <div className="table-wrap prih-table-wrap spisan-tov-invoice-table-wrap">
@@ -924,12 +1202,6 @@ ${deletedXml}
           </thead>
 
           <tbody>
-            {rows.length === 0 && (
-              <tr>
-                <td className="spisan-tov-invoice-empty-row" colSpan={5}>{t("SpisanTovInvoice.EmptyRows", "Строки не добавлены.")}</td>
-              </tr>
-            )}
-
             {rows.map((row) => (
               <tr
                 key={row.CodeSpi}
@@ -942,6 +1214,7 @@ ${deletedXml}
                     placeholder={t("SpisanTovInvoice.SelectRawMaterial", "Выберите сырьё...")}
                     cellIndex={cellIndex++}
                     onEnterNext={focusNextCell}
+                    disabled={readOnly}
                     t={t}
                     onChange={(value) => {
                       const selectedRaw = rawList.find(
@@ -962,27 +1235,34 @@ ${deletedXml}
                 </td>
 
                 <td>
-                  <input
-                    data-cell={cellIndex++}
-                    type="number"
-                    step="0.001"
+                  <ExpressionNumberInput
                     value={row.Kolvo}
-                    onKeyDown={handleCellKeyDown}
-                    onChange={(e) =>
+                    cellIndex={cellIndex++}
+                    className="table-input text-right"
+                    title={t(
+                      "SpisanTovInvoice.QuantityExpressionHint",
+                      "Можно ввести выражение, например: 0,2+0,7 или 6*0,33"
+                    )}
+                    disabled={readOnly}
+                    onEnterNext={focusNextCell}
+                    onCommit={(value) => {
+                      const quantity = roundQuantity(value);
+
                       updateRow(row.CodeSpi, {
-                        Kolvo: Number(e.target.value || 0)
-                      })
-                    }
+                        Kolvo: quantity
+                      });
+
+                      return quantity;
+                    }}
                   />
                 </td>
 
                 <td>
                   <input
-                    data-cell={cellIndex++}
                     type="number"
                     step="0.01"
                     value={row.Price}
-                    onKeyDown={handleCellKeyDown}
+                    disabled={readOnly}
                     onChange={(e) =>
                       updateRow(row.CodeSpi, {
                         Price: Number(e.target.value || 0)
@@ -994,15 +1274,17 @@ ${deletedXml}
                 <td className="text-right">{formatMoney(row.Summ)}</td>
 
                 <td>
-                  <button
-                    type="button"
-                    className="small-danger-button spisan-tov-invoice-delete-button"
-                    title={t("SpisanTovInvoice.DeleteRow", "Удалить строку")}
-                    aria-label={t("SpisanTovInvoice.DeleteRow", "Удалить строку")}
-                    onClick={() => deleteRow(row.CodeSpi)}
-                  >
-                    ×
-                  </button>
+                  {!readOnly && !isBlankSpisanTovDraftRow(row) && (
+                    <button
+                      type="button"
+                      className="small-danger-button spisan-tov-invoice-delete-button"
+                      title={t("SpisanTovInvoice.DeleteRow", "Удалить строку")}
+                      aria-label={t("SpisanTovInvoice.DeleteRow", "Удалить строку")}
+                      onClick={() => deleteRow(row.CodeSpi)}
+                    >
+                      ×
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

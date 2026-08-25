@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { exportReportFile } from "./reportExport.js";
 import "./cards-sirya-report.css";
+import "./sirya-row-visual-fix.css";
 
 const DEFAULT_API_BASE_URL = "https://webback.bar-boss.com";
 
@@ -1238,6 +1239,46 @@ export default function CardsSiryaPage({
   // и блокируются на время выполнения любого отчётного запроса.
   const canOpenSelectedReport = Boolean(selectedRow) && !reportLoading;
 
+  function focusRawMaterialRow(rawMaterialId) {
+    window.requestAnimationFrame(() => {
+      const row = tableWrapRef.current?.querySelector(
+        `[data-raw-material-id="${String(rawMaterialId ?? "")}"]`
+      );
+
+      if (!(row instanceof HTMLElement)) return;
+
+      row.focus({ preventScroll: true });
+      row.scrollIntoView({
+        block: "nearest",
+        inline: "nearest"
+      });
+    });
+  }
+
+  function handleRawMaterialRowKeyDown(event, rawMaterialId) {
+    if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+    if (event.altKey || event.ctrlKey || event.metaKey) return;
+
+    const currentIndex = rows.findIndex(
+      (row) => String(row.ID) === String(rawMaterialId)
+    );
+
+    if (currentIndex < 0) return;
+
+    // Стрелки работают по основному списку карточек сырья.
+    // На границе списка не отдаём событие браузеру, чтобы не прокручивать экран.
+    event.preventDefault();
+
+    const direction = event.key === "ArrowDown" ? 1 : -1;
+    const nextRow = rows[currentIndex + direction];
+
+    if (!nextRow) return;
+
+    setSelectedId(nextRow.ID);
+    setReportError("");
+    focusRawMaterialRow(nextRow.ID);
+  }
+
   async function openReport(
     endpoint,
     nextReportType,
@@ -1606,12 +1647,20 @@ export default function CardsSiryaPage({
                         ? selectedRowRef
                         : null
                     }
+                    data-raw-material-id={String(row.ID ?? "")}
                     className={
                       String(selectedId) === String(row.ID) ? "selected-row" : ""
                     }
-                    onClick={() => {
+                    tabIndex={
+                      String(selectedId) === String(row.ID) ? 0 : -1
+                    }
+                    onKeyDown={(event) =>
+                      handleRawMaterialRowKeyDown(event, row.ID)
+                    }
+                    onClick={(event) => {
                       setSelectedId(row.ID);
                       setReportError("");
+                      event.currentTarget.focus({ preventScroll: true });
                     }}
                     onDoubleClick={() => {
                       setSelectedId(row.ID);

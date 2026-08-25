@@ -306,3 +306,150 @@
     width: 6.8%;
   }
 }
+
+/* =========================================================
+   Pereuchet — Сырье в готовых блюдах на переучет
+   ========================================================= */
+.pereuchet-toolbar .pereuchet-report-button.pereuchet-report-raw-button {
+  border: 0 !important;
+  background: linear-gradient(135deg, #6faaa3 0%, #4d817b 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 5px 12px rgba(46, 102, 95, 0.18) !important;
+}
+
+.pereuchet-toolbar .pereuchet-report-button.pereuchet-report-raw-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #6faaa3 0%, #4d817b 100%) !important;
+  color: #ffffff !important;
+  filter: brightness(1.05);
+}
+
+.pereuchet-toolbar .pereuchet-report-button.pereuchet-report-raw-button:disabled {
+  background: linear-gradient(135deg, #6faaa3 0%, #4d817b 100%) !important;
+  color: #ffffff !important;
+}
+
+.pereuchet-raw-report-sheet {
+  width: min(980px, 100%);
+}
+
+.pereuchet-raw-report-header {
+  align-items: center;
+}
+
+.pereuchet-raw-report-header h1 {
+  font-size: 19px;
+}
+
+.pereuchet-raw-report-meta {
+  grid-template-columns: auto;
+  min-width: 220px;
+}
+
+.pereuchet-raw-report-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid #d8dde5;
+  border-radius: 5px;
+}
+
+.pereuchet-raw-report-table {
+  width: 100%;
+  min-width: 680px;
+  border-collapse: collapse;
+  table-layout: fixed;
+  background: #ffffff;
+  font-size: 12.5px;
+}
+
+.pereuchet-raw-report-table th,
+.pereuchet-raw-report-table td {
+  padding: 6px 8px;
+  border-right: 1px solid #dfe4ea;
+  border-bottom: 1px solid #dfe4ea;
+  line-height: 1.2;
+  vertical-align: top;
+}
+
+.pereuchet-raw-report-table th:last-child,
+.pereuchet-raw-report-table td:last-child {
+  border-right: 0;
+}
+
+.pereuchet-raw-report-table thead th {
+  background: #f1f4f6;
+  color: #334155;
+  font-weight: 700;
+  text-align: left;
+}
+
+.pereuchet-raw-report-table .num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.pereuchet-raw-report-group-row td {
+  padding: 7px 9px;
+  background: #eaf2f0;
+  color: #315f5a;
+  font-weight: 700;
+  border-top: 1px solid #c8d8d4;
+}
+
+.pereuchet-raw-report-group-total td {
+  background: #f5f7f8;
+  font-weight: 700;
+  border-top: 1px solid #aeb8c2;
+}
+
+.pereuchet-raw-report-col-name {
+  width: 64%;
+}
+
+.pereuchet-raw-report-col-portions {
+  width: 18%;
+}
+
+.pereuchet-raw-report-col-quantity {
+  width: 18%;
+}
+
+@media print {
+  .pereuchet-raw-report-sheet {
+    width: 100%;
+  }
+
+  .pereuchet-raw-report-table-wrap {
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .pereuchet-raw-report-table {
+    min-width: 0;
+    font-size: 9pt;
+  }
+
+  .pereuchet-raw-report-table th,
+  .pereuchet-raw-report-table td {
+    padding: 1.2mm 1.6mm;
+  }
+
+  .pereuchet-raw-report-table thead {
+    display: table-header-group;
+  }
+
+  .pereuchet-raw-report-group-row,
+  .pereuchet-raw-report-group-total,
+  .pereuchet-raw-report-table tr {
+    break-inside: avoid;
+  }
+
+  .pereuchet-raw-report-group-row td,
+  .pereuchet-raw-report-group-total td,
+  .pereuchet-raw-report-table thead th {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}
+

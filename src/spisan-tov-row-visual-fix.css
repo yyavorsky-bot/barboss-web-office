@@ -1,0 +1,14 @@
+/* Списание сырья: выбранная строка всегда визуально приоритетнее hover. */
+.spisan-tov-list-page .spisan-tov-list-table tbody tr.selected-row td,
+.spisan-tov-list-page .spisan-tov-list-table tbody tr.selected-row:hover td {
+  background: #c3e5dc !important;
+}
+
+/* Курсор мыши не должен оставлять ложное второе выделение при навигации ↑ / ↓. */
+.spisan-tov-list-page .spisan-tov-list-table tbody tr:not(.selected-row):nth-child(odd):hover td {
+  background: #fffdf8 !important;
+}
+
+.spisan-tov-list-page .spisan-tov-list-table tbody tr:not(.selected-row):nth-child(even):hover td {
+  background: #f6f1db !important;
+}

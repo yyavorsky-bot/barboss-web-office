@@ -12888,17 +12888,15 @@ html body .app-shell > .top-bar {
 
 /* =========================================================
    Список блюд — закреплённые ключевые колонки
-   Без зависимости от режима React:
-   1) «Кальк.» — уже закреплена слева на 0;
-   2) «Название» — всегда закреплено слева после «Кальк.»;
-   3) «Отбор» — всегда закреплён справа.
+   После переноса «Калькуляции» из таблицы в верхнюю панель
+   больше не привязываемся к номеру колонки.
    ========================================================= */
 
-/* Третья колонка — «Название». */
-.dishes-page .dishes-table th:nth-child(3),
-.dishes-page .dishes-table td:nth-child(3) {
+/* «Название» — закреплено слева и не влияет на ширину «Цены». */
+.dishes-page .dishes-table th.dishes-name-column,
+.dishes-page .dishes-table td.dishes-name-column {
   position: sticky !important;
-  left: 72px !important;
+  left: 0 !important;
   z-index: 5 !important;
   width: 260px;
   min-width: 260px;
@@ -12906,8 +12904,7 @@ html body .app-shell > .top-bar {
   box-sizing: border-box;
 }
 
-/* Заголовок «Название» должен быть выше обычных sticky-ячеек. */
-.dishes-page .dishes-table thead th:nth-child(3) {
+.dishes-page .dishes-table thead th.dishes-name-column {
   z-index: 9 !important;
   background: #e7f3f0 !important;
   box-shadow:
@@ -12915,8 +12912,22 @@ html body .app-shell > .top-bar {
     4px 0 7px rgba(40, 65, 60, 0.12);
 }
 
-/* Поле названия не должно своей старой min-width:300px раздвигать sticky-ячейку. */
-.dishes-page .dishes-table td:nth-child(3) .dish-name-input {
+.dishes-page .dishes-table td.dishes-name-column .dish-name-input {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+/* «Цена» — компактная числовая колонка. */
+.dishes-page .dishes-table th.dishes-price-column,
+.dishes-page .dishes-table td.dishes-price-column {
+  width: 92px !important;
+  min-width: 92px !important;
+  max-width: 92px !important;
+  box-sizing: border-box;
+}
+
+.dishes-page .dishes-table td.dishes-price-column .price-input {
   width: 100% !important;
   min-width: 0 !important;
   max-width: 100% !important;
@@ -12943,10 +12954,9 @@ html body .app-shell > .top-bar {
     -4px 0 7px rgba(40, 65, 60, 0.12);
 }
 
-/* На Full HD при масштабировании Windows 125% оставляем больше места таблице. */
 @media (max-width: 1600px) {
-  .dishes-page .dishes-table th:nth-child(3),
-  .dishes-page .dishes-table td:nth-child(3) {
+  .dishes-page .dishes-table th.dishes-name-column,
+  .dishes-page .dishes-table td.dishes-name-column {
     width: 230px;
     min-width: 230px;
     max-width: 230px;
@@ -14288,4 +14298,111 @@ html body .app-shell > .top-bar {
   .spisok-tovarov-audit-table {
     min-width: 900px;
   }
+}
+
+
+/* =========================================================
+   Prih 2.0 — local draft / old-style list controls
+   2026-08-22
+   ========================================================= */
+
+.prih-list-toolbar .prih-open-selected-button {
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+.prih-list-toolbar .prih-open-selected-button:disabled {
+  opacity: 0.45;
+  cursor: default;
+  transform: none;
+  filter: none;
+  box-shadow: none;
+}
+
+.prih-list-table {
+  min-width: 1000px;
+}
+
+.prih-invoice-table tbody tr.prih-invoice-draft-row td {
+  background: #f7faf8 !important;
+}
+
+.prih-invoice-table tbody tr.prih-invoice-draft-row:hover td {
+  background: #f1f7f4 !important;
+}
+
+/* =========================================================
+   2026-08-23 — 08.01/08.02: закреплённая колонка «Имя»
+   ========================================================= */
+.directory-page-personal .directory-table .directory-field-Name,
+.directory-page-clients .directory-table .directory-field-Name {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  box-shadow: 1px 0 0 rgba(94, 150, 141, 0.22);
+}
+
+.directory-page-personal .directory-table thead .directory-field-Name,
+.directory-page-clients .directory-table thead .directory-field-Name {
+  z-index: 8;
+  background: #e7f3f0;
+}
+
+/* =========================================================
+   2026-08-23 — Pereuchet: сохраняем цветные кнопки при hover
+   Глобальный .small-action-button:hover задаёт белый фон.
+   ========================================================= */
+.pereuchet-pf-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #c2a76a 0%, #9a8146 100%);
+  color: #ffffff;
+}
+
+.pereuchet-report-brief-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #648fc0 0%, #416d9f 100%);
+  color: #ffffff;
+}
+
+.pereuchet-report-expanded-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #8269ad 0%, #62498d 100%);
+  color: #ffffff;
+}
+
+/* =========================================================
+   2026-08-23 — универсальные справочники:
+   защита светлой формы от тёмной темы браузера
+   ========================================================= */
+.directory-page {
+  color-scheme: light;
+  color: #243b36;
+}
+
+.directory-page .directory-table,
+.directory-page .directory-table th,
+.directory-page .directory-table td,
+.directory-page .directory-search-readonly {
+  color: #243b36;
+}
+
+.directory-page input:not([type="checkbox"]):not([type="radio"]),
+.directory-page select,
+.directory-page textarea {
+  color: #243b36;
+  -webkit-text-fill-color: #243b36;
+}
+
+.directory-page input:not([type="checkbox"]):not([type="radio"]):disabled,
+.directory-page select:disabled,
+.directory-page textarea:disabled {
+  color: #243b36;
+  -webkit-text-fill-color: #243b36;
+  opacity: 1;
+}
+
+.directory-page input::placeholder,
+.directory-page textarea::placeholder {
+  color: #7a8b86;
+  -webkit-text-fill-color: #7a8b86;
+  opacity: 1;
 }

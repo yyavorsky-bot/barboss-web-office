@@ -54,6 +54,49 @@ function makeTempId() {
   return -Date.now() - Math.floor(Math.random() * 1000);
 }
 
+function getCurrentLocalDate() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function createEmptySpisanBludRow() {
+  return {
+    ID: makeTempId(),
+    CodeBluda: 0,
+    Name: "",
+    SkladName: "",
+    Kolvo: 0
+  };
+}
+
+function isBlankSpisanBludDraftRow(row) {
+  return (
+    Number(row?.ID || 0) < 0 &&
+    Number(row?.CodeBluda || 0) <= 0 &&
+    Number(row?.Kolvo || 0) === 0 &&
+    !String(row?.Name || "").trim() &&
+    !String(row?.SkladName || "").trim()
+  );
+}
+
+function ensureTrailingSpisanBludDraftRow(sourceRows) {
+  const source = Array.isArray(sourceRows) ? sourceRows : [];
+  const existingDraft = [...source]
+    .reverse()
+    .find(isBlankSpisanBludDraftRow);
+  const actualRows = source.filter(
+    (row) => !isBlankSpisanBludDraftRow(row)
+  );
+
+  return [
+    ...actualRows,
+    existingDraft || createEmptySpisanBludRow()
+  ];
+}
+
 const UNSAVED_CHANGES_MESSAGE =
   "Внимание! Вы не сохранили измененные данные!\nУверены, что хотите уйти?";
 
@@ -97,7 +140,9 @@ function normalizeState(header, rows) {
       Rem: header.Rem || ""
     },
 
-    items: rows.map(normalizeItem)
+    items: rows
+      .filter((row) => !isBlankSpisanBludDraftRow(row))
+      .map(normalizeItem)
   };
 }
 
@@ -107,7 +152,9 @@ function SearchableSelect({
   placeholder,
   onChange,
   onEnterNext,
+  onArrowNavigate,
   cellIndex,
+  disabled = false,
   t = (key, fallback = "") => fallback
 }) {
   const selected = options.find((item) => Number(item.ID) === Number(value));
@@ -139,6 +186,7 @@ function SearchableSelect({
   }, [text, options]);
 
   function choose(item) {
+    if (disabled) return;
     onChange(Number(item.ID || 0));
     setText(item.Name || "");
     setOpen(false);
@@ -154,12 +202,22 @@ function SearchableSelect({
         data-cell={cellIndex}
         value={text}
         placeholder={placeholder}
+        disabled={disabled}
         onFocus={() => setOpen(true)}
         onChange={(e) => {
           setText(e.target.value);
           setOpen(true);
         }}
         onKeyDown={(e) => {
+          if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+            onArrowNavigate?.(e);
+
+            if (e.defaultPrevented) {
+              setOpen(false);
+              return;
+            }
+          }
+
           if (e.key === "Escape") {
             setOpen(false);
             return;
@@ -178,7 +236,7 @@ function SearchableSelect({
         }}
       />
 
-      {open && (
+      {open && !disabled && (
         <div className="searchable-select-list">
           {filtered.length === 0 && (
             <div className="searchable-select-empty">
@@ -335,6 +393,7 @@ function SpisanBludPrintReport({
 export default function SpisanBludInvoicePage({
   initialData,
   fetchWithAuth,
+  readOnly = false,
   onBack,
   onDirtyChange,
   t = (key, fallback = "") => fallback,
@@ -361,7 +420,7 @@ export default function SpisanBludInvoicePage({
 
   const currentState = header ? normalizeState(header, rows) : null;
 
-  const isDirty = Boolean(
+  const isDirty = !readOnly && Boolean(
     deletedIds.length > 0 ||
       (
         originalState &&
@@ -399,7 +458,7 @@ export default function SpisanBludInvoicePage({
     loadData();
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialData]);
+  }, [initialData, readOnly]);
 
   async function loadData() {
     if (!initialData) return;
@@ -419,7 +478,7 @@ export default function SpisanBludInvoicePage({
       const normalizedHeader = {
         ID: Number(initialData.ID || 0),
         Nakl: initialData.Nakl || "",
-        DateP: normalizeDate(initialData.DateP),
+        DateP: normalizeDate(initialData.DateP) || getCurrentLocalDate(),
         CodSpis: Number(initialData.CodSpis || 0),
         NazvSpisania: initialData.NazvSpisania || "",
         Rem: initialData.Rem || ""
@@ -436,7 +495,11 @@ const loadedRows = Array.isArray(initialData.items)
   : [];
 
       setHeader(normalizedHeader);
-      setRows(loadedRows);
+      setRows(
+        readOnly
+          ? loadedRows
+          : ensureTrailingSpisanBludDraftRow(loadedRows)
+      );
       setZatrList(Array.isArray(zatrData) ? zatrData : []);
       setDishList(normalizeDishList(dishData));
       setDeletedIds([]);
@@ -449,6 +512,7 @@ const loadedRows = Array.isArray(initialData.items)
   }
 
   function isRowDirty(row) {
+    if (isBlankSpisanBludDraftRow(row)) return false;
     if (!originalState) return false;
 
     const originalRow = originalState.items.find(
@@ -473,6 +537,7 @@ const loadedRows = Array.isArray(initialData.items)
   }
 
   function updateHeaderField(field, value) {
+    if (readOnly) return;
     setHeader((prev) => ({
       ...prev,
       [field]: value
@@ -480,35 +545,39 @@ const loadedRows = Array.isArray(initialData.items)
   }
 
   function updateRow(rowId, patch) {
-    setRows((prevRows) =>
-      prevRows.map((row) => {
+    if (readOnly) return;
+    setRows((prevRows) => {
+      const nextRows = prevRows.map((row) => {
         if (row.ID !== rowId) return row;
+
         return {
           ...row,
           ...patch
         };
-      })
-    );
-  }
+      });
 
-  function addRow() {
-    setRows((prevRows) => [
-      ...prevRows,
-      {
-        ID: makeTempId(),
-        CodeBluda: 0,
-        Name: "",
-        SkladName: "",
-        Kolvo: 0
-      }
-    ]);
+      return ensureTrailingSpisanBludDraftRow(nextRows);
+    });
   }
 
   function deleteRow(rowId) {
+    if (readOnly) return;
+    const rowToDelete = rows.find(
+      (row) => Number(row.ID) === Number(rowId)
+    );
+
+    if (!rowToDelete || isBlankSpisanBludDraftRow(rowToDelete)) {
+      return;
+    }
+
     const ok = window.confirm(t("SpisanBludInvoice.DeleteRowConfirm", "Удалить строку?"));
     if (!ok) return;
 
-    setRows((prevRows) => prevRows.filter((row) => row.ID !== rowId));
+    setRows((prevRows) =>
+      ensureTrailingSpisanBludDraftRow(
+        prevRows.filter((row) => row.ID !== rowId)
+      )
+    );
 
     if (rowId > 0) {
       setDeletedIds((prev) => [...prev, rowId]);
@@ -533,6 +602,63 @@ const loadedRows = Array.isArray(initialData.items)
 
     e.preventDefault();
     focusNextCell(e.currentTarget.dataset.cell);
+  }
+
+  function handleInvoiceCellArrowNavigation(event) {
+    if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+    if (event.altKey || event.ctrlKey || event.metaKey) return;
+
+    const target = event.currentTarget;
+
+    if (!(target instanceof HTMLElement)) return;
+
+    const currentRow = target.closest("tr");
+    const currentCell = target.closest("td");
+    const tbody = currentRow?.parentElement;
+
+    if (!currentRow || !currentCell || !tbody) return;
+
+    const tableRows = Array.from(tbody.children).filter(
+      (element) => element instanceof HTMLTableRowElement
+    );
+    const currentRowIndex = tableRows.indexOf(currentRow);
+    const currentCellIndex = Array.from(currentRow.children).indexOf(currentCell);
+
+    if (currentRowIndex < 0 || currentCellIndex < 0) return;
+
+    // Перехватываем стрелку всегда, в том числе на первой/последней строке:
+    // браузер не должен менять number или прокручивать рабочую область.
+    event.preventDefault();
+
+    const direction = event.key === "ArrowDown" ? 1 : -1;
+    const nextRow = tableRows[currentRowIndex + direction];
+
+    if (!nextRow) return;
+
+    const nextCell = nextRow.children[currentCellIndex];
+
+    if (!(nextCell instanceof HTMLTableCellElement)) return;
+
+    const nextControl = nextCell.querySelector(
+      "input:not(:disabled), select:not(:disabled), textarea:not(:disabled)"
+    );
+
+    if (!(nextControl instanceof HTMLElement)) return;
+
+    nextControl.focus();
+
+    if (typeof nextControl.select === "function") {
+      nextControl.select();
+    }
+  }
+
+  function handleInvoiceCellKeyDown(event) {
+    if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+      handleInvoiceCellArrowNavigation(event);
+      return;
+    }
+
+    handleCellKeyDown(event);
   }
 
   function buildSaveXml() {
@@ -588,12 +714,14 @@ ${deletedXml}
       date: header?.DateP || "",
       expense: getExpenseName(),
       note: header?.Rem || "",
-      rows: rows.map((row) => ({
-        ID: Number(row.ID || 0),
-        Name: row.Name || "",
-        SkladName: row.SkladName || "",
-        Kolvo: Number(row.Kolvo || 0)
-      }))
+      rows: rows
+        .filter((row) => !isBlankSpisanBludDraftRow(row))
+        .map((row) => ({
+          ID: Number(row.ID || 0),
+          Name: row.Name || "",
+          SkladName: row.SkladName || "",
+          Kolvo: Number(row.Kolvo || 0)
+        }))
     };
   }
 
@@ -680,6 +808,8 @@ ${deletedXml}
   }
 
   async function handleSave() {
+    if (readOnly) return;
+
     if (Number(header?.CodSpis || 0) <= 0) {
       alert(t("SpisanBludInvoice.ExpenseRequired", "!!! Выберите статью затрат."));
       return;
@@ -768,7 +898,7 @@ ${deletedXml}
         <button
           type="button"
           className="primary-button spisan-blud-invoice-save-button"
-          disabled={!isDirty}
+          disabled={readOnly || !isDirty}
           onClick={handleSave}
         >
           {t("SpisanBludInvoice.Save", "Сохранить")}
@@ -777,7 +907,10 @@ ${deletedXml}
         <button
           type="button"
           className="toolbar-button"
-          disabled={isDirty || rows.length === 0}
+          disabled={
+            isDirty ||
+            !rows.some((row) => !isBlankSpisanBludDraftRow(row))
+          }
           onClick={handleOpenPrintPreview}
         >
           {t("Common.Print", "Печать")}
@@ -802,6 +935,7 @@ ${deletedXml}
           <input
             type="date"
             value={header.DateP}
+            disabled={readOnly}
             onChange={(e) => updateHeaderField("DateP", e.target.value)}
           />
         </label>
@@ -811,6 +945,7 @@ ${deletedXml}
 
           <select
             value={header.CodSpis}
+            disabled={readOnly}
             onChange={(e) =>
               updateHeaderField("CodSpis", Number(e.target.value || 0))
             }
@@ -830,6 +965,7 @@ ${deletedXml}
 
           <input
             value={header.Rem || ""}
+            disabled={readOnly}
             onChange={(e) => updateHeaderField("Rem", e.target.value)}
           />
         </label>
@@ -838,14 +974,6 @@ ${deletedXml}
 
       <div className="calc-panel-title prih-items-title spisan-blud-invoice-items-title">
         <span>{t("SpisanBludInvoice.ContentsTitle", "Содержимое списания блюд")}</span>
-
-        <button
-          type="button"
-          className="prih-add-row-button spisan-blud-invoice-add-row-button"
-          onClick={addRow}
-        >
-          + {t("SpisanBludInvoice.AddRow", "строка")}
-        </button>
       </div>
 
       <div className="table-wrap prih-table-wrap spisan-blud-invoice-table-wrap">
@@ -867,12 +995,6 @@ ${deletedXml}
           </thead>
 
           <tbody>
-            {rows.length === 0 && (
-              <tr>
-                <td className="spisan-blud-invoice-empty-row" colSpan={4}>{t("SpisanBludInvoice.EmptyRows", "Строки не добавлены.")}</td>
-              </tr>
-            )}
-
             {rows.map((row) => (
               <tr
                 key={row.ID}
@@ -885,6 +1007,8 @@ ${deletedXml}
                     placeholder={t("SpisanBludInvoice.SelectDish", "Выберите блюдо...")}
                     cellIndex={cellIndex++}
                     onEnterNext={focusNextCell}
+                    onArrowNavigate={handleInvoiceCellArrowNavigation}
+                    disabled={readOnly}
                     t={t}
                     onChange={(value) => {
                       const selectedDish = dishList.find(
@@ -908,7 +1032,8 @@ ${deletedXml}
                     type="number"
                     step="0.001"
                     value={row.Kolvo}
-                    onKeyDown={handleCellKeyDown}
+                    disabled={readOnly}
+                    onKeyDown={handleInvoiceCellKeyDown}
                     onChange={(e) =>
                       updateRow(row.ID, {
                         Kolvo: Number(e.target.value || 0)
@@ -918,15 +1043,17 @@ ${deletedXml}
                 </td>
 
                 <td>
-                  <button
-                    type="button"
-                    className="small-danger-button spisan-blud-invoice-delete-button"
-                    title={t("SpisanBludInvoice.DeleteRow", "Удалить строку")}
-                    aria-label={t("SpisanBludInvoice.DeleteRow", "Удалить строку")}
-                    onClick={() => deleteRow(row.ID)}
-                  >
-                    ×
-                  </button>
+                  {!readOnly && !isBlankSpisanBludDraftRow(row) && (
+                    <button
+                      type="button"
+                      className="small-danger-button spisan-blud-invoice-delete-button"
+                      title={t("SpisanBludInvoice.DeleteRow", "Удалить строку")}
+                      aria-label={t("SpisanBludInvoice.DeleteRow", "Удалить строку")}
+                      onClick={() => deleteRow(row.ID)}
+                    >
+                      ×
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

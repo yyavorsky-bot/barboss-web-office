@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import "./perem-row-visual-fix.css";
 
 function formatDate(value, locale) {
   if (!value) return "";
@@ -37,6 +38,7 @@ export default function PeremListPage({
   selectedInvoiceId = null,
   onOpen,
   onNew,
+  readOnly = false,
   t = (key, fallback = "") => fallback,
   locale = "ru-RU"
 }) {
@@ -134,6 +136,44 @@ export default function PeremListPage({
     onOpen?.(row);
   }
 
+  function focusMainRow(invoiceId) {
+    window.requestAnimationFrame(() => {
+      const row = listWrapRef.current?.querySelector(
+        `[data-move-id="${Number(invoiceId || 0)}"]`
+      );
+
+      if (!(row instanceof HTMLElement)) return;
+
+      row.focus({ preventScroll: true });
+      row.scrollIntoView({
+        block: "nearest",
+        inline: "nearest"
+      });
+    });
+  }
+
+  function handleMainRowKeyDown(event, invoiceId) {
+    if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+    if (event.altKey || event.ctrlKey || event.metaKey) return;
+
+    const currentIndex = rows.findIndex(
+      (row) => Number(row.ID) === Number(invoiceId)
+    );
+
+    if (currentIndex < 0) return;
+
+    // Стрелки работают только в главном списке перемещений.
+    event.preventDefault();
+
+    const direction = event.key === "ArrowDown" ? 1 : -1;
+    const nextRow = rows[currentIndex + direction];
+
+    if (!nextRow) return;
+
+    setSelectedId(Number(nextRow.ID));
+    focusMainRow(nextRow.ID);
+  }
+
   return (
     <div className="move-list-page">
       <div className="move-list-layout">
@@ -141,7 +181,7 @@ export default function PeremListPage({
           <div className="move-panel-title move-list-header">
             <span>{t("PeremList.Title", "Накладные перемещения")}</span>
 
-            {onNew && (
+            {!readOnly && onNew && (
               <button
                 type="button"
                 className="move-new-button"
@@ -183,17 +223,27 @@ export default function PeremListPage({
                   {rows.map((row) => (
                     <tr
                       key={row.ID}
-                  ref={
-                    Number(row.ID) === Number(selectedId)
-                      ? selectedRowRef
-                      : null
-                  }
+                      ref={
+                        Number(row.ID) === Number(selectedId)
+                          ? selectedRowRef
+                          : null
+                      }
+                      data-move-id={Number(row.ID || 0)}
                       className={
                         Number(row.ID) === Number(selectedNakl?.ID)
                           ? "selected-row"
                           : ""
                       }
-                      onClick={() => setSelectedId(Number(row.ID))}
+                      tabIndex={
+                        Number(selectedId) === Number(row.ID) ? 0 : -1
+                      }
+                      onKeyDown={(event) =>
+                        handleMainRowKeyDown(event, row.ID)
+                      }
+                      onClick={(event) => {
+                        setSelectedId(Number(row.ID));
+                        event.currentTarget.focus({ preventScroll: true });
+                      }}
                       onDoubleClick={() => openRow(row)}
                     >
                       <td>{formatDate(row.DatP, locale)}</td>

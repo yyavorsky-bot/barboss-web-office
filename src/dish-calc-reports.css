@@ -5,32 +5,8 @@
  * =========================================================
  */
 
-.dish-calc-editor-page .dish-calc-editor-header {
-  min-width: 0;
-}
-
 .dish-calc-editor-page .dish-calc-editor-controls {
-  width: 100%;
-  min-width: 0;
-  grid-template-columns: 132px 142px minmax(170px, 1fr) auto auto;
-}
-
-.dish-calc-editor-page .dish-calc-editor-controls > * {
-  min-width: 0;
-}
-
-.dish-calc-save-status-cell {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 3px;
-  min-width: 0;
-}
-
-.dish-calc-save-status-cell .save-success-message {
-  min-height: 18px;
-  padding: 0 5px;
-  font-size: 11px;
+  grid-template-columns: 132px 142px auto auto auto;
 }
 
 .dish-calc-print-button {
@@ -214,17 +190,6 @@
   text-align: center !important;
 }
 
-/* Наименования сырья/продуктов всегда читаем слева. */
-.calc-card-report-table th:nth-child(2),
-.calc-card-report-table td:nth-child(2) {
-  text-align: left !important;
-}
-
-/* Номер строки — по центру, независимо от общего класса num. */
-.calc-card-report-table tbody td:first-child {
-  text-align: center !important;
-}
-
 .calc-card-report-table-cost th:nth-child(2),
 .calc-card-report-table-cost td:nth-child(2) {
   width: 46%;
@@ -310,13 +275,13 @@
 
 @media (max-width: 1350px) {
   .dish-calc-editor-page .dish-calc-editor-controls {
-    grid-template-columns: 132px 142px minmax(170px, 1fr);
+    grid-template-columns: 132px 142px auto auto auto;
   }
 }
 
 @media (max-width: 900px) {
   .dish-calc-editor-page .dish-calc-editor-controls {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-columns: 1fr 1fr 1fr;
   }
 
   .calc-card-report-dish-line {
@@ -473,41 +438,131 @@
   }
 }
 
-
 /* =========================================================
-   2026-08-14 — редактор калькуляции при 125%.
-   Этот файл загружается после общего styles.css, поэтому здесь
-   намеренно повторяем финальное правило: flex-wrap по ширине
-   контейнера, а не media-query по ширине viewport.
+   Новое блюдо — компактная локальная карточка до сохранения
    ========================================================= */
-.dish-calc-editor-page .dish-calc-editor-header {
-  grid-template-columns: minmax(0, 1fr);
+.dish-calc-new-dish-panel {
+  flex: 0 0 auto;
+  margin: 0 0 8px;
+  border: 1px solid #cbd8d4;
+  border-radius: 9px;
+  background: #fbfdfc;
+  overflow: hidden;
 }
 
-.dish-calc-editor-page .dish-calc-editor-controls {
+.dish-calc-new-dish-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px 10px;
+  padding: 7px 9px;
+}
+
+.dish-calc-new-dish-grid .calc-field {
+  min-width: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+}
+
+.dish-calc-new-dish-grid .calc-field > span {
+  margin: 0;
+  overflow: hidden;
+  color: #52655f;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.05;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dish-calc-new-dish-grid input[type="text"],
+.dish-calc-new-dish-grid input[type="number"],
+.dish-calc-new-dish-grid select {
   width: 100%;
   min-width: 0;
+  height: 28px;
+  box-sizing: border-box;
+  border: 1px solid #bccbc7;
+  border-radius: 5px;
+  background: #fff;
+  color: #243b36;
+  padding: 2px 6px;
+  font-size: 12px;
+}
+
+.dish-calc-new-dish-grid input:focus,
+.dish-calc-new-dish-grid select:focus {
+  outline: 2px solid rgba(60, 125, 112, 0.18);
+  border-color: #70a297;
+}
+
+.dish-calc-new-dish-name-field {
+  grid-column: span 2;
+}
+
+.dish-calc-new-dish-name-field.calc-field {
+  grid-template-columns: 72px minmax(0, 1fr);
+}
+
+.dish-calc-new-dish-checks {
+  grid-column: 1 / -1;
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 8px 12px;
+  flex-wrap: wrap;
+  gap: 5px 17px;
+  min-height: 24px;
+  padding: 0 2px;
 }
 
-.dish-calc-editor-page .dish-calc-editor-controls > * {
-  min-width: 0;
+.dish-calc-new-dish-checks .toolbar-check {
+  margin: 0;
+  font-size: 11.5px;
 }
 
-.dish-calc-editor-page .dish-calc-editor-controls .calc-field {
-  flex: 1 1 220px;
-  max-width: 330px;
+.dish-calc-new-dish-checks input[type="checkbox"] {
+  margin: 0 4px 0 0;
 }
 
-.dish-calc-editor-page .dish-calc-editor-controls .calc-info {
-  flex: 1 1 190px;
-  max-width: 310px;
+.dish-calc-editor-error {
+  margin: 0 0 8px;
 }
 
-.dish-calc-editor-page .dish-calc-save-status-cell,
-.dish-calc-editor-page .dish-calc-print-button {
-  flex: 0 0 auto;
+/* В режиме нового блюда выпадающие списки калькуляции выводятся
+   поверх scroll-области, чтобы она их не обрезала. */
+.dish-calc-search-portal-list {
+  position: fixed !important;
+  right: auto !important;
+  z-index: 10000 !important;
+  box-sizing: border-box;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@media (max-width: 1280px) {
+  .dish-calc-new-dish-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .dish-calc-new-dish-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .dish-calc-new-dish-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dish-calc-new-dish-name-field {
+    grid-column: auto;
+  }
+
+  .dish-calc-new-dish-grid .calc-field,
+  .dish-calc-new-dish-name-field.calc-field {
+    grid-template-columns: 76px minmax(0, 1fr);
+  }
 }

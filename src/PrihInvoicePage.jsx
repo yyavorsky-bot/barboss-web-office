@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import "./prih-scan-match.css";
 
 function formatMoney(value) {
   return Number(value || 0).toFixed(2);
@@ -10,6 +11,10 @@ function roundMoney(value) {
 
 function roundPrice(value) {
   return Math.round(Number(value || 0) * 1000000) / 1000000;
+}
+
+function roundQuantity(value) {
+  return Math.round(Number(value || 0) * 1000) / 1000;
 }
 
 function formatEditableNumber(value) {
@@ -160,7 +165,8 @@ function ExpressionNumberInput({
   onCommit,
   onEnterNext,
   className = "",
-  title = ""
+  title = "",
+  disabled = false
 }) {
   const [text, setText] = useState(formatEditableNumber(value));
   const [invalid, setInvalid] = useState(false);
@@ -185,7 +191,12 @@ function ExpressionNumberInput({
       return false;
     }
 
-    setText(formatEditableNumber(result));
+    const committedValue =
+      typeof accepted === "number" && Number.isFinite(accepted)
+        ? accepted
+        : result;
+
+    setText(formatEditableNumber(committedValue));
     setInvalid(false);
     return true;
   }
@@ -199,6 +210,7 @@ function ExpressionNumberInput({
       value={text}
       title={title}
       aria-invalid={invalid}
+      disabled={disabled}
       style={invalid ? { borderColor: "#c62828", outlineColor: "#c62828" } : undefined}
       onFocus={(event) => event.currentTarget.select()}
       onChange={(event) => {
@@ -233,7 +245,8 @@ function WeightCorrectionInput({
   cellIndex,
   onApply,
   onEnterNext,
-  title = ""
+  title = "",
+  disabled = false
 }) {
   const [text, setText] = useState("");
   const [invalid, setInvalid] = useState(false);
@@ -276,6 +289,7 @@ function WeightCorrectionInput({
       title={title}
       aria-invalid={invalid}
       placeholder=""
+      disabled={disabled}
       onFocus={(event) => event.currentTarget.select()}
       onChange={(event) => {
         setText(event.target.value);
@@ -304,6 +318,48 @@ function WeightCorrectionInput({
 
 function makeTempId() {
   return -Date.now() - Math.floor(Math.random() * 1000);
+}
+
+function createEmptyInvoiceRow() {
+  return {
+    ID: makeTempId(),
+    Tov: 0,
+    Postup: 0,
+    Price: 0,
+    Summ: 0,
+    Zach: false,
+    Pf: false,
+    CenaAvg: 0,
+    VatTov: 0
+  };
+}
+
+function isBlankInvoiceDraftRow(row) {
+  return (
+    Number(row?.ID || 0) < 0 &&
+    Number(row?.Tov || 0) <= 0 &&
+    Number(row?.Postup || 0) === 0 &&
+    Number(row?.Price || 0) === 0 &&
+    Number(row?.Summ || 0) === 0 &&
+    Number(row?.VatTov || 0) === 0 &&
+    !normalizeBooleanValue(row?.Zach) &&
+    !normalizeBooleanValue(row?.Pf)
+  );
+}
+
+function ensureTrailingInvoiceDraftRow(sourceRows) {
+  const source = Array.isArray(sourceRows) ? sourceRows : [];
+  const existingDraft = [...source]
+    .reverse()
+    .find(isBlankInvoiceDraftRow);
+  const actualRows = source.filter(
+    (row) => !isBlankInvoiceDraftRow(row)
+  );
+
+  return [
+    ...actualRows,
+    existingDraft || createEmptyInvoiceRow()
+  ];
 }
 
 const UNSAVED_CHANGES_MESSAGE =
@@ -544,7 +600,9 @@ function normalizeInvoiceState(header, rows) {
       pf: normalizeBooleanValue(header.pf ?? header.Pf),
       zach: normalizeBooleanValue(header.zach ?? header.Zach)
     },
-    items: rows.map(normalizeInvoiceItem)
+    items: rows
+      .filter((row) => !isBlankInvoiceDraftRow(row))
+      .map(normalizeInvoiceItem)
   };
 }
 
@@ -558,7 +616,7 @@ function normalizeRawList(data) {
       Name: item.Name ?? item.name ?? "",
       Price: Number(item.Price || 0)
     }))
-    .filter((item) => Number(item.ID || 0) > 0);
+    .filter((item) => Number(item.ID || 0) !== 0);
 }
 
 function normalizeBooleanValue(value) {
@@ -643,6 +701,8 @@ function SearchableSelect({
   onCreateError,
   cellIndex,
   matchMode = "contains",
+  maxOptions = 0,
+  disabled = false,
   t = (key, fallback = "") => fallback
 }) {
   const selected = options.find((item) => Number(item.ID) === Number(value));
@@ -657,20 +717,19 @@ function SearchableSelect({
 
   const filtered = useMemo(() => {
     const query = text.trim().toLowerCase();
+    const source = query
+      ? options.filter((item) => {
+          const name = String(item.Name || "").toLowerCase();
+          return matchMode === "startsWith"
+            ? name.startsWith(query)
+            : name.includes(query);
+        })
+      : options;
 
-    if (!query) {
-      return options.slice(0, 80);
-    }
-
-    return options
-      .filter((item) => {
-        const name = String(item.Name || "").toLowerCase();
-        return matchMode === "startsWith"
-          ? name.startsWith(query)
-          : name.includes(query);
-      })
-      .slice(0, 80);
-  }, [text, options, matchMode]);
+    return Number.isFinite(Number(maxOptions)) && Number(maxOptions) > 0
+      ? source.slice(0, Number(maxOptions))
+      : source;
+  }, [text, options, matchMode, maxOptions]);
 
   const exactMatch = useMemo(() => {
     const query = normalizeSearchText(text);
@@ -691,6 +750,7 @@ function normalizeSearchText(value) {
 }
 
 function choose(item) {
+  if (disabled) return;
   onChange(Number(item.ID || 0));
   setText(item.Name || "");
   setOpen(false);
@@ -701,7 +761,7 @@ function choose(item) {
 async function createMissingOption() {
   const newName = text.trim();
 
-  if (!newName || !onCreateOption || creating) {
+  if (disabled || !newName || !onCreateOption || creating) {
     return;
   }
 
@@ -753,7 +813,7 @@ async function createMissingOption() {
         data-cell={cellIndex}
         value={text}
         placeholder={placeholder}
-        disabled={creating}
+        disabled={disabled || creating}
         autoComplete="off"
         onFocus={() => setOpen(true)}
         onChange={(e) => {
@@ -791,7 +851,7 @@ async function createMissingOption() {
         }}
       />
 
-      {open && (
+      {open && !disabled && (
         <div className="searchable-select-list">
           {filtered.length === 0 && (
             onCreateOption && text.trim() ? (
@@ -1018,8 +1078,7 @@ function SupplierSearch({
             String(b.Name ?? ""),
             locale
           )
-        )
-        .slice(0, 100),
+        ),
     [supplierList, prefix, locale]
   );
 
@@ -1314,6 +1373,7 @@ export default function PrihInvoicePage({
   supplierOptions = [],
   login = "",
   fetchWithAuth,
+  readOnly = false,
   onBack,
   onSaved,
   onDeletePFCompleted,
@@ -1333,6 +1393,11 @@ export default function PrihInvoicePage({
   const [execToSkl, setExecToSkl] = useState("");
   const [execDate, setExecDate] = useState("");
 
+  const [sopostRow, setSopostRow] = useState(null);
+  const [sopostTovId, setSopostTovId] = useState(0);
+  const [sopostLoading, setSopostLoading] = useState(false);
+  const [sopostError, setSopostError] = useState("");
+
   const [header, setHeader] = useState(null);
   const [rows, setRows] = useState([]);
 
@@ -1341,6 +1406,17 @@ export default function PrihInvoicePage({
   const [formList, setFormList] = useState([]);
   const [rawList, setRawList] = useState([]);
   const [zachGrossList, setZachGrossList] = useState([]);
+
+  const sopostRawList = useMemo(
+    () => rawList.filter((item) => Number(item.ID || 0) > 0),
+    [rawList]
+  );
+
+  const sopostScanName = sopostRow
+    ? rawList.find(
+        (item) => Number(item.ID) === Number(sopostRow.Tov)
+      )?.Name || ""
+    : "";
 
   const [deletedIds, setDeletedIds] = useState([]);
   const [originalState, setOriginalState] = useState(null);
@@ -1356,6 +1432,8 @@ export default function PrihInvoicePage({
   const isIncomingMoveView =
     isMoveInvoice && invoiceKind !== "move";
   const isNewMode = mode === "new";
+  const usesTrailingDraftRow =
+    !readOnly && !isSpecialInvoice && !isIncomingMoveView;
   const showWeightCorrection =
     !isNewMode && !isMoveInvoice && !isSpecialInvoice;
   
@@ -1368,7 +1446,7 @@ export default function PrihInvoicePage({
     ? normalizeInvoiceState(header, rows)
     : null;
 
-  const isDirty = Boolean(
+  const isDirty = !readOnly && Boolean(
     deletedIds.length > 0 ||
       (
         originalState &&
@@ -1444,7 +1522,7 @@ useEffect(() => {
   loadAll();
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [invoiceId, initialInvoice, mode]);
+}, [invoiceId, initialInvoice, mode, readOnly]);
 
   async function loadAll() {
     if (!invoiceId) return;
@@ -1526,6 +1604,17 @@ useEffect(() => {
         loadedKind === "move" &&
         Number(normalizedHeader.IdSklPer || 0) !== 0;
 
+      const hasLoadedMoveSource =
+        Number(normalizedHeader.IdSklPer || 0) !== 0;
+
+      const editorRows =
+        !readOnly &&
+        loadedKind !== "pf" &&
+        loadedKind !== "zach" &&
+        !(hasLoadedMoveSource && invoiceKind !== "move")
+          ? ensureTrailingInvoiceDraftRow(loadedRows)
+          : loadedRows;
+
       const sourceSklad =
         Number(normalizedHeader.IdSklPer || 0) ||
         Number(currentSklad || 0) ||
@@ -1574,7 +1663,7 @@ useEffect(() => {
       }
 
       setHeader(resolvedHeader);
-      setRows(loadedRows);
+      setRows(editorRows);
       setSklList(Array.isArray(sklData) ? sklData : []);
       setFormList(Array.isArray(formData) ? formData : []);
       setRawList(normalizeRawList(rawData));
@@ -1585,7 +1674,7 @@ useEffect(() => {
       setOriginalState(
         normalizeInvoiceState(
           resolvedHeader,
-          loadedRows
+          editorRows
         )
       );
     } catch (err) {
@@ -1674,6 +1763,26 @@ const [
     };
 
     if (
+      isNew &&
+      loadedKind === "prih" &&
+      Number(normalizedHeader.Form || 0) <= 0
+    ) {
+      const cashForm = (Array.isArray(formData) ? formData : []).find(
+        (item) =>
+          String(item?.Name ?? "")
+            .trim()
+            .toLocaleLowerCase("ru-RU") === "наличные"
+      );
+
+      if (Number(cashForm?.ID || 0) > 0) {
+        normalizedHeader = {
+          ...normalizedHeader,
+          Form: Number(cashForm.ID)
+        };
+      }
+    }
+
+    if (
       Number(normalizedHeader.Post || 0) <= 0 &&
       String(normalizedHeader.SupplierName ?? "").trim()
     ) {
@@ -1708,15 +1817,23 @@ const [
       loadedKind
     );
 
+    const editorRows =
+      !readOnly &&
+      loadedKind !== "pf" &&
+      loadedKind !== "zach" &&
+      !(isMoveData && invoiceKind !== "move")
+        ? ensureTrailingInvoiceDraftRow(loadedRows)
+        : loadedRows;
+
     setHeader(normalizedHeader);
-    setRows(loadedRows);
+    setRows(editorRows);
     setPostList(Array.isArray(postData) ? postData : []);
     setFormList(Array.isArray(formData) ? formData : []);
     setRawList(normalizeRawList(rawData));
     setZachGrossList(normalizeZachGrossList(zachGrossData));
     setSklList(Array.isArray(sklData) ? sklData : []);
     setDeletedIds([]);
-    setOriginalState(normalizeInvoiceState(normalizedHeader, loadedRows));
+    setOriginalState(normalizeInvoiceState(normalizedHeader, editorRows));
     
   } catch (err) {
     setError(err.message || t("PrihInvoice.LoadNewError", "Ошибка загрузки новой приходной накладной"));
@@ -1726,6 +1843,12 @@ const [
 }
 
   async function createRawMaterial(name) {
+    if (readOnly) {
+      throw new Error(
+        t("PrihInvoice.ReadOnly", "Накладная доступна только для просмотра.")
+      );
+    }
+
     const normalizedName = String(name ?? "").trim();
 
     if (!normalizedName) {
@@ -1883,6 +2006,7 @@ const [
   }
 
   function isInvoiceRowDirty(row) {
+    if (isBlankInvoiceDraftRow(row)) return false;
     if (!originalState) return false;
 
     const originalRow = originalState.items.find(
@@ -1907,6 +2031,7 @@ const [
   }
 
   function updateHeaderField(field, value) {
+    if (readOnly) return;
     setHeader((prev) => ({
       ...prev,
       [field]: value
@@ -1914,14 +2039,19 @@ const [
   }
 
   function updateRow(rowId, patch) {
-    setRows((prevRows) =>
-      prevRows.map((row) => {
+    if (readOnly) return;
+    setRows((prevRows) => {
+      const nextRows = prevRows.map((row) => {
         if (row.ID !== rowId) return row;
 
         const nextRow = {
           ...row,
           ...patch
         };
+
+        if ("Postup" in patch) {
+          nextRow.Postup = roundQuantity(nextRow.Postup);
+        }
 
         if ("Postup" in patch || "Price" in patch) {
           nextRow.Summ = roundMoney(
@@ -1930,27 +2060,46 @@ const [
         }
 
         return nextRow;
-      })
-    );
+      });
+
+      return usesTrailingDraftRow
+        ? ensureTrailingInvoiceDraftRow(nextRows)
+        : nextRows;
+    });
   }
 
   function addRow(options = {}) {
-    const rowId = makeTempId();
+    if (readOnly) return null;
 
-    setRows((prevRows) => [
-      ...prevRows,
-      {
-        ID: rowId,
-        Tov: 0,
-        Postup: 0,
-        Price: 0,
-        Summ: 0,
-        Zach: false,
-        Pf: false,
-        CenaAvg: 0,
-        VatTov: 0
+    if (usesTrailingDraftRow) {
+      const existingDraft = [...rows]
+        .reverse()
+        .find(isBlankInvoiceDraftRow);
+
+      if (existingDraft) {
+        if (options.focusRaw) {
+          window.setTimeout(() => {
+            const input = document.querySelector(
+              `[data-row-id="${existingDraft.ID}"] .searchable-select input`
+            );
+
+            input?.focus();
+            input?.select?.();
+          }, 0);
+        }
+
+        return existingDraft.ID;
       }
-    ]);
+    }
+
+    const newRow = createEmptyInvoiceRow();
+    const rowId = newRow.ID;
+
+    setRows((prevRows) =>
+      usesTrailingDraftRow
+        ? ensureTrailingInvoiceDraftRow([...prevRows, newRow])
+        : [...prevRows, newRow]
+    );
 
     if (options.focusRaw) {
       window.setTimeout(() => {
@@ -1971,11 +2120,25 @@ const [
   }
 
   function deleteRow(rowId) {
+    if (readOnly) return;
+
+    const targetRow = rows.find((row) => row.ID === rowId);
+
+    if (isBlankInvoiceDraftRow(targetRow)) {
+      return;
+    }
+
     const ok = window.confirm(t("PrihInvoice.DeleteConfirm", "Вы уверены?"));
 
     if (!ok) return;
 
-    setRows((prevRows) => prevRows.filter((row) => row.ID !== rowId));
+    setRows((prevRows) => {
+      const nextRows = prevRows.filter((row) => row.ID !== rowId);
+
+      return usesTrailingDraftRow
+        ? ensureTrailingInvoiceDraftRow(nextRows)
+        : nextRows;
+    });
 
     if (rowId > 0) {
       setDeletedIds((prev) => [...prev, rowId]);
@@ -2011,15 +2174,9 @@ function escapeXml(value) {
 
   function buildSaveXml() {
     const zachGrossRow = isZachInvoice ? getSpecialRow("zach") : null;
-    const headTov = isZachInvoice
-      ? Number(zachGrossRow?.Tov || 0)
-      : 0;
-    const headPostup = isZachInvoice
-      ? Number(zachGrossRow?.Postup || 0)
-      : 0;
-    const headPrice = isZachInvoice
-      ? Number(zachGrossRow?.Price || 0)
-      : 0;
+    const specialHeadAttrs = isZachInvoice
+      ? ` Tov="${Number(zachGrossRow?.Tov || 0)}" Postup="${roundQuantity(zachGrossRow?.Postup || 0)}" Price="${Number(zachGrossRow?.Price || 0)}"`
+      : "";
 
     const itemsXml = rows
       .filter(
@@ -2028,7 +2185,7 @@ function escapeXml(value) {
           (!isZachInvoice || !normalizeBooleanValue(row.Zach))
       )
       .map((row) => {
-        return `    <Item ID="${Number(row.ID || 0)}" Tov="${Number(row.Tov || 0)}" Postup="${Number(row.Postup || 0)}" Price="${Number(row.Price || 0)}" Zach="${Number(Boolean(row.Zach))}" Pf="${Number(Boolean(row.Pf))}" VatTov="${Number(row.VatTov || 0)}" />`;
+        return `    <Item ID="${Number(row.ID || 0)}" Tov="${Number(row.Tov || 0)}" Postup="${roundQuantity(row.Postup || 0)}" Price="${Number(row.Price || 0)}" Zach="${Number(Boolean(row.Zach))}" Pf="${Number(Boolean(row.Pf))}" VatTov="${Number(row.VatTov || 0)}" />`;
       })
       .join("\n");
 
@@ -2038,7 +2195,7 @@ function escapeXml(value) {
       .join("\n");
 
 return `<Prih>
-  <Head ID="${Number(header.ID || 0)}" Invoice="${escapeXml(header.Invoice || "")}" DateP="${escapeXml(header.DateP || "")}" IdSkl="${Number(header.IdSkl || 0)}" IdSklPer="${Number(header.IdSklPer || 0)}" Post="${Number(header.Post || 0)}" Form="${Number(header.Form || 0)}" Oplach="${Number(Boolean(header.Oplach))}" Bel="${Number(Boolean(header.Bel))}" Vozv="${Number(Boolean(header.Vozv))}" VAT="${Number(Boolean(header.VAT))}" ProcVat="${Number(header.ProcVat || 0)}" pf="${isPfInvoice ? 1 : 0}" zach="${isZachInvoice ? 1 : 0}" Tov="${headTov}" Postup="${headPostup}" Price="${headPrice}" />
+  <Head ID="${Number(header.ID || 0)}" Invoice="${escapeXml(header.Invoice || "")}" DateP="${escapeXml(header.DateP || "")}" IdSkl="${Number(header.IdSkl || 0)}" IdSklPer="${Number(header.IdSklPer || 0)}" Post="${Number(header.Post || 0)}" Form="${Number(header.Form || 0)}" Oplach="${Number(Boolean(header.Oplach))}" Bel="${Number(Boolean(header.Bel))}" Vozv="${Number(Boolean(header.Vozv))}" VAT="${Number(Boolean(header.VAT))}" ProcVat="${Number(header.ProcVat || 0)}" pf="${isPfInvoice ? 1 : 0}" zach="${isZachInvoice ? 1 : 0}"${specialHeadAttrs} />
 
   <Items>
 ${itemsXml}
@@ -2193,6 +2350,92 @@ async function runRefExec(action, params) {
   return runRefExecXml(action, buildRefExecXml(params));
 }
 
+function openSopostDialog(row) {
+  if (
+    readOnly ||
+    isNewMode ||
+    isMoveInvoice ||
+    isSpecialInvoice ||
+    Number(header?.ID || invoiceId || 0) <= 0 ||
+    Number(row?.ID || 0) <= 0 ||
+    Number(row?.Tov || 0) >= 0
+  ) {
+    return;
+  }
+
+  setSopostRow(row);
+  setSopostTovId(0);
+  setSopostError("");
+}
+
+function closeSopostDialog() {
+  if (sopostLoading) return;
+
+  setSopostRow(null);
+  setSopostTovId(0);
+  setSopostError("");
+}
+
+function buildSopostXml(row, typ, idTov = 0) {
+  return `<Ref><IdPrih>${Number(
+    header?.ID || invoiceId || 0
+  )}</IdPrih><IdTovScan>${Number(
+    row?.Tov || 0
+  )}</IdTovScan><IdTov>${Number(
+    idTov || 0
+  )}</IdTov><Typ>${Number(typ || 0)}</Typ><CodePri>${Number(
+    row?.ID || 0
+  )}</CodePri></Ref>`;
+}
+
+async function handleSopost(typ) {
+  if (readOnly || sopostLoading || !sopostRow) return;
+
+  const normalizedTyp = Number(typ || 0);
+  const targetTovId = normalizedTyp === 2 ? Number(sopostTovId || 0) : 0;
+
+  if (normalizedTyp === 2 && targetTovId <= 0) {
+    return;
+  }
+
+  if (normalizedTyp === 1) {
+    const confirmed = window.confirm(
+      t(
+        "PrihInvoice.ScanAddConfirm",
+        "Вы уверены, что хотите добавить этот товар в основной справочник?"
+      )
+    );
+
+    if (!confirmed) return;
+  }
+
+  setSopostLoading(true);
+  setSopostError("");
+
+  try {
+    await runRefExecXml(
+      "Sopost",
+      buildSopostXml(sopostRow, normalizedTyp, targetTovId)
+    );
+
+    setSopostRow(null);
+    setSopostTovId(0);
+    await loadAll();
+    onSaved?.(Number(header?.ID || invoiceId || 0));
+  } catch (err) {
+    const message =
+      err?.message ||
+      t(
+        "PrihInvoice.ScanMatchError",
+        "Не удалось обработать нераспознанный товар."
+      );
+
+    setSopostError(message);
+  } finally {
+    setSopostLoading(false);
+  }
+}
+
 function canRunReceiptAction() {
   if (isDirty) {
     window.alert(
@@ -2218,7 +2461,7 @@ function canRunReceiptAction() {
 }
 
 async function handleRecalcCost() {
-  if (!canRunReceiptAction() || execLoading) return;
+  if (readOnly || !canRunReceiptAction() || execLoading) return;
 
   const confirmed = window.confirm(
     t("PrihInvoice.ConfirmRecalcCost", "Вы уверены?")
@@ -2253,7 +2496,7 @@ async function handleRecalcCost() {
 }
 
 function openCopyDialog() {
-  if (!canRunReceiptAction() || execLoading) return;
+  if (readOnly || !canRunReceiptAction() || execLoading) return;
 
   setExecError("");
   setExecDate(header.DateP || "");
@@ -2262,7 +2505,7 @@ function openCopyDialog() {
 }
 
 function openMoveAllDialog() {
-  if (!canRunReceiptAction() || execLoading) return;
+  if (readOnly || !canRunReceiptAction() || execLoading) return;
 
   setExecError("");
   setExecDate(header.DateP || "");
@@ -2278,7 +2521,7 @@ function closeExecDialog() {
 }
 
 async function submitExecDialog() {
-  if (!execDialog || execLoading) return;
+  if (readOnly || !execDialog || execLoading) return;
 
   const toSkl = Number(execToSkl || 0);
 
@@ -2384,6 +2627,7 @@ function buildDeletePfXml() {
 
 async function handleRecalcZach() {
   if (
+    readOnly ||
     execLoading ||
     isNewMode ||
     !isZachInvoice ||
@@ -2416,6 +2660,7 @@ async function handleRecalcZach() {
 
 async function handleRecalcPf() {
   if (
+    readOnly ||
     execLoading ||
     isNewMode ||
     !isPfInvoice ||
@@ -2447,7 +2692,7 @@ async function handleRecalcPf() {
 }
 
 async function handleDeletePf() {
-  if (execLoading || isNewMode || !isPfInvoice) return;
+  if (readOnly || execLoading || isNewMode || !isPfInvoice) return;
 
   const confirmed = window.confirm(
     t(
@@ -2493,6 +2738,22 @@ async function handleDeletePf() {
 }
 
 async function handleSave() {
+  if (readOnly) return;
+
+  if (
+    !isMoveInvoice &&
+    !isSpecialInvoice &&
+    rows.some((row) => Number(row?.Tov || 0) < 0)
+  ) {
+    alert(
+      t(
+        "PrihInvoice.UnrecognizedItemsError",
+        "Есть нераспознанные товары. Сначала сопоставьте их с основным справочником."
+      )
+    );
+    return;
+  }
+
   if (isMoveInvoice && Number(header?.IdSkl || 0) <= 0) {
     alert(t("PrihInvoice.DestinationWarehouseRequired", "!!! Выберите склад, куда перемещаем товар."));
     return;
@@ -2585,12 +2846,45 @@ async function handleSave() {
       throw new Error(t("PrihInvoice.ServerNonJsonPrefix", "Сервер вернул не JSON:") + " " + text.substring(0, 500));
     }
 
-    if (!response.ok || data.status !== "success") {
-      throw new Error(data.error || t("PrihInvoice.SaveError", "Ошибка сохранения приходной накладной"));
+    const saveResult = Array.isArray(data) ? data[0] : data;
+
+    if (!response.ok || saveResult?.status !== "success") {
+      throw new Error(
+        saveResult?.error ||
+          saveResult?.message ||
+          t("PrihInvoice.SaveError", "Ошибка сохранения приходной накладной")
+      );
+    }
+
+    const savedInvoiceId = Number(
+      saveResult?.ID ??
+        saveResult?.IdNakl ??
+        saveResult?.Id ??
+        saveResult?.id ??
+        (Number(header?.ID || 0) > 0 ? header.ID : 0)
+    );
+
+    const localNewInvoice =
+      isNewMode && Number(header?.ID || invoiceId || 0) < 0;
+
+    if (localNewInvoice) {
+      if (savedInvoiceId <= 0) {
+        throw new Error(
+          t(
+            "PrihInvoice.NewIdMissing",
+            "Накладная сохранена, но сервер не вернул её новый ID."
+          )
+        );
+      }
+
+      setDeletedIds([]);
+      onDirtyChange?.(false);
+      onSaved?.(savedInvoiceId);
+      return;
     }
 
     await loadAll();
-    onSaved?.();
+    onSaved?.(savedInvoiceId > 0 ? savedInvoiceId : undefined);
   } catch (err) {
     alert(err.message || t("PrihInvoice.SaveError", "Ошибка сохранения приходной накладной"));
   }
@@ -2726,7 +3020,7 @@ async function handleSave() {
             <button
               type="button"
               className="primary-button prih-invoice-save-button"
-              disabled={!isDirty}
+              disabled={readOnly || !isDirty}
               onClick={handleSave}
             >
               {t("PrihInvoice.Save", "Сохранить")}
@@ -2750,6 +3044,7 @@ async function handleSave() {
               <span>{t("PrihInvoice.Number", "Номер")}</span>
               <input
                 value={header.Invoice}
+                disabled={readOnly}
                 onChange={(event) =>
                   updateHeaderField("Invoice", event.target.value)
                 }
@@ -2761,6 +3056,7 @@ async function handleSave() {
               <input
                 type="date"
                 value={header.DateP}
+                disabled={readOnly}
                 onChange={(event) =>
                   updateHeaderField("DateP", event.target.value)
                 }
@@ -2774,6 +3070,7 @@ async function handleSave() {
                 </span>
                 <select
                   value={Number(header.IdSkl || 0)}
+                  disabled={readOnly}
                   onChange={(event) =>
                     updateHeaderField("IdSkl", Number(event.target.value || 0))
                   }
@@ -2806,6 +3103,7 @@ async function handleSave() {
                       "PrihInvoice.ZachGrossPlaceholder",
                       "Начните вводить сырьё..."
                     )}
+                    disabled={readOnly}
                     t={t}
                     onChange={(value) => {
                       const selected = zachGrossList.find(
@@ -2829,10 +3127,12 @@ async function handleSave() {
                   <ExpressionNumberInput
                     value={Number(specialRow?.Postup || 0)}
                     className="table-input text-right"
+                    disabled={readOnly}
                     onCommit={(value) => {
                       if (!specialRow) return false;
-                      updateRow(specialRow.ID, { Postup: value });
-                      return true;
+                      const quantity = roundQuantity(value);
+                      updateRow(specialRow.ID, { Postup: quantity });
+                      return quantity;
                     }}
                   />
                 </label>
@@ -2867,6 +3167,7 @@ async function handleSave() {
           <button
             type="button"
             className="prih-add-row-button prih-invoice-add-row-button"
+            disabled={readOnly}
             onClick={addRowAndFocusRaw}
           >
             + {t("PrihInvoice.AddRow", "строка")}
@@ -2926,6 +3227,7 @@ async function handleSave() {
                             )}
                             cellIndex={rawCellIndex}
                             onEnterNext={focusNextCell}
+                            disabled={readOnly}
                             t={t}
                             onChange={(value) => {
                               const selected = rawList.find(
@@ -2949,6 +3251,7 @@ async function handleSave() {
                               "PrihInvoice.DeleteRow",
                               "Удалить строку"
                             )}
+                            disabled={readOnly}
                             onClick={() => deleteRow(row.ID)}
                           >
                             ×
@@ -2961,10 +3264,12 @@ async function handleSave() {
                           value={row.Postup}
                           cellIndex={quantityCellIndex}
                           className="table-input text-right"
+                          disabled={readOnly}
                           onEnterNext={addRowAndFocusRaw}
                           onCommit={(value) => {
-                            updateRow(row.ID, { Postup: value });
-                            return true;
+                            const quantity = roundQuantity(value);
+                            updateRow(row.ID, { Postup: quantity });
+                            return quantity;
                           }}
                         />
                       </td>
@@ -3030,6 +3335,7 @@ async function handleSave() {
                             )}
                             cellIndex={rawCellIndex}
                             onEnterNext={focusNextCell}
+                            disabled={readOnly}
                             t={t}
                             onChange={(value) => {
                               const selected = rawList.find(
@@ -3053,6 +3359,7 @@ async function handleSave() {
                               "PrihInvoice.DeleteRow",
                               "Удалить строку"
                             )}
+                            disabled={readOnly}
                             onClick={() => deleteRow(row.ID)}
                           >
                             ×
@@ -3066,6 +3373,7 @@ async function handleSave() {
                           type="number"
                           step="0.000001"
                           value={row.Price}
+                          disabled={readOnly}
                           onKeyDown={handleCellKeyDown}
                           onChange={(event) =>
                             updateRow(row.ID, {
@@ -3080,10 +3388,12 @@ async function handleSave() {
                           value={row.Postup}
                           cellIndex={quantityCellIndex}
                           className="table-input text-right"
+                          disabled={readOnly}
                           onEnterNext={addRowAndFocusRaw}
                           onCommit={(value) => {
-                            updateRow(row.ID, { Postup: value });
-                            return true;
+                            const quantity = roundQuantity(value);
+                            updateRow(row.ID, { Postup: quantity });
+                            return quantity;
                           }}
                         />
                       </td>
@@ -3132,7 +3442,7 @@ async function handleSave() {
             <button
               type="button"
               className="toolbar-save-button prih-refexec-button"
-              disabled={execLoading}
+              disabled={readOnly || execLoading}
               onClick={handleRecalcCost}
             >
               {t("PrihInvoice.RecalcCost", "Пересчитать себестоимость")}
@@ -3141,7 +3451,7 @@ async function handleSave() {
             <button
               type="button"
               className="toolbar-save-button prih-refexec-button"
-              disabled={execLoading}
+              disabled={readOnly || execLoading}
               onClick={openCopyDialog}
             >
               {t("PrihInvoice.CopyInvoice", "Копировать")}
@@ -3150,7 +3460,7 @@ async function handleSave() {
             <button
               type="button"
               className="toolbar-save-button prih-refexec-button"
-              disabled={execLoading}
+              disabled={readOnly || execLoading}
               onClick={openMoveAllDialog}
             >
               {t("PrihInvoice.MoveAll", "Переместить все")}
@@ -3162,7 +3472,7 @@ async function handleSave() {
           <button
             type="button"
             className="toolbar-save-button prih-refexec-button"
-            disabled={execLoading || !hasSpecialDetailChanges}
+            disabled={readOnly || execLoading || !hasSpecialDetailChanges}
             onClick={handleRecalcZach}
           >
             {t("PrihInvoice.RecalcZach", "Пересчитать зачистку")}
@@ -3174,7 +3484,7 @@ async function handleSave() {
             <button
               type="button"
               className="toolbar-save-button prih-refexec-button"
-              disabled={execLoading || !hasSpecialDetailChanges}
+              disabled={readOnly || execLoading || !hasSpecialDetailChanges}
               onClick={handleRecalcPf}
             >
               {t("PrihInvoice.RecalcPF", "Пересчитать ПФ")}
@@ -3183,7 +3493,7 @@ async function handleSave() {
             <button
               type="button"
               className="toolbar-save-button prih-refexec-button prih-refexec-danger"
-              disabled={execLoading}
+              disabled={readOnly || execLoading}
               onClick={handleDeletePf}
             >
               {t("PrihInvoice.DeletePF", "Удалить ПФ")}
@@ -3194,7 +3504,7 @@ async function handleSave() {
         <button
           type="button"
           className="primary-button prih-invoice-save-button"
-          disabled={!isDirty}
+          disabled={readOnly || !isDirty}
           onClick={handleSave}
         >
           {t("PrihInvoice.Save", "Сохранить")}
@@ -3231,7 +3541,7 @@ async function handleSave() {
               <span>{t("PrihInvoice.ExecToWarehouse", "Куда")}</span>
               <select
                 value={execToSkl}
-                disabled={execLoading}
+                disabled={readOnly || execLoading}
                 onChange={(event) => {
                   setExecToSkl(event.target.value);
                   setExecError("");
@@ -3266,7 +3576,7 @@ async function handleSave() {
               <input
                 type="date"
                 value={execDate}
-                disabled={execLoading}
+                disabled={readOnly || execLoading}
                 onChange={(event) => {
                   setExecDate(event.target.value);
                   setExecError("");
@@ -3291,7 +3601,7 @@ async function handleSave() {
               <button
                 type="button"
                 className="primary-button"
-                disabled={execLoading}
+                disabled={readOnly || execLoading}
                 onClick={submitExecDialog}
               >
                 {execLoading
@@ -3305,6 +3615,94 @@ async function handleSave() {
         </div>
       )}
 
+      {sopostRow && (
+        <div
+          className="prih-exec-modal-backdrop"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              closeSopostDialog();
+            }
+          }}
+        >
+          <div
+            className="prih-exec-modal prih-sopost-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label={t(
+              "PrihInvoice.ScanMatchTitle",
+              "Нераспознанный товар"
+            )}
+          >
+            <button
+              type="button"
+              className="prih-sopost-close"
+              disabled={sopostLoading}
+              onClick={closeSopostDialog}
+              aria-label={t("Common.Close", "Закрыть")}
+              title={t("Common.Close", "Закрыть")}
+            >
+              ×
+            </button>
+
+            <div className="prih-exec-modal-title">
+              {t("PrihInvoice.ScanMatchTitle", "Нераспознанный товар")}
+            </div>
+
+            <div className="prih-sopost-source">
+              <span>{t("PrihInvoice.RawMaterial", "Сырьё")}</span>
+              <strong>{sopostScanName || `ID ${Number(sopostRow.Tov || 0)}`}</strong>
+            </div>
+
+            <div className="prih-sopost-action prih-sopost-add-action">
+              <button
+                type="button"
+                className="secondary-button prih-sopost-action-button"
+                disabled={sopostLoading}
+                onClick={() => handleSopost(1)}
+              >
+                {sopostLoading
+                  ? t("PrihInvoice.ExecRunning", "Выполнение...")
+                  : t(
+                      "PrihInvoice.ScanAddToDirectory",
+                      "Добавить в основной справочник"
+                    )}
+              </button>
+            </div>
+
+            <div className="prih-sopost-action prih-sopost-match-action">
+              <button
+                type="button"
+                className="primary-button prih-sopost-action-button"
+                disabled={sopostLoading || Number(sopostTovId || 0) <= 0}
+                onClick={() => handleSopost(2)}
+              >
+                {t("PrihInvoice.ScanMatchWith", "Сопоставить с")}
+              </button>
+
+              <SearchableSelect
+                value={sopostTovId}
+                options={sopostRawList}
+                maxOptions={0}
+                placeholder={t(
+                  "PrihInvoice.SelectRawMaterial",
+                  "Выберите сырьё..."
+                )}
+                disabled={sopostLoading}
+                t={t}
+                onChange={(value) => {
+                  setSopostTovId(Number(value || 0));
+                  setSopostError("");
+                }}
+              />
+            </div>
+
+            {sopostError && (
+              <div className="prih-exec-modal-error">{sopostError}</div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="prih-title prih-invoice-title">
         {isMoveInvoice
@@ -3323,6 +3721,7 @@ async function handleSave() {
           <span>{t("PrihInvoice.Number", "Номер")}</span>
           <input
             value={header.Invoice}
+            disabled={readOnly}
             onChange={(e) => updateHeaderField("Invoice", e.target.value)}
           />
         </label>
@@ -3332,6 +3731,7 @@ async function handleSave() {
           <input
             type="date"
             value={header.DateP}
+            disabled={readOnly}
             onChange={(e) => updateHeaderField("DateP", e.target.value)}
           />
         </label>
@@ -3360,6 +3760,7 @@ async function handleSave() {
 
       <select
         value={header.IdSkl}
+        disabled={readOnly}
         onChange={(e) =>
           updateHeaderField("IdSkl", Number(e.target.value || 0))
         }
@@ -3404,6 +3805,7 @@ async function handleSave() {
     }
     t={t}
     locale={locale}
+    disabled={readOnly}
     onChange={(value) => {
       const supplierId = Number(value || 0);
 
@@ -3425,6 +3827,7 @@ async function handleSave() {
           <span>{t("PrihInvoice.PaymentForm", "Форма оплаты")}</span>
           <select
             value={header.Form}
+            disabled={readOnly}
             onChange={(e) =>
               updateHeaderField("Form", Number(e.target.value || 0))
             }
@@ -3447,6 +3850,7 @@ async function handleSave() {
         <input
           type="checkbox"
           checked={Boolean(header.Oplach)}
+          disabled={readOnly}
           onChange={(e) => updateHeaderField("Oplach", e.target.checked)}
         />
         <span>{t("PrihInvoice.Paid", "Оплачено")}</span>
@@ -3457,6 +3861,7 @@ async function handleSave() {
       <input
         type="checkbox"
         checked={Boolean(header.Bel)}
+        disabled={readOnly}
         onChange={(e) => updateHeaderField("Bel", e.target.checked)}
       />
       <span>{t("PrihInvoice.Bel", "Бел.")}</span>
@@ -3466,6 +3871,7 @@ async function handleSave() {
       <input
         type="checkbox"
         checked={Boolean(header.Vozv)}
+        disabled={readOnly}
         onChange={(e) => updateHeaderField("Vozv", e.target.checked)}
       />
       <span>{t("PrihInvoice.Return", "Возврат")}</span>
@@ -3484,6 +3890,7 @@ async function handleSave() {
 
   <textarea
     value={header.Rem || ""}
+    disabled={readOnly}
     onChange={(e) => updateHeaderField("Rem", e.target.value)}
   />
 </label>
@@ -3491,13 +3898,6 @@ async function handleSave() {
 
       <div className="calc-panel-title prih-items-title prih-invoice-items-title">
         <span>{t("PrihInvoice.ContentsTitle", "Содержимое накладной")}</span>
-        <button
-          type="button"
-          className="prih-add-row-button prih-invoice-add-row-button"
-          onClick={addRow}
-        >
-          + {t("PrihInvoice.AddRow", "строка")}
-        </button>
       </div>
 
       <div className="table-wrap prih-table-wrap prih-invoice-table-wrap">
@@ -3564,41 +3964,85 @@ async function handleSave() {
               const priceCellIndex = cellIndex++;
               const vatCellIndex = isMoldova ? cellIndex++ : null;
 
+              const selectedRaw = rawList.find(
+                (item) => Number(item.ID) === Number(row.Tov)
+              );
+              const isUnrecognizedRow = Number(row.Tov || 0) < 0;
+
               return (
               <tr
                 key={row.ID}
                 data-row-id={row.ID}
-                className={isInvoiceRowDirty(row) ? "changed-row" : ""}
+                className={[
+                  isInvoiceRowDirty(row) ? "changed-row" : "",
+                  isBlankInvoiceDraftRow(row)
+                    ? "prih-invoice-draft-row"
+                    : "",
+                  Number(row.Tov || 0) < 0
+                    ? "prih-unrecognized-row"
+                    : ""
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                title={
+                  Number(row.Tov || 0) < 0 && !readOnly
+                    ? t(
+                        "PrihInvoice.ScanDoubleClickHint",
+                        "Двойной клик — обработать нераспознанный товар"
+                      )
+                    : undefined
+                }
+                onDoubleClick={() => openSopostDialog(row)}
               >
                 <td>
-<SearchableSelect
-  value={row.Tov}
-  options={rawList}
-  placeholder={t("PrihInvoice.SelectRawMaterial", "Выберите сырьё...")}
-  cellIndex={rawCellIndex}
-  onEnterNext={focusNextCell}
-  onCreateOption={isMoveInvoice ? undefined : createRawMaterial}
-  onCreateError={(err) =>
-    setError(
-      err?.message ||
-        t(
-          "PrihInvoice.AddRawError",
-          "Не удалось добавить товар в справочник"
-        )
-    )
-  }
-  t={t}
-  onChange={(value) => {
-    const selectedRaw = rawList.find((item) => Number(item.ID) === Number(value));
+                  {isUnrecognizedRow ? (
+                    <div className="searchable-select">
+                      <input
+                        data-cell={rawCellIndex}
+                        value={
+                          selectedRaw?.Name ||
+                          `${t("PrihInvoice.UnrecognizedRaw", "Нераспознанный товар")} (${Number(row.Tov || 0)})`
+                        }
+                        readOnly
+                        title={t(
+                          "PrihInvoice.ScanDoubleClickHint",
+                          "Двойной клик — обработать нераспознанный товар"
+                        )}
+                      />
+                    </div>
+                  ) : (
+                    <SearchableSelect
+                      value={row.Tov}
+                      options={rawList}
+                      placeholder={t("PrihInvoice.SelectRawMaterial", "Выберите сырьё...")}
+                      cellIndex={rawCellIndex}
+                      onEnterNext={focusNextCell}
+                      disabled={readOnly}
+                      onCreateOption={isMoveInvoice || readOnly ? undefined : createRawMaterial}
+                      onCreateError={(err) =>
+                        setError(
+                          err?.message ||
+                            t(
+                              "PrihInvoice.AddRawError",
+                              "Не удалось добавить товар в справочник"
+                            )
+                        )
+                      }
+                      t={t}
+                      onChange={(value) => {
+                        const nextSelectedRaw = rawList.find(
+                          (item) => Number(item.ID) === Number(value)
+                        );
 
-    updateRow(row.ID, {
-      Tov: value,
-      ...(isMoveInvoice && selectedRaw
-        ? { Price: Number(selectedRaw.Price || 0) }
-        : {})
-    });
-  }}
-/>
+                        updateRow(row.ID, {
+                          Tov: value,
+                          ...(isMoveInvoice && nextSelectedRaw
+                            ? { Price: Number(nextSelectedRaw.Price || 0) }
+                            : {})
+                        });
+                      }}
+                    />
+                  )}
                 </td>
 
                 <td>
@@ -3610,10 +4054,11 @@ async function handleSave() {
                       "PrihInvoice.QuantityExpressionHint",
                       "Можно ввести выражение, например: 6*0,33 или 4,1+12*0,33"
                     )}
+                    disabled={readOnly}
                     onEnterNext={(currentCell) => {
                       if (
-                        !isMoveInvoice &&
-                        Number(row.Price || 0) > 0
+                        usesTrailingDraftRow &&
+                        (isMoveInvoice || Number(row.Price || 0) > 0)
                       ) {
                         addRowAndFocusRaw();
                         return;
@@ -3622,11 +4067,13 @@ async function handleSave() {
                       focusNextCell(currentCell);
                     }}
                     onCommit={(value) => {
+                      const quantity = roundQuantity(value);
+
                       updateRow(row.ID, {
-                        Postup: value
+                        Postup: quantity
                       });
 
-                      return true;
+                      return quantity;
                     }}
                   />
                 </td>
@@ -3637,6 +4084,7 @@ async function handleSave() {
                     type="number"
                     step="0.000001"
                     value={row.Price}
+                    disabled={readOnly}
                     onKeyDown={handleCellKeyDown}
                     onChange={(e) =>
                       updateRow(row.ID, {
@@ -3655,6 +4103,7 @@ async function handleSave() {
                       "PrihInvoice.TotalToPriceHint",
                       "Введите общую сумму и нажмите Enter — цена будет рассчитана как сумма / количество"
                     )}
+                    disabled={readOnly}
                     onEnterNext={focusNextCell}
                     onCommit={(value) => {
                       const quantity = Number(row.Postup || 0);
@@ -3684,6 +4133,7 @@ async function handleSave() {
                   <td className="prih-weight-correction-cell">
                     <WeightCorrectionInput
                       cellIndex={correctionCellIndex}
+                      disabled={readOnly}
                       onEnterNext={focusNextCell}
                       title={t(
                         "PrihInvoice.WeightCorrectionHint",
@@ -3709,7 +4159,7 @@ async function handleSave() {
                         );
 
                         updateRow(row.ID, {
-                          Postup: correctedWeight,
+                          Postup: roundQuantity(correctedWeight),
                           Price: correctedPrice
                         });
 
@@ -3728,6 +4178,7 @@ async function handleSave() {
                       type="number"
                       step="0.01"
                       value={row.VatTov}
+                      disabled={readOnly}
                       onKeyDown={handleCellKeyDown}
                       onChange={(e) =>
                         updateRow(row.ID, {
@@ -3739,15 +4190,17 @@ async function handleSave() {
                 )}
 
                 <td>
-                  <button
-                    type="button"
-                    className="small-danger-button prih-invoice-delete-button"
-                    title={t("PrihInvoice.DeleteRow", "Удалить строку")}
-                    aria-label={t("PrihInvoice.DeleteRow", "Удалить строку")}
-                    onClick={() => deleteRow(row.ID)}
-                  >
-                    ×
-                  </button>
+                  {!readOnly && !isBlankInvoiceDraftRow(row) && (
+                    <button
+                      type="button"
+                      className="small-danger-button prih-invoice-delete-button"
+                      title={t("PrihInvoice.DeleteRow", "Удалить строку")}
+                      aria-label={t("PrihInvoice.DeleteRow", "Удалить строку")}
+                      onClick={() => deleteRow(row.ID)}
+                    >
+                      ×
+                    </button>
+                  )}
                 </td>
               </tr>
               );

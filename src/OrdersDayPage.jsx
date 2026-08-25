@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import "./orders-day-row-visual-fix.css";
 
 function formatDateForInput(value) {
   if (!value) return "";
@@ -73,12 +74,15 @@ function uniqueOptions(items, locale = "ru-RU") {
   return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label, locale));
 }
 
+// NEW ORDER FIX 2026-08-24: direct add-order click + visible inline button color.
 export default function OrdersDayPage({
   data,
   ordersDate,
   onDateChange,
   onReload,
   onViewOrder,
+  onAddOrder,
+  readOnly = false,
   t = (key, fallback = "") => fallback,
   locale = "ru-RU"
 }) {
@@ -86,6 +90,41 @@ export default function OrdersDayPage({
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [ofFilter, setOfFilter] = useState("%");
   const [kassFilter, setKassFilter] = useState("%");
+  const ordersDateInputRef = useRef(null);
+  const ordersListWrapRef = useRef(null);
+  const dateChangeHandlerRef = useRef(onDateChange);
+
+  useEffect(() => {
+    dateChangeHandlerRef.current = onDateChange;
+  }, [onDateChange]);
+
+  useEffect(() => {
+    const input = ordersDateInputRef.current;
+    if (!input) return undefined;
+
+    // Edge/Chromium: React onChange для input[type=date] может срабатывать
+    // при навигации по месяцам внутри popup. Нативный change приходит после
+    // фактического выбора даты, поэтому форма не перерисовывается раньше времени.
+    const handleNativeChange = () => {
+      dateChangeHandlerRef.current?.(input.value);
+    };
+
+    input.addEventListener("change", handleNativeChange);
+
+    return () => {
+      input.removeEventListener("change", handleNativeChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    const input = ordersDateInputRef.current;
+    if (!input) return;
+
+    const nextValue = formatDateForInput(ordersDate);
+    if (input.value !== nextValue) {
+      input.value = nextValue;
+    }
+  }, [ordersDate]);
 
   useEffect(() => {
     const list = Array.isArray(data) ? data : [];
@@ -161,6 +200,44 @@ export default function OrdersDayPage({
     );
   }, [visibleOrders]);
 
+  function focusOrderRow(orderId) {
+    window.requestAnimationFrame(() => {
+      const row = ordersListWrapRef.current?.querySelector(
+        `[data-order-id="${Number(orderId || 0)}"]`
+      );
+
+      if (!(row instanceof HTMLElement)) return;
+
+      row.focus({ preventScroll: true });
+      row.scrollIntoView({
+        block: "nearest",
+        inline: "nearest"
+      });
+    });
+  }
+
+  function handleOrderRowKeyDown(event, orderId) {
+    if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+    if (event.altKey || event.ctrlKey || event.metaKey) return;
+
+    const currentIndex = visibleOrders.findIndex(
+      (order) => Number(order.ID) === Number(orderId)
+    );
+
+    if (currentIndex < 0) return;
+
+    // Стрелки работают только по видимому после фильтров списку заказов.
+    event.preventDefault();
+
+    const direction = event.key === "ArrowDown" ? 1 : -1;
+    const nextOrder = visibleOrders[currentIndex + direction];
+
+    if (!nextOrder) return;
+
+    setSelectedOrderId(Number(nextOrder.ID || 0));
+    focusOrderRow(nextOrder.ID);
+  }
+
   function shiftDate(delta) {
     onDateChange?.(addDays(ordersDate, delta));
   }
@@ -176,10 +253,10 @@ export default function OrdersDayPage({
           <label className="toolbar-field">
             {t("OrdersDay.Date", "Дата")}
             <input
+              ref={ordersDateInputRef}
               type="date"
               className="toolbar-date orders-day-date-input"
-              value={formatDateForInput(ordersDate)}
-              onChange={(event) => onDateChange?.(event.target.value)}
+              defaultValue={formatDateForInput(ordersDate)}
               onKeyDown={(event) => {
                 if (event.key === "ArrowUp" || event.key === "ArrowDown") {
                   event.preventDefault();
@@ -220,6 +297,20 @@ export default function OrdersDayPage({
             {t("OrdersDay.Refresh", "Обновить")}
           </button>
 
+          {!readOnly && (
+            <button
+              type="button"
+              className="small-action-button orders-day-view-button orders-day-add-button"
+              style={{
+                background: "linear-gradient(135deg, #72b0a8 0%, #4f8a83 100%)",
+                boxShadow: "0 5px 12px rgba(46, 102, 95, 0.18)"
+              }}
+              onClick={onAddOrder}
+            >
+              {t("OrdersDay.AddOrder", "Добавить заказ")}
+            </button>
+          )}
+
           <button
             type="button"
             className="primary-button orders-day-view-button"
@@ -244,7 +335,7 @@ export default function OrdersDayPage({
 
       <div className="orders-day-layout">
         <section className="orders-day-list-panel orders-day-panel">
-          <div className="table-wrap orders-day-list-wrap">
+          <div className="table-wrap orders-day-list-wrap" ref={ordersListWrapRef}>
             <table className="data-table orders-day-table">
               <colgroup>
                 <col className="orders-col-time" />
@@ -294,8 +385,14 @@ export default function OrdersDayPage({
                 {visibleOrders.map((order) => (
                   <tr
                     key={order.ID}
+                    data-order-id={Number(order.ID || 0)}
                     className={Number(order.ID) === Number(selectedOrderId) ? "selected-row" : ""}
-                    onClick={() => setSelectedOrderId(Number(order.ID || 0))}
+                    tabIndex={Number(order.ID) === Number(selectedOrderId) ? 0 : -1}
+                    onKeyDown={(event) => handleOrderRowKeyDown(event, order.ID)}
+                    onClick={(event) => {
+                      setSelectedOrderId(Number(order.ID || 0));
+                      event.currentTarget.focus({ preventScroll: true });
+                    }}
                   >
                     <td>{formatTime(order.DatOp)}</td>
                     <td>{order.Table || ""}</td>

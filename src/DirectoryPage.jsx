@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import "./directory-row-visual-fix.css";
 
 function normalizeBoolean(value) {
   if (value === true || value === 1) return true;
@@ -405,6 +406,13 @@ export default function DirectoryPage({
   const newRowCounterRef = useRef(0);
   const firstEditableInputRef = useRef(null);
   const savedTimerRef = useRef(null);
+  const tableWrapRef = useRef(null);
+  const topHorizontalScrollRef = useRef(null);
+  const [topHorizontalScrollWidth, setTopHorizontalScrollWidth] = useState(0);
+  const [hasHorizontalOverflow, setHasHorizontalOverflow] = useState(false);
+
+  const isGroupsDirectory =
+    String(config?.apiAction ?? "").trim().toLowerCase() === "groups";
 
   useEffect(() => {
     const sourceRows = Array.isArray(data) ? data : [];
@@ -500,6 +508,67 @@ export default function DirectoryPage({
   }, [rows, config, filterValue]);
 
   useEffect(() => {
+    if (!isGroupsDirectory) {
+      setTopHorizontalScrollWidth(0);
+      setHasHorizontalOverflow(false);
+      return undefined;
+    }
+
+    const tableWrap = tableWrapRef.current;
+    const topScroll = topHorizontalScrollRef.current;
+
+    if (!tableWrap || !topScroll) {
+      return undefined;
+    }
+
+    function measureHorizontalOverflow() {
+      const scrollWidth = Math.ceil(tableWrap.scrollWidth || 0);
+      const clientWidth = Math.ceil(tableWrap.clientWidth || 0);
+
+      setTopHorizontalScrollWidth(scrollWidth);
+      setHasHorizontalOverflow(scrollWidth > clientWidth + 1);
+    }
+
+    function syncTopFromTable() {
+      if (Math.abs(topScroll.scrollLeft - tableWrap.scrollLeft) > 1) {
+        topScroll.scrollLeft = tableWrap.scrollLeft;
+      }
+    }
+
+    function syncTableFromTop() {
+      if (Math.abs(tableWrap.scrollLeft - topScroll.scrollLeft) > 1) {
+        tableWrap.scrollLeft = topScroll.scrollLeft;
+      }
+    }
+
+    tableWrap.addEventListener("scroll", syncTopFromTable, { passive: true });
+    topScroll.addEventListener("scroll", syncTableFromTop, { passive: true });
+    window.addEventListener("resize", measureHorizontalOverflow);
+
+    let resizeObserver = null;
+    if (typeof ResizeObserver !== "undefined") {
+      resizeObserver = new ResizeObserver(measureHorizontalOverflow);
+      resizeObserver.observe(tableWrap);
+
+      const table = tableWrap.querySelector("table");
+      if (table) resizeObserver.observe(table);
+    }
+
+    const frameId = window.requestAnimationFrame(() => {
+      measureHorizontalOverflow();
+      syncTopFromTable();
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      tableWrap.removeEventListener("scroll", syncTopFromTable);
+      topScroll.removeEventListener("scroll", syncTableFromTop);
+      window.removeEventListener("resize", measureHorizontalOverflow);
+      resizeObserver?.disconnect();
+    };
+  }, [isGroupsDirectory, displayedRows.length, visibleColumns.length]);
+
+  useEffect(() => {
     onDirtyChange?.(hasChanges);
 
     if (hasChanges && saveState === "saved") {
@@ -519,6 +588,61 @@ export default function DirectoryPage({
         comparableValue(original?.[column.field], column.type)
       );
     });
+  }
+
+  function handleDirectoryRowArrowNavigation(event) {
+    if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+    if (event.altKey || event.ctrlKey || event.metaKey) return;
+
+    const target = event.target;
+
+    if (!(target instanceof HTMLElement)) return;
+    if (!target.matches("input, select, textarea")) return;
+
+    const currentRow = event.currentTarget;
+    const currentCell = target.closest("td");
+    const tbody = currentRow?.parentElement;
+
+    if (!currentCell || !tbody) return;
+
+    const tableRows = Array.from(tbody.children).filter(
+      (element) => element instanceof HTMLTableRowElement
+    );
+    const currentRowIndex = tableRows.indexOf(currentRow);
+    const currentCellIndex = Array.from(currentRow.children).indexOf(currentCell);
+
+    if (currentRowIndex < 0 || currentCellIndex < 0) return;
+
+    const direction = event.key === "ArrowDown" ? 1 : -1;
+    const nextRow = tableRows[currentRowIndex + direction];
+
+    // На первой/последней строке стрелку тоже не отдаём браузеру:
+    // number/select не должны менять значение вместо перехода по записям.
+    event.preventDefault();
+
+    if (!nextRow) return;
+
+    const nextCell = nextRow.children[currentCellIndex];
+
+    if (!(nextCell instanceof HTMLTableCellElement)) return;
+
+    const nextControl = nextCell.querySelector(
+      "input:not(:disabled), select:not(:disabled), textarea:not(:disabled)"
+    );
+
+    if (!(nextControl instanceof HTMLElement)) return;
+
+    nextControl.focus();
+
+    const nextRowKey = String(nextRow.dataset.rowKey || "");
+    const nextDirectoryRow = displayedRows.find(
+      (row) => String(row?.__rowKey ?? "") === nextRowKey
+    );
+
+    if (!nextDirectoryRow) return;
+
+    setSelectedKey(nextDirectoryRow.__rowKey);
+    onSelectedIdChange?.(nextDirectoryRow?.[idField], nextDirectoryRow);
   }
 
   function updateRow(rowKey, field, value) {
@@ -1016,7 +1140,31 @@ export default function DirectoryPage({
         </div>
       )}
 
+      {isGroupsDirectory && (
+        <div
+          ref={topHorizontalScrollRef}
+          aria-label={t("Groups.HorizontalScroll", "Горизонтальная прокрутка таблицы")}
+          style={{
+            width: "100%",
+            maxWidth: "100%",
+            height: hasHorizontalOverflow ? "18px" : 0,
+            marginBottom: hasHorizontalOverflow ? "4px" : 0,
+            overflowX: hasHorizontalOverflow ? "auto" : "hidden",
+            overflowY: "hidden",
+            flex: "0 0 auto"
+          }}
+        >
+          <div
+            style={{
+              width: `${topHorizontalScrollWidth}px`,
+              height: "1px"
+            }}
+          />
+        </div>
+      )}
+
       <div
+        ref={tableWrapRef}
         className={[
           "directory-table-wrap",
           config?.tableWrapClass || ""
@@ -1140,6 +1288,8 @@ export default function DirectoryPage({
                   ]
                     .filter(Boolean)
                     .join(" ")}
+                  data-row-key={rowKey}
+                  onKeyDown={handleDirectoryRowArrowNavigation}
                   onClick={() => {
                     setSelectedKey(rowKey);
                     onSelectedIdChange?.(row?.[idField], row);

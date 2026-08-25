@@ -1,0 +1,181 @@
+/*
+ * Приходные накладные — визуальная индикация и обработка
+ * нераспознанных товаров из таблицы ТоварыСкан.
+ */
+
+/* Список накладных: есть строки, требующие сопоставления. */
+.prih-list-table tbody tr.prih-has-unrecognized td,
+.prih-list-table tbody tr.prih-has-unrecognized:hover td {
+  background: #ffe5bd !important;
+}
+
+.prih-list-table tbody tr.prih-has-unrecognized.selected-row td,
+.prih-list-table tbody tr.prih-has-unrecognized.selected-row:hover td {
+  background: #f3ce86 !important;
+}
+
+/* Просмотр накладной: отрицательный Tov требует действий оператора. */
+.prih-invoice-table tbody tr.prih-unrecognized-row td,
+.prih-invoice-table tbody tr.prih-unrecognized-row:hover td {
+  background: #ffe3df !important;
+}
+
+.prih-invoice-table tbody tr.prih-unrecognized-row {
+  cursor: pointer;
+}
+
+/* Нельзя заменить отрицательный код обычным редактированием поля:
+   сопоставление выполняется только через wf_RefExec / Action=Sopost. */
+.prih-invoice-table tbody tr.prih-unrecognized-row .searchable-select {
+  pointer-events: none;
+}
+
+.prih-invoice-table tbody tr.prih-unrecognized-row .searchable-select input {
+  border-color: #d99a92;
+  background: #fff3f1 !important;
+  color: #7d2f27 !important;
+  font-weight: 700;
+}
+
+/* Диалог сопоставления. Базовую рамку/фон берём из prih-exec-modal. */
+.prih-sopost-modal {
+  position: relative;
+  width: min(900px, calc(100vw - 32px));
+}
+
+.prih-sopost-close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #6b7280;
+  font-size: 24px;
+  line-height: 28px;
+  cursor: pointer;
+}
+
+.prih-sopost-close:hover:not(:disabled) {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.prih-sopost-close:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.prih-sopost-source {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  margin: 0 0 18px;
+  padding: 11px 12px;
+  border-radius: 8px;
+  background: #fff3f1;
+}
+
+.prih-sopost-source span {
+  color: #7c625e;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.prih-sopost-source strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: #7d2f27;
+}
+
+.prih-sopost-action {
+  display: grid;
+  grid-template-columns: 205px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  margin-top: 12px;
+}
+
+.prih-sopost-add-action {
+  grid-template-columns: minmax(235px, 1fr);
+}
+
+.prih-sopost-action-button {
+  min-height: 36px;
+  white-space: normal;
+}
+
+.prih-sopost-match-action .searchable-select {
+  width: 100%;
+  min-width: 0;
+}
+
+.prih-sopost-match-action .searchable-select > input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.prih-sopost-match-action .searchable-select-list {
+  z-index: 1300;
+}
+
+.prih-sopost-modal .prih-exec-modal-error {
+  margin-top: 14px;
+  margin-bottom: 0;
+}
+
+@media (max-width: 640px) {
+  .prih-sopost-source,
+  .prih-sopost-action {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* В окне сопоставления длинные названия сырья не должны расширять диалог. */
+.prih-sopost-match-action {
+  min-width: 0;
+}
+
+.prih-sopost-match-action .searchable-select-list {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.prih-sopost-match-action .searchable-select-option {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+
+/*
+ * Список приходных накладных — выбранная строка при навигации ↑/↓.
+ * Строка под неподвижным указателем мыши не должна выглядеть как вторая выбранная.
+ */
+.prih-list-page .prih-list-table tbody tr.selected-row:not(.prih-has-unrecognized) td,
+.prih-list-page .prih-list-table tbody tr.selected-row:not(.prih-has-unrecognized):hover td {
+  background: #c3e5dc !important;
+}
+
+.prih-list-page .prih-list-table tbody tr:not(.selected-row):not(.prih-has-unrecognized):nth-child(odd):hover td {
+  background: #fffdf8 !important;
+}
+
+.prih-list-page .prih-list-table tbody tr:not(.selected-row):not(.prih-has-unrecognized):nth-child(even):hover td {
+  background: #f6f1db !important;
+}
+
+/* Нераспознанная строка сохраняет предупреждающий цвет,
+   но выбранное состояние остаётся заметно темнее. */
+.prih-list-page .prih-list-table tbody tr.prih-has-unrecognized:not(.selected-row):hover td {
+  background: #ffe5bd !important;
+}
+
+.prih-list-page .prih-list-table tbody tr.prih-has-unrecognized.selected-row td,
+.prih-list-page .prih-list-table tbody tr.prih-has-unrecognized.selected-row:hover td {
+  background: #f3ce86 !important;
+}

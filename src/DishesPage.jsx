@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { exportReportFile } from "./reportExport.js";
+import DishCalcPage from "./DishCalcPage.jsx";
 import "./dishes-menu-reports.css";
 import "./dishes-card-happy.css";
 
@@ -20,6 +21,7 @@ const dishFields = [
   "Akc",
   "Ceh",
   "Typ",
+  "GruppNal",
   "CodePr",
   "PLU",
   "Peresch",
@@ -49,6 +51,8 @@ export default function DishesPage({
   cehs,
   fops,
   types,
+  login = "",
+  moldova = false,
   readOnly,
   filterSkr,
   filterModif,
@@ -68,8 +72,8 @@ export default function DishesPage({
   );
   const selectedRowRef = useRef(null);
   const tableWrapRef = useRef(null);
-  const pendingAddedDishIdRef = useRef(null);
-  const [addLoading, setAddLoading] = useState(false);
+  const [newDishDraft, setNewDishDraft] = useState(null);
+  const [quickAddLoading, setQuickAddLoading] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const saveSuccessTimerRef = useRef(null);
@@ -102,6 +106,9 @@ export default function DishesPage({
   const [dishCardData, setDishCardData] = useState(null);
   const [dishCardLoading, setDishCardLoading] = useState(false);
   const [dishCardError, setDishCardError] = useState("");
+  const [dishInPfRows, setDishInPfRows] = useState([]);
+  const [dishInPfLoading, setDishInPfLoading] = useState(false);
+  const [dishInPfError, setDishInPfError] = useState("");
 
   const [happyRows, setHappyRows] = useState([]);
   const [happyChangedRows, setHappyChangedRows] = useState({});
@@ -121,6 +128,9 @@ export default function DishesPage({
       String(row?.Name1 ?? "").toLocaleLowerCase().includes(normalizedDishNameFilter)
     );
   }, [rows, normalizedDishNameFilter]);
+  const selectedCalcDishId = Number(
+    visibleRows.find((row) => Number(row?.CodeBl) === Number(selectedId))?.CodeBl || 0
+  );
   const changedCount = Object.keys(changedRows).length;
   const pfChangedCount = Object.keys(pfChangedRows).length;
   const happyChangedCount =
@@ -173,12 +183,13 @@ export default function DishesPage({
     setRows(Array.isArray(data) ? data : []);
     setChangedRows({});
     setError("");
-    setAddLoading(false);
+    setQuickAddLoading(false);
     setSaveLoading(false);
     setCopyOpen(false);
     setCopyError("");
     setCopyLoading(false);
     setViewMode("list");
+    setNewDishDraft(null);
     setPfRows([]);
     setPfRawItems([]);
     setPfChangedRows({});
@@ -194,6 +205,9 @@ export default function DishesPage({
     setDishCardData(null);
     setDishCardLoading(false);
     setDishCardError("");
+    setDishInPfRows([]);
+    setDishInPfLoading(false);
+    setDishInPfError("");
     setHappyRows([]);
     setHappyChangedRows({});
     setHappyDeletedIds([]);
@@ -267,61 +281,140 @@ export default function DishesPage({
     };
   }, [data, selectedDishId, selectedId]);
 
-  useEffect(() => {
-    const pendingId = Number(pendingAddedDishIdRef.current || 0);
-
-    if (!pendingId || Number(selectedId) !== pendingId) {
-      return;
-    }
-
-    const exists = rows.some((row) => Number(row.CodeBl) === pendingId);
-
-    if (!exists) {
-      return;
-    }
-
-    let secondFrame = 0;
-
-    const firstFrame = window.requestAnimationFrame(() => {
-      secondFrame = window.requestAnimationFrame(() => {
-        const row = selectedRowRef.current;
-        const tableWrap = tableWrapRef.current;
-
-        if (!row || !tableWrap) {
-          return;
-        }
-
-        const rowRect = row.getBoundingClientRect();
-        const wrapRect = tableWrap.getBoundingClientRect();
-        const centeredTop =
-          tableWrap.scrollTop +
-          (rowRect.top - wrapRect.top) -
-          (tableWrap.clientHeight - rowRect.height) / 2;
-
-        tableWrap.scrollTop = Math.max(0, centeredTop);
-
-        const nameInput = row.querySelector(".dish-name-input");
-
-        if (nameInput && !nameInput.disabled) {
-          nameInput.focus({ preventScroll: true });
-          nameInput.select?.();
-        }
-
-        pendingAddedDishIdRef.current = null;
-      });
-    });
-
-    return () => {
-      window.cancelAnimationFrame(firstFrame);
-
-      if (secondFrame) {
-        window.cancelAnimationFrame(secondFrame);
-      }
-    };
-  }, [rows, selectedId]);
 
   function selectDish(codeBl) {
     setSelectedId(Number(codeBl));
+  }
+
+  function handleDishRowArrowNavigation(event) {
+    if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+    if (event.altKey || event.ctrlKey || event.metaKey) return;
+
+    const target = event.target;
+
+    if (!(target instanceof HTMLElement)) return;
+    if (!target.matches("input, select, textarea")) return;
+
+    const currentRow = event.currentTarget;
+    const currentCell = target.closest("td");
+    const tbody = currentRow?.parentElement;
+
+    if (!currentCell || !tbody) return;
+
+    const tableRows = Array.from(tbody.children).filter(
+      (element) => element instanceof HTMLTableRowElement
+    );
+    const currentRowIndex = tableRows.indexOf(currentRow);
+    const currentCellIndex = Array.from(currentRow.children).indexOf(currentCell);
+
+    if (currentRowIndex < 0 || currentCellIndex < 0) return;
+
+    const direction = event.key === "ArrowDown" ? 1 : -1;
+    const nextRow = tableRows[currentRowIndex + direction];
+
+    // Даже на первой/последней строке не отдаём стрелку браузеру:
+    // иначе number/select начнут менять значение вместо перемещения по записям.
+    event.preventDefault();
+
+    if (!nextRow) return;
+
+    const nextCell = nextRow.children[currentCellIndex];
+
+    if (!(nextCell instanceof HTMLTableCellElement)) return;
+
+    const nextControl = nextCell.querySelector(
+      "input:not(:disabled), select:not(:disabled), textarea:not(:disabled), button:not(:disabled)"
+    );
+
+    if (!(nextControl instanceof HTMLElement)) return;
+
+    nextControl.focus();
+
+    const nextDishId = Number(nextRow.dataset.dishId || 0);
+
+    if (nextDishId) {
+      selectDish(nextDishId);
+    }
+  }
+
+  function focusDishTableControl(control) {
+    if (!(control instanceof HTMLElement)) return;
+
+    control.focus({ preventScroll: true });
+    control.scrollIntoView({ block: "nearest", inline: "nearest" });
+
+    if (typeof control.select === "function") {
+      control.select();
+    }
+  }
+
+  function handleDishRowEnterNavigation(event) {
+    if (event.key !== "Enter") return;
+    if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+
+    const target = event.target;
+
+    if (!(target instanceof HTMLElement)) return;
+    if (!target.matches("input, select, textarea")) return;
+
+    const currentRow = event.currentTarget;
+    const currentCell = target.closest("td");
+    const tbody = currentRow?.parentElement;
+
+    if (!currentCell || !tbody) return;
+
+    const cells = Array.from(currentRow.children).filter(
+      (element) => element instanceof HTMLTableCellElement
+    );
+    const currentCellIndex = cells.indexOf(currentCell);
+
+    if (currentCellIndex < 0) return;
+
+    event.preventDefault();
+
+    for (let index = currentCellIndex + 1; index < cells.length; index += 1) {
+      const nextControl = cells[index].querySelector(
+        "input:not(:disabled), select:not(:disabled), textarea:not(:disabled), button:not(:disabled)"
+      );
+
+      if (nextControl instanceof HTMLElement) {
+        focusDishTableControl(nextControl);
+        return;
+      }
+    }
+
+    const tableRows = Array.from(tbody.children).filter(
+      (element) => element instanceof HTMLTableRowElement
+    );
+    const currentRowIndex = tableRows.indexOf(currentRow);
+    const nextRow = tableRows[currentRowIndex + 1];
+
+    if (!(nextRow instanceof HTMLTableRowElement)) return;
+
+    const nextNameControl = nextRow.querySelector(
+      ".dish-name-input:not(:disabled)"
+    );
+
+    if (!(nextNameControl instanceof HTMLElement)) return;
+
+    const nextDishId = Number(nextRow.dataset.dishId || 0);
+
+    if (nextDishId) {
+      selectDish(nextDishId);
+    }
+
+    focusDishTableControl(nextNameControl);
+  }
+
+  function handleDishRowKeyDown(event) {
+    if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+      handleDishRowArrowNavigation(event);
+      return;
+    }
+
+    if (event.key === "Enter") {
+      handleDishRowEnterNavigation(event);
+    }
   }
 
   function clearSaveSuccess() {
@@ -424,38 +517,146 @@ function buildDishesXml(sourceRows) {
         .map((field) => `<${field}>${xmlValue(row[field])}</${field}>`)
         .join("");
 
-      return `<Dish>${fieldsXml}</Dish>`;
+      return `<Dish><Login>${xmlValue(login)}</Login>${fieldsXml}</Dish>`;
     })
     .join("");
 
   return `<Dishes>${rowsXml}</Dishes>`;
 }
 
-  async function addNewDish() {
-    if (readOnly || !onAddDish) return;
+  function createLocalDishDraft() {
+    const tempId = -Date.now() - Math.floor(Math.random() * 1000);
+    const defaultGroup =
+      String(filterGroup ?? "%") === "%"
+        ? 0
+        : Number(filterGroup || 0);
+
+    return {
+      CodeBl: tempId,
+      Shk: "",
+      Name1: "",
+      Name2: "",
+      NameForFP: "",
+      Price: 0,
+      Ves: 0,
+      Price2: 0,
+      EdVes: "",
+      Grupp: defaultGroup,
+      Sklad: Number(currentSklad || 0),
+      Nep: false,
+      Skr: false,
+      Akc: false,
+      Ceh: 0,
+      Typ: 0,
+      GruppNal: 0,
+      CodePr: 0,
+      PLU: 0,
+      Peresch: 0,
+      Kit: 0,
+      Konsum: 0,
+      Deliv: false,
+      UKT: "",
+      Modif: 0,
+      Tall: 0,
+      Wlist: 0,
+      Minuts: 0,
+      Rem: "",
+      Otobr: false
+    };
+  }
+
+  function addNewDish() {
+    if (readOnly) return;
+
+    if (!currentSklad) {
+      setError(
+        t("DishesPF.WarehouseRequired", "Не выбран склад / подразделение")
+      );
+      return;
+    }
+
+    if (!confirmDiscardChanges()) {
+      return;
+    }
+
+    discardLocalChanges();
+    clearSaveSuccess();
+    setError("");
+    setDishNameFilter("");
+    setCopyOpen(false);
+    setPrintMenuOpen(false);
+
+    const draft = createLocalDishDraft();
+    setNewDishDraft(draft);
+    setViewMode("newDishCalc");
+  }
+
+  async function addQuickDishRow() {
+    if (readOnly || quickAddLoading || !onAddDish) return;
 
     clearSaveSuccess();
-    setAddLoading(true);
+    setQuickAddLoading(true);
     setError("");
     setDishNameFilter("");
 
     try {
       const newDish = await onAddDish();
+      const newDishId = Number(newDish?.CodeBl || 0);
 
-      pendingAddedDishIdRef.current = Number(newDish.CodeBl);
+      if (!newDishId) {
+        throw new Error(
+          t("Dishes.AddError", "Ошибка добавления блюда")
+        );
+      }
+
       setRows((prevRows) => [newDish, ...prevRows]);
-
       setChangedRows((prev) => ({
         ...prev,
-        [newDish.CodeBl]: true
+        [newDishId]: true
       }));
-
-      selectDish(newDish.CodeBl);
+      selectDish(newDishId);
+      onDirtyChange?.(true);
     } catch (err) {
-      setError(err.message || t("Dishes.AddError", "Ошибка добавления блюда"));
+      setError(
+        err?.message || t("Dishes.AddError", "Ошибка добавления блюда")
+      );
     } finally {
-      setAddLoading(false);
+      setQuickAddLoading(false);
     }
+  }
+
+  async function saveNewDishFromCalc(dish) {
+    if (readOnly || !onSaveDishes) {
+      throw new Error(
+        t("Dishes.SaveError", "Ошибка сохранения блюд")
+      );
+    }
+
+    return await onSaveDishes(buildDishesXml([dish]));
+  }
+
+  function finishNewDishCreation(realId, savedDish) {
+    const numericId = Number(realId || 0);
+
+    if (!numericId) return;
+
+    const normalizedDish = {
+      ...(savedDish || newDishDraft || {}),
+      CodeBl: numericId
+    };
+
+    setRows((prevRows) => [
+      normalizedDish,
+      ...prevRows.filter(
+        (row) => Number(row.CodeBl || 0) !== numericId
+      )
+    ]);
+    setSelectedId(numericId);
+    setNewDishDraft(null);
+    setViewMode("list");
+    setError("");
+    onDirtyChange?.(false);
+    showSaveSuccess();
   }
 
   async function saveDishes(options = {}) {
@@ -805,6 +1006,81 @@ function buildDishesXml(sourceRows) {
   }
 
 
+  async function loadDishInPfReport(dishId) {
+    if (!fetchWithAuth || !dishId) return;
+
+    setDishInPfRows([]);
+    setDishInPfError("");
+    setDishInPfLoading(true);
+
+    try {
+      const xml =
+        `<Report>` +
+        `<Date1>${escapeXml(dateFrom)}</Date1>` +
+        `<Date2>${escapeXml(dateTo)}</Date2>` +
+        `<Org>0</Org>` +
+        `<All>1</All>` +
+        `<Skl>${escapeXml(currentSklad || 0)}</Skl>` +
+        `<IdKli>0</IdKli>` +
+        `<IdDish>${escapeXml(dishId)}</IdDish>` +
+        `</Report>`;
+
+      const url = new URL("https://webback.bar-boss.com/wr_Reports.php");
+      url.searchParams.set("Action", "BludaInPF");
+
+      const response = await fetchWithAuth(url.toString(), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/xml; charset=utf-8"
+        },
+        body: xml
+      });
+
+      const text = await response.text();
+      let result;
+
+      try {
+        result = JSON.parse(text);
+      } catch {
+        throw new Error(
+          t(
+            "DishCard.InDishesInvalidResponse",
+            "Отчет «Входит в блюда» вернул некорректный ответ"
+          )
+        );
+      }
+
+      const normalizedStatus = Array.isArray(result) ? result[0] : result;
+
+      if (
+        !response.ok ||
+        (!Array.isArray(result) && normalizedStatus?.status === "error")
+      ) {
+        throw new Error(
+          normalizedStatus?.error ||
+            normalizedStatus?.message ||
+            t(
+              "DishCard.InDishesLoadError",
+              "Ошибка загрузки отчета «Входит в блюда»"
+            )
+        );
+      }
+
+      setDishInPfRows(normalizeReportRows(result));
+    } catch (err) {
+      setDishInPfError(
+        err?.message ||
+          t(
+            "DishCard.InDishesLoadError",
+            "Ошибка загрузки отчета «Входит в блюда»"
+          )
+      );
+    } finally {
+      setDishInPfLoading(false);
+    }
+  }
+
+
   async function openDishCardReport() {
     if (!fetchWithAuth) return;
 
@@ -833,7 +1109,11 @@ function buildDishesXml(sourceRows) {
     setDishCardData(null);
     setDishCardError("");
     setDishCardLoading(true);
+    setDishInPfRows([]);
+    setDishInPfError("");
     setViewMode("dishCard");
+
+    void loadDishInPfReport(dishId);
 
     try {
       const url = new URL("https://webback.bar-boss.com/wr_CardsDish.php");
@@ -877,6 +1157,9 @@ function buildDishesXml(sourceRows) {
     setDishCardData(null);
     setDishCardError("");
     setDishCardLoading(false);
+    setDishInPfRows([]);
+    setDishInPfError("");
+    setDishInPfLoading(false);
     setViewMode("list");
   }
 
@@ -1240,6 +1523,7 @@ function buildDishesXml(sourceRows) {
 
   function normalizeReportRows(value) {
     if (Array.isArray(value)) return value;
+    if (Array.isArray(value?.result)) return value.result;
     if (Array.isArray(value?.items)) return value.items;
     if (Array.isArray(value?.Items)) return value.Items;
     if (Array.isArray(value?.data)) return value.data;
@@ -1414,6 +1698,33 @@ function buildDishesXml(sourceRows) {
     setViewMode("list");
   }
 
+  if (viewMode === "newDishCalc" && newDishDraft) {
+    return (
+      <DishCalcPage
+        dishId={newDishDraft.CodeBl}
+        currentSklad={currentSklad}
+        fetchWithAuth={fetchWithAuth}
+        newDish={newDishDraft}
+        dishGroups={groups}
+        dishCehs={cehs}
+        dishFops={fops}
+        dishTypes={types}
+        moldova={moldova}
+        onSaveNewDish={saveNewDishFromCalc}
+        onNewDishCreated={finishNewDishCreation}
+        onBack={() => {
+          setNewDishDraft(null);
+          setViewMode("list");
+          setError("");
+          onDirtyChange?.(false);
+        }}
+        onDirtyChange={onDirtyChange}
+        readOnly={false}
+        t={t}
+      />
+    );
+  }
+
   if (viewMode === "dishCard") {
     return (
       <DishCardReportPage
@@ -1424,6 +1735,9 @@ function buildDishesXml(sourceRows) {
         onPrint={() => window.print()}
         onExport={exportCurrentDishCard}
         exportLoading={reportExportLoading}
+        inPfRows={dishInPfRows}
+        inPfLoading={dishInPfLoading}
+        inPfError={dishInPfError}
         t={t}
       />
     );
@@ -1535,12 +1849,13 @@ function buildDishesXml(sourceRows) {
         }
         readOnly={readOnly}
         changedCount={changedCount}
-        addLoading={addLoading}
         saveLoading={saveLoading}
         saveSuccess={saveSuccess}
         dishNameFilter={dishNameFilter}
         onDishNameFilterChange={setDishNameFilter}
         onAddDish={addNewDish}
+        onAddQuickRow={addQuickDishRow}
+        quickAddLoading={quickAddLoading}
         onSaveDishes={saveDishes}
         extraNameMode={extraNameMode}
         onToggleNameMode={setNameMode}
@@ -1556,6 +1871,8 @@ function buildDishesXml(sourceRows) {
           setCopyError("");
           setPrintMenuOpen((value) => !value);
         }}
+        selectedDishId={selectedCalcDishId}
+        onOpenCalculation={() => handleOpenCalc(selectedCalcDishId)}
         onOpenDishCard={openDishCardReport}
         onOpenHappyHours={openHappyHours}
         onOpenProduction={openProduction}
@@ -1692,7 +2009,6 @@ function buildDishesXml(sourceRows) {
           >
             <thead>
               <tr>
-                <th className="dishes-calc-column">{t("Dishes.Calc", "Кальк.")}</th>
                 <th>{t("Dishes.Barcode", "Штрихкод")}</th>
                 <th className="dishes-name-column">{t("Dishes.Name", "Название")}</th>
                 {extraNameMode === "eng" && (
@@ -1710,6 +2026,9 @@ function buildDishesXml(sourceRows) {
                 <th>{t("Dishes.Workshop", "Цех")}</th>
                 <th>{t("Dishes.Organization", "Предпр.")}</th>
                 <th>{t("Dishes.Type", "Тип")}</th>
+                <th className="dishes-tax-group-column">
+                  {t("Dishes.TaxGroupShort", "Группа налогов")}
+                </th>
                 <th>{t("Dishes.FiscalPrint", "ФП")}</th>
                 <th>{t("Dishes.Uktzed", "УКТЗ.")}</th>
                 <th>{t("Dishes.Delivery", "Дост.")}</th>
@@ -1732,22 +2051,10 @@ function buildDishesXml(sourceRows) {
                       : "",
                     changedRows[dish.CodeBl] ? "changed-row" : ""
                   ].join(" ")}
+                  data-dish-id={dish.CodeBl}
                   onClick={() => selectDish(dish.CodeBl)}
+                  onKeyDown={handleDishRowKeyDown}
                 >
-                  <td className="dishes-calc-column">
-                    <button
-                      type="button"
-                      className="dishes-calc-button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        selectDish(dish.CodeBl);
-                        handleOpenCalc(dish.CodeBl);
-                      }}
-                    >
-                      {t("Dishes.Calc", "Кальк.")}
-                    </button>
-                  </td>
-
                   <td>
                     <input
                       className="table-input small-input"
@@ -1904,6 +2211,17 @@ function buildDishesXml(sourceRows) {
                     />
                   </td>
 
+                  <td className="dishes-tax-group-column">
+                    <TaxGroupSelect
+                      value={dish.GruppNal}
+                      moldova={moldova}
+                      disabled={readOnly}
+                      onChange={(value) =>
+                        updateField(dish.CodeBl, "GruppNal", Number(value))
+                      }
+                    />
+                  </td>
+
                   <td className="center">
                     <input
                       type="checkbox"
@@ -1956,6 +2274,50 @@ function buildDishesXml(sourceRows) {
         </div>
       )}
     </div>
+  );
+}
+
+function parseDishesBooleanFlag(value) {
+  if (value === true || value === 1) return true;
+
+  const normalized = String(value ?? "").trim().toLowerCase();
+  return normalized === "true" || normalized === "1" || normalized === "yes";
+}
+
+function getDishTaxGroupOptions(moldova) {
+  const letters = parseDishesBooleanFlag(moldova)
+    ? ["A", "B", "C", "D", "E"]
+    : ["А", "Б", "В", "Г", "Д", "Е", "Ж", "З"];
+
+  return [
+    { value: 0, label: "" },
+    ...letters.map((label, index) => ({
+      value: index + 1,
+      label
+    }))
+  ];
+}
+
+function TaxGroupSelect({ value, moldova, disabled, onChange }) {
+  const options = getDishTaxGroupOptions(moldova);
+  const numericValue = Number(value || 0);
+  const allowedValue = options.some((item) => item.value === numericValue)
+    ? numericValue
+    : 0;
+
+  return (
+    <select
+      className="table-select dishes-tax-group-select"
+      value={String(allowedValue)}
+      disabled={disabled}
+      onChange={(event) => onChange?.(Number(event.target.value || 0))}
+    >
+      {options.map((item) => (
+        <option key={item.value} value={String(item.value)}>
+          {item.label}
+        </option>
+      ))}
+    </select>
   );
 }
 
@@ -2133,12 +2495,13 @@ function DishesToolbar({
   onChangeGroup,
   readOnly,
   changedCount,
-  addLoading,
   saveLoading,
   saveSuccess,
   dishNameFilter,
   onDishNameFilterChange,
   onAddDish,
+  onAddQuickRow,
+  quickAddLoading,
   onSaveDishes,
   extraNameMode,
   onToggleNameMode,
@@ -2146,6 +2509,8 @@ function DishesToolbar({
   onToggleCopy,
   printMenuOpen,
   onTogglePrintMenu,
+  selectedDishId,
+  onOpenCalculation,
   onOpenDishCard,
   onOpenHappyHours,
   onOpenProduction,
@@ -2154,6 +2519,30 @@ function DishesToolbar({
   return (
     <div className="module-toolbar dishes-toolbar dishes-main-toolbar">
       <div className="toolbar-right dishes-toolbar-actions-row">
+        <button
+          type="button"
+          className="toolbar-save-button dishes-calculation-button"
+          disabled={!selectedDishId}
+          onClick={onOpenCalculation}
+          style={{
+            height: "32px",
+            padding: "0 15px",
+            border: selectedDishId ? "1px solid #6d28d9" : "1px solid #d1d5db",
+            borderRadius: "9px",
+            background: selectedDishId
+              ? "linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)"
+              : "#e5e7eb",
+            color: selectedDishId ? "#ffffff" : "#9ca3af",
+            fontSize: "13px",
+            fontWeight: 700,
+            boxShadow: selectedDishId
+              ? "0 5px 12px rgba(91, 33, 182, 0.22)"
+              : "none"
+          }}
+        >
+          {t("Dishes.Calculation", "Калькуляция")}
+        </button>
+
         <button
           type="button"
           className={`toolbar-save-button dishes-print-menu-button ${
@@ -2206,12 +2595,22 @@ function DishesToolbar({
           <button
             type="button"
             className="toolbar-save-button dishes-add-button"
-            disabled={addLoading}
             onClick={onAddDish}
           >
-            {addLoading
+            {t("Dishes.Add", "Добавить")}
+          </button>
+        )}
+
+        {!readOnly && (
+          <button
+            type="button"
+            className="toolbar-save-button dishes-add-button dishes-quick-row-button"
+            disabled={quickAddLoading}
+            onClick={onAddQuickRow}
+          >
+            {quickAddLoading
               ? t("Dishes.Adding", "Добавление...")
-              : t("Dishes.Add", "Добавить")}
+              : t("Dishes.AddRow", "+Строка")}
           </button>
         )}
 
@@ -3149,9 +3548,13 @@ function DishCardReportPage({
   onPrint,
   onExport,
   exportLoading,
+  inPfRows,
+  inPfLoading,
+  inPfError,
   t
 }) {
   const realiz = Array.isArray(data?.Realiz) ? data.Realiz : [];
+  const safeInPfRows = Array.isArray(inPfRows) ? inPfRows : [];
   const days = groupDishCardRows(realiz);
   const nameDish = data?.NameDish ?? "";
   const periodText = [formatReportDate(data?.Date1), formatReportDate(data?.Date2)]
@@ -3283,6 +3686,49 @@ function DishCardReportPage({
               </section>
             ))
           )}
+
+          <section className="dish-card-in-pf-section">
+            <h2>{t("DishCard.InDishesTitle", "Входит в блюда:")}</h2>
+
+            {inPfError && (
+              <div className="login-error dish-card-in-pf-error">{inPfError}</div>
+            )}
+
+            {inPfLoading ? (
+              <div className="dish-card-in-pf-loading">
+                {t("DishCard.Loading", "Загрузка...")}
+              </div>
+            ) : safeInPfRows.length > 0 ? (
+              <div className="dish-card-report-table-wrap dish-card-in-pf-table-wrap">
+                <table className="dish-card-report-table dish-card-in-pf-table">
+                  <thead>
+                    <tr>
+                      <th>{t("DishCard.InDishesName", "Наименование")}</th>
+                      <th className="num">{t("DishCard.InDishesNetto", "Нетто")}</th>
+                      <th className="center">{t("DishCard.InDishesHidden", "Скрыть")}</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {safeInPfRows.map((row, rowIndex) => (
+                      <tr key={row.ID ?? `${row.Name ?? "dish"}-${rowIndex}`}>
+                        <td>{row.Name ?? ""}</td>
+                        <td className="num">{formatReportNumber(row.Netto, 3)}</td>
+                        <td className="center">
+                          <input
+                            type="checkbox"
+                            checked={normalizeBooleanFlag(row.Skr)}
+                            disabled
+                            aria-label={t("DishCard.InDishesHidden", "Скрыть")}
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : null}
+          </section>
         </div>
       )}
     </div>

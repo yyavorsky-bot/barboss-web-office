@@ -1,0 +1,37 @@
+/*
+ * DirectoryPage — визуальное сопровождение выбора строки при навигации ↑ / ↓.
+ *
+ * Курсор мыши может оставаться над строкой, с которой началась клавиатурная
+ * навигация. Глобальный :hover тогда визуально выглядит как вторая выбранная
+ * строка. Эти правила оставляют цвет только за реальным selected-row.
+ */
+
+/* Текущая выбранная строка — чуть насыщеннее обычного hover. */
+.directory-page .directory-table tbody tr.selected-row td,
+.directory-page .directory-table tbody tr.selected-row:hover td {
+  background: #c3e5dc !important;
+}
+
+/* Изменённая строка сохраняет свой статус и при наведении. */
+.directory-page .directory-table tbody tr.changed-row:not(.selected-row) td,
+.directory-page .directory-table tbody tr.changed-row:not(.selected-row):hover td {
+  background: #fff1c9 !important;
+}
+
+/* Выбранная + изменённая. */
+.directory-page .directory-table tbody tr.selected-row.changed-row td,
+.directory-page .directory-table tbody tr.selected-row.changed-row:hover td {
+  background: #f2dda4 !important;
+}
+
+/*
+ * Обычная строка под неподвижным курсором не должна выглядеть выбранной
+ * после перехода ↑ / ↓. Возвращаем исходный zebra-фон.
+ */
+.directory-page .directory-table tbody tr:not(.selected-row):not(.changed-row):nth-child(odd):hover td {
+  background: #fffdf8 !important;
+}
+
+.directory-page .directory-table tbody tr:not(.selected-row):not(.changed-row):nth-child(even):hover td {
+  background: #f6f1db !important;
+}

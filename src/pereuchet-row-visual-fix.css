@@ -1,0 +1,43 @@
+/*
+ * Переучет — единая подсветка выбранной строки
+ * для трех рабочих таблиц: список, переучет сырья, полуфабрикаты.
+ */
+
+.pereuchet-list-table tbody tr.selected-row td,
+.pereuchet-list-table tbody tr.selected-row:hover td,
+.pereuchet-edit-table tbody tr.selected-row td,
+.pereuchet-edit-table tbody tr.selected-row:hover td,
+.pereuchet-pf-table tbody tr.selected-row td,
+.pereuchet-pf-table tbody tr.selected-row:hover td {
+  background: #c3e5dc !important;
+}
+
+.pereuchet-list-table tbody tr.changed-row:not(.selected-row) td,
+.pereuchet-list-table tbody tr.changed-row:not(.selected-row):hover td,
+.pereuchet-edit-table tbody tr.changed-row:not(.selected-row) td,
+.pereuchet-edit-table tbody tr.changed-row:not(.selected-row):hover td,
+.pereuchet-pf-table tbody tr.changed-row:not(.selected-row) td,
+.pereuchet-pf-table tbody tr.changed-row:not(.selected-row):hover td {
+  background: #fff1c9 !important;
+}
+
+.pereuchet-list-table tbody tr.selected-row.changed-row td,
+.pereuchet-list-table tbody tr.selected-row.changed-row:hover td,
+.pereuchet-edit-table tbody tr.selected-row.changed-row td,
+.pereuchet-edit-table tbody tr.selected-row.changed-row:hover td,
+.pereuchet-pf-table tbody tr.selected-row.changed-row td,
+.pereuchet-pf-table tbody tr.selected-row.changed-row:hover td {
+  background: #f2dda4 !important;
+}
+
+.pereuchet-list-table tbody tr:not(.selected-row):not(.changed-row):nth-child(odd):hover td,
+.pereuchet-edit-table tbody tr:not(.selected-row):not(.changed-row):nth-child(odd):hover td,
+.pereuchet-pf-table tbody tr:not(.selected-row):not(.changed-row):nth-child(odd):hover td {
+  background: #fffdf8 !important;
+}
+
+.pereuchet-list-table tbody tr:not(.selected-row):not(.changed-row):nth-child(even):hover td,
+.pereuchet-edit-table tbody tr:not(.selected-row):not(.changed-row):nth-child(even):hover td,
+.pereuchet-pf-table tbody tr:not(.selected-row):not(.changed-row):nth-child(even):hover td {
+  background: #f6f1db !important;
+}

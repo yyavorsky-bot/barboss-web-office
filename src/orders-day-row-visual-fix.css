@@ -1,0 +1,17 @@
+/* OrdersDayPage: selected row follows keyboard navigation without a second hover highlight. */
+.orders-day-table tbody tr:focus {
+  outline: none;
+}
+
+.orders-day-table tbody tr.selected-row td,
+.orders-day-table tbody tr.selected-row:hover td {
+  background: #c3e5dc !important;
+}
+
+.orders-day-table tbody tr:not(.selected-row):nth-child(odd):hover td {
+  background: #fffdf8 !important;
+}
+
+.orders-day-table tbody tr:not(.selected-row):nth-child(even):hover td {
+  background: #f6f1db !important;
+}

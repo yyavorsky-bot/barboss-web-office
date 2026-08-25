@@ -1,0 +1,253 @@
+/* =========================================================
+   Новый заказ — Счета за день
+   ========================================================= */
+.order-new-page {
+  width: 100%;
+  min-width: 0;
+  color-scheme: light;
+  color: #243b36;
+}
+
+.order-new-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.order-new-title {
+  min-width: 0;
+  text-align: center;
+  font-size: 17px;
+}
+
+.order-new-save-button {
+  min-width: 110px;
+}
+
+.order-new-hint {
+  margin-bottom: 8px;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.order-new-error {
+  margin-bottom: 10px;
+}
+
+.order-new-header-card,
+.order-new-body-card {
+  margin-bottom: 12px;
+  border: 1px solid #d7e1de;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 3px 10px rgba(42, 74, 67, 0.08);
+}
+
+.order-new-header-card {
+  padding: 12px;
+}
+
+.order-new-header-grid {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.9fr) minmax(110px, 0.45fr) minmax(260px, 1.25fr) minmax(280px, 1.4fr);
+  gap: 10px 12px;
+  align-items: end;
+}
+
+.order-new-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #49645e;
+}
+
+.order-new-field input,
+.order-new-field select,
+.order-new-search-select input {
+  width: 100%;
+  min-width: 0;
+  height: 34px;
+  box-sizing: border-box;
+  border: 1px solid #cbd8d4;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #243b36;
+  -webkit-text-fill-color: #243b36;
+  padding: 5px 8px;
+  font: inherit;
+  font-weight: 400;
+}
+
+.order-new-field input:focus,
+.order-new-field select:focus,
+.order-new-search-select input:focus {
+  outline: 2px solid rgba(79, 130, 119, 0.18);
+  border-color: #7ca59c;
+}
+
+.order-new-search-select {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+
+.order-new-search-list {
+  overflow-y: auto;
+  border: 1px solid #bdcbc7;
+  border-radius: 7px;
+  background: #ffffff;
+  box-shadow: 0 12px 28px rgba(28, 52, 47, 0.18);
+  color-scheme: light;
+}
+
+.order-new-search-option {
+  display: block;
+  width: 100%;
+  padding: 7px 9px;
+  border: 0;
+  border-bottom: 1px solid #edf2f0;
+  background: #ffffff;
+  color: #243b36;
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.order-new-search-option:last-child {
+  border-bottom: 0;
+}
+
+.order-new-search-option:hover,
+.order-new-search-option.active {
+  background: #edf7f4;
+}
+
+.order-new-search-option-name {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.order-new-search-option-secondary {
+  margin-left: 8px;
+  color: inherit;
+  font-size: 11.5px;
+  font-weight: 400;
+  opacity: 0.7;
+}
+
+.order-new-search-empty {
+  padding: 10px;
+  color: #6d817c;
+  font-size: 12.5px;
+}
+
+.order-new-body-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 11px;
+  border-bottom: 1px solid #d7e1de;
+  background: #f4f9f7;
+}
+
+.order-new-body-title strong {
+  font-size: 15px;
+}
+
+.order-new-body-title span {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.order-new-table-wrap {
+  max-height: calc(100vh - 310px);
+  overflow: auto;
+}
+
+.order-new-table {
+  width: 100%;
+  min-width: 720px;
+  table-layout: fixed;
+}
+
+.order-new-col-dish {
+  width: auto;
+}
+
+.order-new-col-qty,
+.order-new-col-price,
+.order-new-col-sum {
+  width: 130px;
+}
+
+.order-new-table th,
+.order-new-table td {
+  vertical-align: middle;
+}
+
+.order-new-table td {
+  height: 38px;
+}
+
+.order-new-table .table-input,
+.order-new-table .order-new-search-select input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  color: #243b36 !important;
+  -webkit-text-fill-color: #243b36 !important;
+}
+
+.order-new-table .table-input:disabled,
+.order-new-table .order-new-search-select input:disabled {
+  opacity: 1;
+}
+
+.order-new-draft-row td {
+  background: #fbfdfc;
+}
+
+.order-new-table tfoot td {
+  font-weight: 700;
+  background: #f4f9f7;
+}
+
+@media (max-width: 1050px) {
+  .order-new-header-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .order-new-note-field {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 700px) {
+  .order-new-topbar {
+    grid-template-columns: 1fr auto;
+  }
+
+  .order-new-title {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+
+  .order-new-header-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .order-new-note-field {
+    grid-column: auto;
+  }
+}

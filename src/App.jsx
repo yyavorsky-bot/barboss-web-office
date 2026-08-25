@@ -35,6 +35,7 @@ import KassaPage from "./KassaPage";
 import PereuchetPage from "./PereuchetPage";
 import OrdersDayPage from "./OrdersDayPage";
 import SchetViewPage from "./SchetViewPage";
+import OrderNewPage from "./OrderNewPage";
 import DirectoryPage from "./DirectoryPage";
 import SubdivisionsPage from "./SubdivisionsPage";
 import ReportsPage from "./ReportsPage";
@@ -43,6 +44,7 @@ import SystemParametersPage from "./SystemParametersPage";
 import UsersPage from "./UsersPage";
 import "./styles.css";
 import "./prih-invoice-report.css";
+import "./browser-light-fix.css";
 
 function normalizeMenuActionKey(action) {
   return String(action || "")
@@ -2023,6 +2025,10 @@ export default function App() {
     workTitle ||
     t("App.WorkArea", "Рабочая область");
 
+  const userReadOnlyMode = parseBooleanFlag(
+    user?.readOnly ?? user?.readonly
+  );
+
   const unsavedChangesMessage = t(
     "App.UnsavedChangesWarning",
     "Внимание! Вы не сохранили измененные данные!\nУверены, что хотите уйти?"
@@ -2227,46 +2233,82 @@ function openMoveInvoice(nakl) {
 }
 
 async function createPrihInvoice() {
-  try {
-    const response = await fetchWithAuth(
-      `https://webback.bar-boss.com/wf_PrihNew.php?Sklad=${encodeURIComponent(currentSklad)}`
-    );
+  if (!currentSklad) {
+    setWorkError("Не выбран склад для приходной накладной");
+    return;
+  }
 
+  try {
+    // wf_PrihNew больше ничего не создаёт в SQL: только выдаёт следующий
+    // номер накладной и признак Moldova для локального draft-документа.
+    const response = await fetchWithAuth(
+      "https://webback.bar-boss.com/wf_PrihNew.php",
+      { method: "GET" }
+    );
     const text = await response.text();
 
-    console.log("Pereuchet list response status", response.status);
-    console.log("Pereuchet list response url", response.url);
-    console.log("Pereuchet list response preview", text.slice(0, 200));
-
     let data;
-
     try {
       data = JSON.parse(text);
     } catch {
-      throw new Error("Новая накладная вернула не JSON: " + text.substring(0, 500));
+      throw new Error(
+        "Номер новой накладной вернул не JSON: " + text.substring(0, 500)
+      );
     }
 
-    const invoice = Array.isArray(data) ? data[0] : data;
+    const info = Array.isArray(data) ? data[0] : data;
 
-    if (!invoice || !invoice.ID) {
-      throw new Error("Сервер не вернул ID новой накладной");
+    if (!response.ok || info?.status === "error") {
+      throw new Error(
+        info?.error ||
+          info?.message ||
+          "Ошибка получения номера новой приходной накладной"
+      );
     }
+
+    const nomNakl = Number(info?.NomNakl || 0);
+
+    if (nomNakl <= 0) {
+      throw new Error("Сервер не вернул NomNakl новой приходной накладной");
+    }
+
+    // Web-native draft: до первого Save в SQL самой накладной не существует.
+    const draftId = -Date.now();
+    const draftInvoice = {
+      ID: draftId,
+      Invoice: nomNakl,
+      DateP: today,
+      Rem: "",
+      VAT: false,
+      ProcVat: 0,
+      IdSklPer: 0,
+      IdSkl: Number(currentSklad || 0),
+      Oplach: false,
+      Post: 0,
+      SupplierName: "",
+      Form: 0,
+      Bel: false,
+      Vozv: false,
+      Moldova: Number(info?.Moldova || 0),
+      pf: false,
+      zach: false,
+      items: []
+    };
 
     setInvoiceKind("prih");
     setPrihWasSaved(false);
-    setPrihInvoiceId(Number(invoice.ID));
-    setPrihSelectedInvoiceId(Number(invoice.ID));
-    setPrihInitialData({
-      ...invoice,
-      pf: false,
-      zach: false
-    });
+    setPrihInvoiceId(draftId);
+    setPrihInitialData(draftInvoice);
     setPrihListRowHint(null);
     setPrihMode("new");
     setSelectedAction("prih-invoice-card");
     setWorkTitle("Новая приходная накладная");
-    setWorkError("");  } catch (err) {
-    alert(err.message || "Ошибка создания приходной накладной");
+    setWorkError("");
+  } catch (err) {
+    alert(
+      err?.message ||
+        "Ошибка получения номера новой приходной накладной"
+    );
   }
 }
 
@@ -2421,6 +2463,20 @@ function openSchetView(order) {
   setViewSourceOrder(order);
   setSelectedAction("wf_SchetView.php");
   setWorkTitle("Просмотр заказа");
+  setWorkLoading(false);
+  setWorkError("");
+}
+
+// NEW ORDER FIX 2026-08-24: single guarded transition to the new-order screen.
+function openNewOrder() {
+  if (userReadOnlyMode) {
+    return;
+  }
+
+  setViewOrderId(null);
+  setViewSourceOrder(null);
+  setSelectedAction("order-new");
+  setWorkTitle(t("OrderNew.Title", "Новый заказ"));
   setWorkLoading(false);
   setWorkError("");
 }
@@ -2722,49 +2778,69 @@ async function createMoveInvoice() {
   }
 
   try {
+    // Как и обычный приход, новое перемещение до Save существует только
+    // на frontend. wf_PrihNew теперь нужен лишь для номера и Moldova.
     const response = await fetchWithAuth(
-      `https://webback.bar-boss.com/wf_PrihNew.php?Sklad=${encodeURIComponent(currentSklad)}`
+      "https://webback.bar-boss.com/wf_PrihNew.php",
+      { method: "GET" }
     );
-
     const text = await response.text();
 
     let data;
-
     try {
       data = JSON.parse(text);
     } catch {
-      throw new Error("Новая накладная перемещения вернула не JSON: " + text.substring(0, 500));
+      throw new Error(
+        "Номер нового перемещения вернул не JSON: " + text.substring(0, 500)
+      );
     }
 
-    const invoice = Array.isArray(data) ? data[0] : data;
+    const info = Array.isArray(data) ? data[0] : data;
 
-    if (!invoice || !invoice.ID) {
-      throw new Error("Сервер не вернул ID новой накладной перемещения");
+    if (!response.ok || info?.status === "error") {
+      throw new Error(
+        info?.error ||
+          info?.message ||
+          "Ошибка получения номера нового перемещения"
+      );
     }
 
+    const nomNakl = Number(info?.NomNakl || 0);
+
+    if (nomNakl <= 0) {
+      throw new Error("Сервер не вернул NomNakl нового перемещения");
+    }
+
+    const draftId = -Date.now();
     const moveInvoice = {
-      ...invoice,
+      ID: draftId,
+      Invoice: nomNakl,
+      DateP: today,
+      Rem: "",
+      VAT: false,
+      ProcVat: 0,
 
-      // Склад, ОТКУДА уходит товар
+      // Склад, ОТКУДА уходит товар.
       IdSklPer: Number(currentSklad),
 
-      // Склад, КУДА перемещено — выберем в форме
+      // Склад назначения пользователь выберет в форме.
       IdSkl: 0,
 
-      // Для перемещения эти поля не нужны
       Post: 0,
+      SupplierName: "",
       Form: 0,
       Oplach: false,
       Bel: false,
       Vozv: false,
-
+      Moldova: Number(info?.Moldova || 0),
+      pf: false,
+      zach: false,
       items: []
     };
 
     setInvoiceKind("move");
     setPrihWasSaved(false);
-    setPeremSelectedInvoiceId(Number(invoice.ID));
-    setPrihInvoiceId(Number(invoice.ID));
+    setPrihInvoiceId(draftId);
     setPrihInitialData(moveInvoice);
     setPrihListRowHint(null);
     setPrihMode("new");
@@ -2772,7 +2848,7 @@ async function createMoveInvoice() {
     setWorkTitle("Новая накладная перемещения");
     setWorkError("");
   } catch (err) {
-    alert(err.message || "Ошибка создания накладной перемещения");
+    alert(err?.message || "Ошибка получения номера нового перемещения");
   }
 }
 
@@ -2844,46 +2920,24 @@ function backToSpisanBludList() {
   setSpisanBludInitialData(null);
   loadSpisanBludList();
 }
-async function createSpisanBludInvoice() {
-  try {
-    const response = await fetchWithAuth(
-      "https://webback.bar-boss.com/wf_SpisBludNew.php"
-    );
+function createSpisanBludInvoice() {
+  const localId = -Date.now();
 
-    const text = await response.text();
-
-    let data;
-
-    try {
-      data = JSON.parse(text);
-    } catch {
-      throw new Error(
-        "Новая накладная списания блюд вернула не JSON: " +
-          text.substring(0, 500)
-      );
-    }
-
-    const invoice = Array.isArray(data) ? data[0] : data;
-
-    if (!invoice || !invoice.ID) {
-      throw new Error("Сервер не вернул ID новой накладной списания блюд");
-    }
-
-    const normalizedInvoice = {
-      ...invoice,
-      CodSpis: Number(invoice.CodSpis || 0),
-      Rem: invoice.Rem || "",
-      items: Array.isArray(invoice.items) ? invoice.items : []
-    };
-
-    setSpisanBludSelectedInvoiceId(Number(invoice.ID));
-    setSpisanBludInitialData(normalizedInvoice);
-    setSelectedAction("spisan-blud-invoice-card");
-    setWorkTitle("Новое списание блюд");
-    setWorkError("");
-  } catch (err) {
-    alert(err.message || "Ошибка создания накладной списания блюд");
-  }
+  // Новое списание живёт только во frontend до нажатия «Сохранить».
+  // Никаких INSERT/служебных вызовов при открытии карточки больше нет.
+  setSpisanBludSelectedInvoiceId(null);
+  setSpisanBludInitialData({
+    ID: localId,
+    Nakl: "",
+    DateP: "",
+    CodSpis: 0,
+    NazvSpisania: "",
+    Rem: "",
+    items: []
+  });
+  setSelectedAction("spisan-blud-invoice-card");
+  setWorkTitle("Новое списание блюд");
+  setWorkError("");
 }
 
 function openPrihInvoice(invoiceOrId) {
@@ -3003,8 +3057,8 @@ async function backToPrihList(forceReload = false) {
 
   const shouldReload =
     Boolean(forceReload) ||
-    prihMode === "new" ||
-    prihWasSaved;
+    prihWasSaved ||
+    (prihMode === "new" && invoiceKind !== "prih");
 
   setSelectedAction("wf_PrihList.php");
   setWorkTitle(
@@ -3383,11 +3437,24 @@ async function loadDishes({
     setWorkData(null);
 
     try {
-  await loadGroupsForDishFilter({
-    sklad,
-    skr,
-    modif
-  });
+      const [groupsData, cehData, fopData, typDishData] = await Promise.all([
+        loadDirectoryData("Groups"),
+        loadDirectoryData("Ceh"),
+        loadDirectoryData("Fop"),
+        loadDirectoryData("TypDish")
+      ]);
+
+      setDishGroups(groupsData);
+      setCehList(cehData);
+      setFopList(fopData);
+      setTypDishList(typDishData);
+
+      await loadGroupsForDishFilter({
+        sklad,
+        skr,
+        modif
+      });
+
       const url = new URL("https://webback.bar-boss.com/wf_Dishes.php");
 
       url.searchParams.set("Sklad", sklad);
@@ -4617,6 +4684,26 @@ async function saveDishes(xml) {
         pf: prihPfMode ? 1 : 0
       });
     }
+
+    if (
+      normalizeMenuActionKey(selectedAction).toLowerCase() ===
+      "wf_peremlist.php"
+    ) {
+      setPeremSelectedInvoiceId(null);
+      loadPeremList({
+        sklad: nextSklad
+      });
+    }
+
+    if (
+      normalizeMenuActionKey(selectedAction).toLowerCase() ===
+      "wf_spisantovlist.php"
+    ) {
+      setSpisanTovSelectedInvoiceId(null);
+      loadSpisanTovList({
+        sklad: nextSklad
+      });
+    }
   }
 
   const currentOrganizationName =
@@ -4908,7 +4995,8 @@ async function saveDishes(xml) {
     selectedAction !== "wf_Kassa.php" &&
     selectedAction !== "wf_SpisanBludList.php" &&
     selectedAction !== "wf_SpisokZakazov.php" &&
-    selectedAction !== "wf_SchetView.php" && (
+    selectedAction !== "wf_SchetView.php" &&
+    selectedAction !== "order-new" && (
       <h2 className="work-area-title">{displayedWorkTitle}</h2>
     )}
   {!selectedAction && !workLoading && !workError && (
@@ -5244,7 +5332,11 @@ async function saveDishes(xml) {
     <DishesPage
       data={workData}
       selectedDishId={dishSelectedId}
-      currentSklad={currentSklad}
+      login={user?.id ?? ""}
+      moldova={parseBooleanFlag(
+    tenant?.Moldova ?? tenant?.moldova ?? tenant?.MD ?? 0
+  )}
+  currentSklad={currentSklad}
       podrazd={sklads}
       fetchWithAuth={fetchWithAuth}
       dateFrom={reportDateFrom}
@@ -5314,6 +5406,29 @@ async function saveDishes(xml) {
       setViewSourceOrder(null);
     }}
     onDirtyChange={setHasUnsavedChanges}
+    readOnly={Boolean(user?.readOnly)}
+  />
+)}
+
+{selectedAction === "order-new" && (
+  <OrderNewPage
+    ordersDate={ordersDate}
+    waiterOptions={ordersWaiterOptions}
+    login={String(user?.id ?? "")}
+    fetchWithAuth={fetchWithAuth}
+    t={t}
+    locale={locale}
+    readOnly={userReadOnlyMode}
+    onDirtyChange={setHasUnsavedChanges}
+    onBack={() => {
+      setSelectedAction("wf_SpisokZakazov.php");
+      setWorkTitle("Просмотр заказов за день");
+      setWorkError("");
+    }}
+    onSaved={async () => {
+      setHasUnsavedChanges(false);
+      await loadOrdersDay(ordersDate);
+    }}
   />
 )}
  
@@ -5330,6 +5445,7 @@ async function saveDishes(xml) {
       setWorkError("");
     }}
     onDirtyChange={setHasUnsavedChanges}
+    readOnly={Boolean(user?.readOnly)}
   />
 )}
   {!workLoading && !workError && workData && selectedAction === "wf_PrihList.php" && (
@@ -5423,6 +5539,8 @@ onChangePost={async (nextPost) => {
       onDateChange={handleOrdersDateChange}
       onReload={() => loadOrdersDay(ordersDate)}
       onViewOrder={openSchetView}
+      onAddOrder={openNewOrder}
+      readOnly={userReadOnlyMode}
       t={t}
       locale={locale}
     />
@@ -5456,7 +5574,34 @@ onChangePost={async (nextPost) => {
   login={String(user?.id ?? "")}
   fetchWithAuth={fetchWithAuth}
   onBack={backToInvoiceList}
-  onSaved={() => setPrihWasSaved(true)}
+  onSaved={(savedInvoiceId) => {
+    setPrihWasSaved(true);
+
+    const realInvoiceId = Number(savedInvoiceId || 0);
+
+    if (
+      realInvoiceId > 0 &&
+      prihMode === "new" &&
+      (invoiceKind === "prih" || invoiceKind === "move")
+    ) {
+      setPrihInvoiceId(realInvoiceId);
+
+      if (invoiceKind === "move") {
+        setPeremSelectedInvoiceId(realInvoiceId);
+      } else {
+        setPrihSelectedInvoiceId(realInvoiceId);
+      }
+
+      setPrihInitialData(null);
+      setPrihListRowHint(null);
+      setPrihMode("edit");
+      setWorkTitle(
+        invoiceKind === "move"
+          ? "Накладная перемещения"
+          : "Приходная накладная"
+      );
+    }
+  }}
   onDeletePFCompleted={() => backToPrihList(true)}
   onDirtyChange={setHasUnsavedChanges}
   onPrintPreviewChange={setIsPrihPrintPreviewOpen}
@@ -5623,6 +5768,7 @@ onChangePost={async (nextPost) => {
   selectedAction !== "prih-invoice-card" &&
   selectedAction !== "prih-invoice" &&
   selectedAction !== "wf_SchetView.php" &&
+  selectedAction !== "order-new" &&
   selectedAction !== "wf_SpisokPer.php" &&
   normalizeMenuAction(selectedAction) !== "wf_SpisokPer.php" &&
   selectedAction !== "wf_Kassa.php" &&
@@ -5642,9 +5788,13 @@ onChangePost={async (nextPost) => {
     </pre>
   )}
 
-  {!workLoading && !workError && !workData && selectedAction && (
-    <p>{t("App.NoData", "Для выбранного раздела пока нет данных.")}</p>
-  )}
+  {!workLoading &&
+    !workError &&
+    !workData &&
+    selectedAction &&
+    selectedAction !== "order-new" && (
+      <p>{t("App.NoData", "Для выбранного раздела пока нет данных.")}</p>
+    )}
 </main>
      </div>
     </div>
