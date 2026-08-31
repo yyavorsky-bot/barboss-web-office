@@ -33,7 +33,8 @@ function normalizeDateInputValue(value) {
 function SupplierSearch({
   posts,
   value,
-  onChange
+  onChange,
+  t = (key, fallback = "") => fallback
 }) {
   const rootRef = useRef(null);
   const postList = Array.isArray(posts) ? posts : [];
@@ -48,7 +49,7 @@ function SupplierSearch({
 
   const selectedText =
     String(value ?? "%") === "%"
-      ? "Все"
+      ? t("Common.All", "Все")
       : selectedPost?.Name ?? "";
 
   const [text, setText] = useState(selectedText);
@@ -98,7 +99,7 @@ function SupplierSearch({
 
   const showAllOption =
     prefix === "" ||
-    normalizeSearchText("Все").startsWith(prefix);
+    normalizeSearchText(t("Common.All", "Все")).startsWith(prefix);
 
   function choose(postValue, postName) {
     setText(postName);
@@ -124,8 +125,8 @@ function SupplierSearch({
 
     event.preventDefault();
 
-    if (showAllOption && prefix === normalizeSearchText("Все")) {
-      choose("%", "Все");
+    if (showAllOption && prefix === normalizeSearchText(t("Common.All", "Все"))) {
+      choose("%", t("Common.All", "Все"));
       return;
     }
 
@@ -152,7 +153,7 @@ function SupplierSearch({
       <input
         type="text"
         value={text}
-        placeholder="Начните вводить поставщика"
+        placeholder={t("PrihList.SupplierSearchPlaceholder", "Начните вводить поставщика")}
         autoComplete="off"
         onFocus={(event) => {
           setOpen(true);
@@ -163,7 +164,7 @@ function SupplierSearch({
           setOpen(true);
         }}
         onKeyDown={handleKeyDown}
-        aria-label="Поиск поставщика"
+        aria-label={t("PrihList.SupplierSearchAria", "Поиск поставщика")}
         aria-expanded={open}
       />
 
@@ -175,10 +176,10 @@ function SupplierSearch({
               className="searchable-select-option muted"
               onMouseDown={(event) => {
                 event.preventDefault();
-                choose("%", "Все");
+                choose("%", t("Common.All", "Все"));
               }}
             >
-              Все
+              {t("Common.All", "Все")}
             </button>
           )}
 
@@ -198,7 +199,7 @@ function SupplierSearch({
 
           {!showAllOption && filteredPosts.length === 0 && (
             <div className="searchable-select-empty">
-              Поставщик не найден
+              {t("PrihList.SupplierNotFound", "Поставщик не найден")}
             </div>
           )}
         </div>
@@ -226,11 +227,14 @@ export default function PrihListPage({
   onCreateInvoice,
   onCreateProduction,
   onCreateZach,
+  onImportFile,
   onApply,
   t = (key, fallback = "") => fallback
 }) {
   const rows = Array.isArray(data) ? data : [];
   const listRootRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const [fileLoading, setFileLoading] = useState(false);
   const [selectedId, setSelectedId] = useState(
     Number(selectedInvoiceId || 0) || null
   );
@@ -320,17 +324,42 @@ export default function PrihListPage({
     focusInvoiceRow(nextRow.ID);
   }
 
+  async function handleImportFileChange(event) {
+    const file = event.target.files?.[0] ?? null;
+
+    // Разрешаем повторно выбрать тот же самый файл.
+    event.target.value = "";
+
+    if (!file || !onImportFile || fileLoading) {
+      return;
+    }
+
+    setFileLoading(true);
+
+    try {
+      await onImportFile(file);
+    } finally {
+      setFileLoading(false);
+    }
+  }
+
+  function chooseImportFile() {
+    if (fileLoading) return;
+    fileInputRef.current?.click();
+  }
+
   return (
     <div className="prih-list-page" ref={listRootRef}>
       <div className="module-toolbar prih-list-toolbar">
         <div className="toolbar-left">
           <label className="toolbar-field prih-post-field">
-            <span>Поставщик</span>
+            <span>{t("Common.Supplier", "Поставщик")}</span>
 
             <SupplierSearch
               posts={posts}
               value={String(filterPost ?? "%")}
               onChange={onChangePost}
+              t={t}
             />
           </label>
 
@@ -348,7 +377,7 @@ export default function PrihListPage({
           </label>
 
           <label className="toolbar-field">
-            <span>с</span>
+            <span>{t("Common.DateFrom", "с")}</span>
             <input
               className="toolbar-date"
               type="date"
@@ -360,7 +389,7 @@ export default function PrihListPage({
           </label>
 
           <label className="toolbar-field">
-            <span>по</span>
+            <span>{t("Common.DateTo", "по")}</span>
             <input
               className="toolbar-date"
               type="date"
@@ -378,9 +407,9 @@ export default function PrihListPage({
             type="button"
             className="toolbar-save-button prih-apply-button"
             onClick={onApply}
-            title="Применить выбранный интервал дат"
+            title={t("PrihList.ApplyDateRangeTitle", "Применить выбранный интервал дат")}
           >
-            Применить
+            {t("Common.Apply", "Применить")}
           </button>
 
           {onOpenInvoice && (
@@ -389,10 +418,37 @@ export default function PrihListPage({
               className="prih-open-button prih-open-selected-button"
               disabled={!selectedRow}
               onClick={openSelectedInvoice}
-              title="Открыть выбранную накладную"
+              title={t("PrihList.OpenSelectedTitle", "Открыть выбранную накладную")}
             >
-              Открыть
+              {t("Common.Open", "Открыть")}
             </button>
+          )}
+
+          {!readOnly && !pfMode && onImportFile && (
+            <>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".xls,.xlsx,.xlsm,.xlsb,.xml"
+                hidden
+                onChange={handleImportFileChange}
+              />
+
+              <button
+                type="button"
+                className="prih-create-button prih-load-file-button"
+                disabled={fileLoading}
+                onClick={chooseImportFile}
+                title={t(
+                  "PrihList.LoadFromFileTitle",
+                  "Загрузить приходные накладные из файла"
+                )}
+              >
+                {fileLoading
+                  ? t("PrihList.LoadingFile", "Загрузка...")
+                  : t("PrihList.LoadFromFile", "Загрузить из файла")}
+              </button>
+            </>
           )}
 
           {!readOnly && !pfMode && onCreateInvoice && (
@@ -401,7 +457,7 @@ export default function PrihListPage({
               className="prih-create-button"
               onClick={onCreateInvoice}
             >
-              + Новая накладная
+              + {t("PrihList.NewInvoice", "Новая накладная")}
             </button>
           )}
 
@@ -432,7 +488,7 @@ export default function PrihListPage({
       </div>
 
       {rows.length === 0 && (
-        <p className="prih-list-empty">Приходные накладные не найдены.</p>
+        <p className="prih-list-empty">{t("PrihList.EmptyMessage", "Приходные накладные не найдены.")}</p>
       )}
 
       {rows.length > 0 && (
@@ -451,15 +507,15 @@ export default function PrihListPage({
             </colgroup>
             <thead>
               <tr>
-                <th>Номер</th>
-                <th>Дата</th>
-                <th>Сумма</th>
-                <th>Поставщик</th>
-                <th>Оплата</th>
-                <th>Создал</th>
-                <th>Изменил</th>
-                <th>Оплачено</th>
-                <th>Возврат</th>
+                <th>{t("Common.InvoiceNumber", "Номер")}</th>
+                <th>{t("Common.Date", "Дата")}</th>
+                <th>{t("Common.Amount", "Сумма")}</th>
+                <th>{t("Common.Supplier", "Поставщик")}</th>
+                <th>{t("PrihList.Payment", "Оплата")}</th>
+                <th>{t("PrihList.CreatedBy", "Создал")}</th>
+                <th>{t("PrihList.UpdatedBy", "Изменил")}</th>
+                <th>{t("PrihList.Paid", "Оплачено")}</th>
+                <th>{t("PrihList.Return", "Возврат")}</th>
               </tr>
             </thead>
 

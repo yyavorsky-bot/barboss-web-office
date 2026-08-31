@@ -340,8 +340,7 @@ export default function SpisokTovarovPage({
     });
   }
 
-  function handleRowArrowNavigation(event) {
-    if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+  function handleRowKeyboardNavigation(event) {
     if (event.altKey || event.ctrlKey || event.metaKey) return;
 
     const target = event.target;
@@ -350,18 +349,71 @@ export default function SpisokTovarovPage({
     if (!target.matches("input, select, textarea")) return;
 
     const currentRow = event.currentTarget;
-    const currentCell = target.closest("td");
     const tbody = currentRow?.parentElement;
 
-    if (!currentCell || !tbody) return;
+    if (!tbody) return;
 
     const tableRows = Array.from(tbody.children).filter(
       (element) => element instanceof HTMLTableRowElement
     );
     const currentRowIndex = tableRows.indexOf(currentRow);
+
+    if (currentRowIndex < 0) return;
+
+    if (event.key === "Enter") {
+      if (event.shiftKey) return;
+
+      const rowControls = Array.from(
+        currentRow.querySelectorAll(
+          "input:not(:disabled), select:not(:disabled), textarea:not(:disabled)"
+        )
+      ).filter((element) => element instanceof HTMLElement);
+      const currentControlIndex = rowControls.indexOf(target);
+
+      if (currentControlIndex < 0) return;
+
+      event.preventDefault();
+
+      let nextRow = currentRow;
+      let nextControl = rowControls[currentControlIndex + 1] || null;
+
+      if (!nextControl) {
+        nextRow = tableRows[currentRowIndex + 1] || null;
+        nextControl = nextRow?.querySelector(
+          "input:not(:disabled), select:not(:disabled), textarea:not(:disabled)"
+        );
+      }
+
+      if (!(nextControl instanceof HTMLElement) || !nextRow) return;
+
+      nextControl.focus();
+
+      if (
+        nextControl instanceof HTMLInputElement &&
+        nextControl.type !== "checkbox" &&
+        nextControl.type !== "radio"
+      ) {
+        nextControl.select?.();
+      }
+
+      const nextTovarId = Number(nextRow.dataset.tovarId || 0);
+
+      if (nextTovarId) {
+        setSelectedId(nextTovarId);
+      }
+
+      return;
+    }
+
+    if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+
+    const currentCell = target.closest("td");
+
+    if (!currentCell) return;
+
     const currentCellIndex = Array.from(currentRow.children).indexOf(currentCell);
 
-    if (currentRowIndex < 0 || currentCellIndex < 0) return;
+    if (currentCellIndex < 0) return;
 
     const direction = event.key === "ArrowDown" ? 1 : -1;
     const nextRow = tableRows[currentRowIndex + direction];
@@ -651,6 +703,7 @@ export default function SpisokTovarovPage({
           <table className="data-table spisok-tovarov-table">
             <colgroup>
               <col className="spisok-tovarov-col-name" />
+              <col className="spisok-tovarov-col-unit" />
               <col className="spisok-tovarov-col-price" />
               <col className="spisok-tovarov-col-check" />
               <col className="spisok-tovarov-col-check" />
@@ -668,6 +721,7 @@ export default function SpisokTovarovPage({
             <thead>
               <tr>
                 <th>{t("SpisokTovarov.Name", "Наименование")}</th>
+                <th>{t("SpisokTovarov.UnitShort", "Ед.")}</th>
                 <th>{t("SpisokTovarov.Price", "Цена")}</th>
                 <th>{t("SpisokTovarov.CreditShort", "Зач.")}</th>
                 <th>{t("SpisokTovarov.HiddenShort", "Скр.")}</th>
@@ -693,7 +747,7 @@ export default function SpisokTovarovPage({
                     changedRows[row.ID] ? "changed-row" : ""
                   ].join(" ")}
                   onClick={() => setSelectedId(row.ID)}
-                  onKeyDown={handleRowArrowNavigation}
+                  onKeyDown={handleRowKeyboardNavigation}
                 >
                   <td>
                     <input
@@ -703,6 +757,17 @@ export default function SpisokTovarovPage({
                       value={row.Name ?? ""}
                       disabled={readOnly}
                       onChange={(e) => updateField(row.ID, "Name", e.target.value)}
+                    />
+                  </td>
+
+                  <td className="center spisok-tovarov-unit-cell">
+                    <input
+                      className="table-input spisok-tovarov-unit-input"
+                      type="text"
+                      title={row.Ediz ?? ""}
+                      value={row.Ediz ?? ""}
+                      disabled={readOnly}
+                      onChange={(e) => updateField(row.ID, "Ediz", e.target.value)}
                     />
                   </td>
 
@@ -1211,6 +1276,7 @@ function buildTovarovXml(rows) {
       return `<Tovar
         ID="${escapeXml(row.ID)}"
         Name="${escapeXml(row.Name)}"
+        Ediz="${escapeXml(row.Ediz)}"
         Price="${escapeXml(row.Price)}"
         Zach="${boolToInt(row.Zach)}"
         Skr="${boolToInt(row.Skr)}"

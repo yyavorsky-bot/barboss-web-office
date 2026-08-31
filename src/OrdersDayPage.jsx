@@ -393,6 +393,10 @@ export default function OrdersDayPage({
                       setSelectedOrderId(Number(order.ID || 0));
                       event.currentTarget.focus({ preventScroll: true });
                     }}
+                    onDoubleClick={() => {
+                      setSelectedOrderId(Number(order.ID || 0));
+                      onViewOrder?.(order);
+                    }}
                   >
                     <td>{formatTime(order.DatOp)}</td>
                     <td>{order.Table || ""}</td>

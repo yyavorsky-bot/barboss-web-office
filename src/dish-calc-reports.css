@@ -192,7 +192,7 @@
 
 .calc-card-report-table-cost th:nth-child(2),
 .calc-card-report-table-cost td:nth-child(2) {
-  width: 46%;
+  width: 38%;
 }
 
 .calc-card-report-table-expanded th:nth-child(2),
@@ -202,14 +202,16 @@
 
 .calc-card-report-table-tech th:nth-child(2),
 .calc-card-report-table-tech td:nth-child(2) {
-  width: 68%;
+  width: 55%;
 }
 
 .calc-card-report-table-tech th:nth-child(3),
 .calc-card-report-table-tech th:nth-child(4),
+.calc-card-report-table-tech th:nth-child(5),
 .calc-card-report-table-tech td:nth-child(3),
-.calc-card-report-table-tech td:nth-child(4) {
-  width: 13%;
+.calc-card-report-table-tech td:nth-child(4),
+.calc-card-report-table-tech td:nth-child(5) {
+  width: 12%;
 }
 
 .calc-card-approval-head th:last-child,
@@ -564,5 +566,20 @@
   .dish-calc-new-dish-grid .calc-field,
   .dish-calc-new-dish-name-field.calc-field {
     grid-template-columns: 76px minmax(0, 1fr);
+  }
+}
+
+
+.calc-card-report-table .calc-card-report-total-row td {
+  padding-top: 4px;
+  border-top: 1px solid #cbd5e1;
+  font-weight: 700;
+}
+
+@media print {
+  .calc-card-report-table .calc-card-report-total-row td {
+    padding-top: 0.8mm;
+    border-top: 0.25mm solid #777;
+    font-weight: 700;
   }
 }

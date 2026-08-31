@@ -5,7 +5,7 @@
 
 "Login.RequiredFieldsError": "Introduceți un alias, un nume de utilizator și o parolă",
 "Login.LoginError": "Eroare de conectare",
-"Login.Version": "Versiunea 2.1 © Yuri Yavorsky 2026",
+"Login.Version": "Versiunea 2.2 © Yuri Yavorsky 2026",
 "Login.IntroDescription": "Spațiu de lucru pentru casa de marcat, depozit, comenzi și referințe restaurant",
 "Login.MainSectionsAriaLabel": "Secțiuni principale",
 "Login.Cash": "Casa de marcat",

@@ -1,0 +1,234 @@
+.salary-params-page {
+  width: min(980px, 100%);
+  max-width: 100%;
+  min-width: 0;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.salary-params-toolbar {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 13px;
+  background: linear-gradient(135deg, #dbf7f2 0%, #b3e6df 100%);
+  box-shadow:
+    0 7px 18px rgba(43, 112, 103, 0.12),
+    inset 0 1px rgba(255, 255, 255, 0.55);
+}
+
+.salary-params-toolbar .toolbar-left,
+.salary-params-toolbar .toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.salary-params-save-area {
+  margin-left: auto;
+}
+
+.salary-params-saved {
+  color: #2d7568;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.salary-params-error {
+  margin: 0;
+}
+
+.salary-params-panel {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid rgba(94, 150, 141, 0.18);
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow:
+    0 6px 16px rgba(40, 87, 81, 0.08),
+    0 0 0 1px rgba(94, 150, 141, 0.07);
+}
+
+.salary-params-master-panel {
+  flex: 0 0 auto;
+}
+
+.salary-params-detail-panel {
+  flex: 1 1 auto;
+  min-height: 190px;
+}
+
+.salary-params-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  overflow: auto;
+}
+
+.salary-params-table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.salary-params-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+
+.salary-params-master-table th:first-child,
+.salary-params-master-table td:first-child {
+  width: auto;
+}
+
+.salary-params-percent-col {
+  width: 76px !important;
+  min-width: 76px !important;
+  max-width: 76px !important;
+  text-align: right !important;
+}
+
+.salary-params-check-col {
+  width: 72px !important;
+  min-width: 72px !important;
+  max-width: 72px !important;
+  text-align: center !important;
+}
+
+.salary-params-debt-col {
+  width: 122px !important;
+  min-width: 122px !important;
+  max-width: 122px !important;
+  white-space: normal !important;
+  line-height: 1.05;
+}
+
+.salary-params-delete-col {
+  width: 42px !important;
+  min-width: 42px !important;
+  max-width: 42px !important;
+  padding-left: 3px !important;
+  padding-right: 3px !important;
+  text-align: center !important;
+}
+
+.salary-params-delete-col .small-danger-button {
+  width: 26px;
+  min-width: 26px;
+  height: 24px;
+  padding: 0;
+  line-height: 20px;
+}
+
+.salary-params-name-input,
+.salary-params-percent-input,
+.salary-params-sklad-select {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.salary-params-percent-input {
+  text-align: right;
+}
+
+.salary-params-table tbody tr.selected-row td,
+.salary-params-table tbody tr.selected-row:hover td {
+  background: #c3e5dc !important;
+}
+
+.salary-params-table tbody tr:not(.selected-row):nth-child(odd):hover td {
+  background: #fffdf8;
+}
+
+.salary-params-table tbody tr:not(.selected-row):nth-child(even):hover td {
+  background: #f6f1db;
+}
+
+.salary-params-detail-heading {
+  min-height: 42px;
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid rgba(94, 150, 141, 0.18);
+  background: #f4faf8;
+  color: #315f5a;
+}
+
+.salary-params-detail-heading strong {
+  font-size: 14px;
+}
+
+.salary-params-detail-heading > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.salary-params-detail-heading .small-action-button {
+  margin-left: auto;
+}
+
+.salary-params-detail-table th:first-child,
+.salary-params-detail-table td:first-child {
+  width: auto;
+}
+
+.salary-params-detail-wrap {
+  max-height: 330px;
+}
+
+.salary-params-empty {
+  padding: 18px 12px !important;
+  color: #6b7280;
+  text-align: center !important;
+}
+
+.salary-params-select-hint {
+  min-height: 110px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 700px) {
+  .salary-params-page {
+    width: 100%;
+  }
+
+  .salary-params-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .salary-params-toolbar .toolbar-right {
+    margin-left: 0;
+    justify-content: flex-start;
+  }
+
+  .salary-params-detail-heading {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .salary-params-detail-heading .small-action-button {
+    margin-left: 0;
+  }
+}
+
+/* 09.03 — % ЗП: общее правило .data-table input.table-input-num задаёт 82px,
+   а колонка здесь 76px. Ограничиваем input шириной своей ячейки. */
+.salary-params-master-table input.salary-params-percent-input {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+}

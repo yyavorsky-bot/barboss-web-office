@@ -1,0 +1,245 @@
+/*
+ * BarBo$$ Web Office — автоматически сворачиваемое левое меню.
+ * В покое меню компактное, при наведении/фокусе раскрывается.
+ * Подключается после основного styles.css.
+ */
+
+.side-menu {
+  transition:
+    flex-basis 170ms ease,
+    width 170ms ease,
+    min-width 170ms ease,
+    padding 170ms ease;
+}
+
+.side-menu-heading-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.side-menu-auto-hint {
+  flex: 0 0 auto;
+  margin-left: auto;
+  color: rgba(219, 201, 145, 0.62);
+  font-size: 13px;
+  letter-spacing: -0.18em;
+  line-height: 1;
+  user-select: none;
+}
+
+.menu-compact-mark {
+  display: none;
+}
+
+.side-menu.side-menu-collapsed {
+  flex: 0 0 58px;
+  width: 58px;
+  min-width: 58px;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.side-menu-collapsed .side-menu-heading {
+  justify-content: center;
+  min-height: 42px;
+  margin-left: 0;
+  margin-right: 0;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.side-menu-collapsed .side-menu-heading-mark,
+.side-menu-collapsed .side-menu-heading-text,
+.side-menu-collapsed .side-menu-auto-hint {
+  display: none;
+}
+
+.side-menu-collapsed .side-menu-scroll {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.side-menu-collapsed .menu-children {
+  display: none;
+}
+
+.side-menu-collapsed .side-menu-scroll > .menu-node > .menu-item {
+  width: 42px;
+  min-height: 42px;
+  margin: 3px 0;
+  padding: 0 !important;
+  justify-content: center;
+  gap: 0;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.side-menu-collapsed .side-menu-scroll > .menu-node > .menu-item:hover:not(:disabled) {
+  transform: none;
+}
+
+.side-menu-collapsed .side-menu-scroll > .menu-node > .menu-item .menu-arrow,
+.side-menu-collapsed .side-menu-scroll > .menu-node > .menu-item .menu-item-label {
+  display: none;
+}
+
+.side-menu-collapsed .side-menu-scroll > .menu-node > .menu-item .menu-compact-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.055);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.side-menu-collapsed .side-menu-scroll > .menu-node > .menu-item.group.contains-selected .menu-compact-mark,
+.side-menu-collapsed .side-menu-scroll > .menu-node > .menu-item.selected .menu-compact-mark {
+  color: #ffffff;
+  background: rgba(207, 185, 112, 0.22);
+}
+
+.side-menu-collapsed .side-menu-scroll > .menu-node > .menu-item.active::after {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  /* На узком экране оставляем прежнее полноширинное меню без auto-collapse. */
+  .side-menu.side-menu-collapsed {
+    flex: none;
+    width: 100%;
+    min-width: 0;
+    padding: 12px 10px 14px;
+  }
+
+  .side-menu-collapsed .side-menu-heading {
+    justify-content: flex-start;
+    margin: 0 4px 10px;
+    padding: 0 10px 10px;
+  }
+
+  .side-menu-collapsed .side-menu-heading-mark {
+    display: block;
+  }
+
+  .side-menu-collapsed .side-menu-heading-text {
+    display: inline;
+  }
+
+  .side-menu-auto-hint,
+  .side-menu-collapsed .side-menu-auto-hint {
+    display: none;
+  }
+
+  .side-menu-collapsed .menu-children {
+    display: block;
+  }
+
+  .side-menu-collapsed .side-menu-scroll > .menu-node > .menu-item {
+    width: 100%;
+    min-height: 39px;
+    margin: 2px 0;
+    padding-right: 11px !important;
+    padding-left: 14px !important;
+    justify-content: flex-start;
+    gap: 7px;
+    text-align: left;
+  }
+
+  .side-menu-collapsed .side-menu-scroll > .menu-node > .menu-item .menu-arrow {
+    display: inline-flex;
+  }
+
+  .side-menu-collapsed .side-menu-scroll > .menu-node > .menu-item .menu-item-label {
+    display: block;
+  }
+
+  .side-menu-collapsed .side-menu-scroll > .menu-node > .menu-item .menu-compact-mark {
+    display: none;
+  }
+}
+
+
+/* Белые пиктограммы пунктов меню */
+.menu-icon {
+  display: inline-flex;
+  flex: 0 0 20px;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.menu-icon svg {
+  width: 20px;
+  height: 20px;
+  overflow: visible;
+}
+
+.side-menu .menu-item.group .menu-icon {
+  color: rgba(255, 255, 255, 0.98);
+}
+
+.side-menu .menu-item:hover:not(:disabled) .menu-icon,
+.side-menu .menu-item.selected .menu-icon,
+.side-menu .menu-item.group.contains-selected .menu-icon {
+  color: #ffffff;
+}
+
+.side-menu .menu-item.disabled .menu-icon {
+  color: rgba(255, 255, 255, 0.34);
+}
+
+.side-menu .menu-arrow.empty {
+  flex: 0 0 8px;
+  width: 8px;
+  min-width: 8px;
+}
+
+.side-menu .menu-arrow.empty::before {
+  display: none;
+}
+
+.side-menu-collapsed .side-menu-scroll > .menu-node > .menu-item {
+  gap: 0;
+}
+
+.side-menu-collapsed .side-menu-scroll > .menu-node > .menu-item .menu-icon {
+  width: 24px;
+  height: 24px;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.side-menu-collapsed .side-menu-scroll > .menu-node > .menu-item .menu-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.side-menu-collapsed .side-menu-scroll > .menu-node > .menu-item.selected .menu-icon,
+.side-menu-collapsed .side-menu-scroll > .menu-node > .menu-item.group.contains-selected .menu-icon {
+  color: #ffffff;
+}
+
+.side-menu-collapsed .side-menu-scroll > .menu-node > .menu-item .menu-compact-mark {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  .side-menu-collapsed .side-menu-scroll > .menu-node > .menu-item .menu-icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  .side-menu-collapsed .side-menu-scroll > .menu-node > .menu-item .menu-icon svg {
+    width: 20px;
+    height: 20px;
+  }
+}

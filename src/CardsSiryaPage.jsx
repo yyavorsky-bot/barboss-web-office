@@ -84,6 +84,21 @@ function sumBy(rows, field) {
   return rows.reduce((sum, row) => sum + Number(row?.[field] ?? 0), 0);
 }
 
+function reportDateTimestamp(value) {
+  if (!value) return Number.POSITIVE_INFINITY;
+
+  const parsed = new Date(value);
+  const timestamp = parsed.getTime();
+
+  return Number.isNaN(timestamp)
+    ? Number.POSITIVE_INFINITY
+    : timestamp;
+}
+
+function compareReportDates(leftValue, rightValue) {
+  return reportDateTimestamp(leftValue) - reportDateTimestamp(rightValue);
+}
+
 
 function safeReportFilePart(value, fallback = "report") {
   const text = String(value ?? "").trim();
@@ -97,9 +112,19 @@ function safeReportFilePart(value, fallback = "report") {
 }
 
 function buildCardsSiryaCardExportModel(report, isSummary, t, locale) {
-  const prihod = Array.isArray(report?.Prihod) ? report.Prihod : [];
-  const rashod = Array.isArray(report?.Rashod) ? report.Rashod : [];
-  const spisanie = Array.isArray(report?.Spisanie) ? report.Spisanie : [];
+  const prihod = (Array.isArray(report?.Prihod) ? report.Prihod : [])
+    .slice()
+    .sort((left, right) => compareReportDates(left?.DateP, right?.DateP));
+  const rashod = (Array.isArray(report?.Rashod) ? report.Rashod : [])
+    .slice()
+    .sort((left, right) =>
+      compareReportDates(left?.DateReal, right?.DateReal)
+    );
+  const spisanie = (Array.isArray(report?.Spisanie) ? report.Spisanie : [])
+    .slice()
+    .sort((left, right) =>
+      compareReportDates(left?.DateSpis, right?.DateSpis)
+    );
 
   const title = isSummary
     ? t("CardsSirya.SummaryCard", "Карточка сводная")
@@ -249,20 +274,12 @@ function buildCardsSiryaCardExportModel(report, isSummary, t, locale) {
 
 function buildCardsSiryaTurnoverExportModel(report, t, locale) {
   const oborot = Array.isArray(report?.Oborot) ? report.Oborot : [];
-  const sortedRows = [...oborot].sort((left, right) => {
-    const leftDate = new Date(
-      left?.DateAndTime ?? left?.Smena ?? 0
-    ).getTime();
-    const rightDate = new Date(
-      right?.DateAndTime ?? right?.Smena ?? 0
-    ).getTime();
-
-    if (Number.isNaN(leftDate) || Number.isNaN(rightDate)) {
-      return 0;
-    }
-
-    return leftDate - rightDate;
-  });
+  const sortedRows = [...oborot].sort((left, right) =>
+    compareReportDates(
+      left?.DateAndTime ?? left?.Smena,
+      right?.DateAndTime ?? right?.Smena
+    )
+  );
 
   const exportRows = sortedRows.map((row) => ({
     Shift: formatDate(row?.Smena || row?.DateAndTime, locale),
@@ -527,9 +544,33 @@ function CardsSiryaReport({
   isSummary = false,
   t
 }) {
-  const prihod = Array.isArray(report?.Prihod) ? report.Prihod : [];
-  const rashod = Array.isArray(report?.Rashod) ? report.Rashod : [];
-  const spisanie = Array.isArray(report?.Spisanie) ? report.Spisanie : [];
+  const prihod = useMemo(
+    () =>
+      (Array.isArray(report?.Prihod) ? report.Prihod : [])
+        .slice()
+        .sort((left, right) =>
+          compareReportDates(left?.DateP, right?.DateP)
+        ),
+    [report?.Prihod]
+  );
+  const rashod = useMemo(
+    () =>
+      (Array.isArray(report?.Rashod) ? report.Rashod : [])
+        .slice()
+        .sort((left, right) =>
+          compareReportDates(left?.DateReal, right?.DateReal)
+        ),
+    [report?.Rashod]
+  );
+  const spisanie = useMemo(
+    () =>
+      (Array.isArray(report?.Spisanie) ? report.Spisanie : [])
+        .slice()
+        .sort((left, right) =>
+          compareReportDates(left?.DateSpis, right?.DateSpis)
+        ),
+    [report?.Spisanie]
+  );
 
   const prihodTotal = useMemo(() => sumBy(prihod, "Postup"), [prihod]);
   const rashodTotal = useMemo(() => sumBy(rashod, "Kolvo"), [rashod]);
@@ -795,13 +836,12 @@ function CardsSiryaTurnoverReport({
   const oborot = Array.isArray(report?.Oborot) ? report.Oborot : [];
 
   const dayGroups = useMemo(() => {
-    const sortedRows = [...oborot].sort((left, right) => {
-      const leftDate = new Date(left?.DateAndTime ?? left?.Smena ?? 0).getTime();
-      const rightDate = new Date(right?.DateAndTime ?? right?.Smena ?? 0).getTime();
-
-      if (Number.isNaN(leftDate) || Number.isNaN(rightDate)) return 0;
-      return leftDate - rightDate;
-    });
+    const sortedRows = [...oborot].sort((left, right) =>
+      compareReportDates(
+        left?.DateAndTime ?? left?.Smena,
+        right?.DateAndTime ?? right?.Smena
+      )
+    );
 
     const groups = [];
     let runningBalance = Number(report?.Saldo ?? 0);

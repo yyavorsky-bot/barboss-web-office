@@ -1,10 +1,21 @@
 /*
- * DirectoryPage — визуальное сопровождение выбора строки при навигации ↑ / ↓.
+ * DirectoryPage — единый zebra-стиль и визуальное сопровождение
+ * выбора строки при навигации ↑ / ↓.
  *
- * Курсор мыши может оставаться над строкой, с которой началась клавиатурная
- * навигация. Глобальный :hover тогда визуально выглядит как вторая выбранная
- * строка. Эти правила оставляют цвет только за реальным selected-row.
+ * Все универсальные справочники используют одинаковый фон обычных строк.
+ * selected / changed всегда имеют более высокий визуальный приоритет.
  */
+
+/* Обычные строки — единая зебра для всех DirectoryPage. */
+.directory-page .directory-table tbody tr:not(.selected-row):not(.changed-row):nth-child(odd) td,
+.directory-page .directory-table tbody tr:not(.selected-row):not(.changed-row):nth-child(odd):hover td {
+  background: #fffdf8 !important;
+}
+
+.directory-page .directory-table tbody tr:not(.selected-row):not(.changed-row):nth-child(even) td,
+.directory-page .directory-table tbody tr:not(.selected-row):not(.changed-row):nth-child(even):hover td {
+  background: #f6f1db !important;
+}
 
 /* Текущая выбранная строка — чуть насыщеннее обычного hover. */
 .directory-page .directory-table tbody tr.selected-row td,
@@ -22,16 +33,4 @@
 .directory-page .directory-table tbody tr.selected-row.changed-row td,
 .directory-page .directory-table tbody tr.selected-row.changed-row:hover td {
   background: #f2dda4 !important;
-}
-
-/*
- * Обычная строка под неподвижным курсором не должна выглядеть выбранной
- * после перехода ↑ / ↓. Возвращаем исходный zebra-фон.
- */
-.directory-page .directory-table tbody tr:not(.selected-row):not(.changed-row):nth-child(odd):hover td {
-  background: #fffdf8 !important;
-}
-
-.directory-page .directory-table tbody tr:not(.selected-row):not(.changed-row):nth-child(even):hover td {
-  background: #f6f1db !important;
 }

@@ -110,6 +110,19 @@ function makeTempId() {
   return -Date.now() - Math.floor(Math.random() * 1000);
 }
 
+function normalizeCalcDecimalText(value) {
+  const text = String(value ?? "");
+
+  return /^-?\d*(?:[.,]\d*)?$/.test(text) ? text : null;
+}
+
+function calcDecimalNumber(value) {
+  const text = String(value ?? "").trim().replace(",", ".");
+  const number = Number(text);
+
+  return Number.isFinite(number) ? number : 0;
+}
+
 function createEmptyCalcRow(kind) {
   return {
     ID: makeTempId(),
@@ -118,6 +131,7 @@ function createEmptyCalcRow(kind) {
     CodeDish: 0,
     Kolvo: 0,
     Netto: 0,
+    Ves: 0,
     Price: 0,
     SumSeb: 0
   };
@@ -128,8 +142,9 @@ function isBlankCalcDraftRow(row) {
     Number(row?.ID || 0) < 0 &&
     Number(row?.CodeTov || 0) === 0 &&
     Number(row?.CodeDish || 0) === 0 &&
-    Number(row?.Kolvo || 0) === 0 &&
-    Number(row?.Netto || 0) === 0 &&
+    calcDecimalNumber(row?.Kolvo) === 0 &&
+    calcDecimalNumber(row?.Netto) === 0 &&
+    calcDecimalNumber(row?.Ves) === 0 &&
     Number(row?.Price || 0) === 0 &&
     Number(row?.SumSeb || 0) === 0
   );
@@ -167,8 +182,9 @@ function normalizeCalcItem(row) {
     ID: Number(row.ID || 0),
     CodeTov: Number(row.CodeTov || 0),
     CodeDish: Number(row.CodeDish || 0),
-    Kolvo: Number(row.Kolvo || 0),
-    Netto: Number(row.Netto || 0),
+    Kolvo: calcDecimalNumber(row.Kolvo),
+    Netto: calcDecimalNumber(row.Netto),
+    Ves: calcDecimalNumber(row.Ves),
     Price: Number(row.Price || 0),
     SumSeb: Number(row.SumSeb || 0),
     Kind: row.Kind || ""
@@ -225,6 +241,7 @@ function normalizeCalcCardReport(data) {
       NameTov: String(item.NameTov ?? item.Name ?? ""),
       Brutto: Number(item.Brutto ?? item.Kolvo ?? 0),
       Netto: Number(item.Netto ?? 0),
+      Ves: Number(item.Ves ?? 0),
       PriceTov: Number(item.PriceTov ?? item.AvgPrice ?? item.Price ?? 0),
       Summ: Number(item.Summ ?? item.AvgSum ?? 0),
       Kolvo: Number(item.Kolvo ?? item.Brutto ?? 0),
@@ -236,6 +253,66 @@ function normalizeCalcCardReport(data) {
 
 function cleanCalcProductName(value) {
   return String(value ?? "").replace(/^\(pf\)\s*/i, "");
+}
+
+function mergeCalcCardReportWeights(
+  report,
+  rawRows,
+  dishRows,
+  rawById,
+  dishById
+) {
+  if (!report || !Array.isArray(report.items)) return report;
+
+  const queues = new Map();
+
+  function pushRow(kind, name, values) {
+    const key = `${kind}|${normalizeSearchText(name)}`;
+    if (!key.endsWith("|")) {
+      const current = queues.get(key) || [];
+      current.push(values);
+      queues.set(key, current);
+    }
+  }
+
+  for (const row of rawRows || []) {
+    if (isBlankCalcDraftRow(row)) continue;
+    const item = rawById?.get(Number(row.CodeTov || 0));
+    pushRow("raw", item?.Name, {
+      Brutto: calcDecimalNumber(row.Kolvo),
+      Netto: calcDecimalNumber(row.Netto),
+      Ves: calcDecimalNumber(row.Ves)
+    });
+  }
+
+  for (const row of dishRows || []) {
+    if (isBlankCalcDraftRow(row)) continue;
+    const item = dishById?.get(Number(row.CodeDish || 0));
+    pushRow("dish", item?.Name, {
+      Brutto: calcDecimalNumber(row.Kolvo),
+      Netto: calcDecimalNumber(row.Netto),
+      // Для ПФ отдельного Ves нет: его вклад в чистый вес = Netto.
+      Ves: calcDecimalNumber(row.Netto)
+    });
+  }
+
+  return {
+    ...report,
+    items: report.items.map((item) => {
+      const isDish = /^\\(pf\\)\\s*/i.test(String(item?.NameTov ?? ""));
+      const cleanName = cleanCalcProductName(item?.NameTov);
+      const key = `${isDish ? "dish" : "raw"}|${normalizeSearchText(cleanName)}`;
+      const queue = queues.get(key);
+      const matched = Array.isArray(queue) && queue.length ? queue.shift() : null;
+
+      return {
+        ...item,
+        // Brutto/Netto оставляем серверными: они уже были корректны в отчёте.
+        // Ves берём из текущей калькуляции, пока report API не обновлён.
+        Ves: matched ? Number(matched.Ves || 0) : Number(item?.Ves || 0)
+      };
+    })
+  };
 }
 
 function calcReportNumber(value, locale = "ru-RU", digits = 2, fixed = true) {
@@ -281,6 +358,14 @@ function buildCalcCardExportModel(kind, report, reportDate, locale, t) {
   const items = Array.isArray(safeReport.items) ? safeReport.items : [];
   const title = getCalcCardTitle(kind, t);
   const outputLabel = calcReportOutputLabel(safeReport, t);
+  const totalBrutto = items.reduce(
+    (sum, item) => sum + Number(item.Brutto || 0),
+    0
+  );
+  const totalVes = items.reduce(
+    (sum, item) => sum + Number(item.Ves || 0),
+    0
+  );
   const fileName = `CalcCard_${safeReport.IdDish || "dish"}_${getCalcCardFileSuffix(kind)}`;
 
   if (kind === "technology") {
@@ -319,16 +404,31 @@ function buildCalcCardExportModel(kind, report, reportDate, locale, t) {
           title: t("DishCalc.Report.NetNorm", "Норма Нетто"),
           type: "number",
           decimals: 3,
-          width: 15
+          width: 13
+        },
+        {
+          key: "Ves",
+          title: t("DishCalc.Weight", "Вес"),
+          type: "number",
+          decimals: 3,
+          width: 13
         }
       ],
       rows: items.map((item, index) => ({
         No: index + 1,
         NameTov: cleanCalcProductName(item.NameTov),
         Brutto: Number(item.Brutto || 0),
-        Netto: Number(item.Netto || 0)
+        Netto: Number(item.Netto || 0),
+        Ves: Number(item.Ves || 0)
       })),
       footerRows: [
+        {
+          label: t("Common.Total", "Итого"),
+          values: {
+            Brutto: totalBrutto,
+            Ves: totalVes
+          }
+        },
         {
           label: t("DishCalc.Report.Technology", "Технология приготовления"),
           values: { NameTov: safeReport.Technology || "" }
@@ -399,35 +499,42 @@ function buildCalcCardExportModel(kind, report, reportDate, locale, t) {
           key: "NameTov",
           title: t("DishCalc.Report.ProductName", "Наименование продуктов"),
           type: "text",
-          width: 38
+          width: 34
         },
         {
           key: "Brutto",
           title: t("DishCalc.Report.GrossNorm", "Норма Брутто"),
           type: "number",
           decimals: 3,
-          width: 13
+          width: 11
         },
         {
           key: "Netto",
           title: t("DishCalc.Report.NetNorm", "Норма Нетто"),
           type: "number",
           decimals: 3,
-          width: 13
+          width: 11
+        },
+        {
+          key: "Ves",
+          title: t("DishCalc.Weight", "Вес"),
+          type: "number",
+          decimals: 3,
+          width: 11
         },
         {
           key: "Price",
           title: t("DishCalc.Report.Price", "Цена"),
           type: "number",
           decimals: 2,
-          width: 13
+          width: 11
         },
         {
           key: "Summ",
           title: t("DishCalc.Report.Amount", "Сумма"),
           type: "number",
           decimals: 2,
-          width: 13
+          width: 11
         }
       ];
 
@@ -445,6 +552,7 @@ function buildCalcCardExportModel(kind, report, reportDate, locale, t) {
           NameTov: cleanCalcProductName(item.NameTov),
           Brutto: Number(item.Brutto || 0),
           Netto: Number(item.Netto || 0),
+          Ves: Number(item.Ves || 0),
           Price: Number(item.PriceTov || 0),
           Summ: Number(item.Summ || 0)
         }
@@ -468,6 +576,17 @@ function buildCalcCardExportModel(kind, report, reportDate, locale, t) {
     columns,
     rows,
     footerRows: [
+      ...(!isExpanded
+        ? [
+            {
+              label: t("Common.Total", "Итого"),
+              values: {
+                Brutto: totalBrutto,
+                Ves: totalVes
+              }
+            }
+          ]
+        : []),
       {
         label: t(
           "DishCalc.Report.RawSetCost",
@@ -530,6 +649,14 @@ function CalcCardReportPage({
     0
   );
   const outputLabel = calcReportOutputLabel(report, t);
+  const totalBrutto = items.reduce(
+    (sum, item) => sum + Number(item.Brutto || 0),
+    0
+  );
+  const totalVes = items.reduce(
+    (sum, item) => sum + Number(item.Ves || 0),
+    0
+  );
 
   return (
     <div className="calc-card-report-page">
@@ -603,6 +730,10 @@ function CalcCardReportPage({
                       {t("DishCalc.Report.Norm", "Норма")}<br />
                       {t("DishCalc.Report.Net", "Нетто")}
                     </th>
+                    <th className="num">
+                      {t("DishCalc.Report.Norm", "Норма")}<br />
+                      {t("DishCalc.Weight", "Вес")}
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -616,9 +747,25 @@ function CalcCardReportPage({
                       <td className="num">
                         {calcReportNumber(item.Netto, locale, 3, true)}
                       </td>
+                      <td className="num">
+                        {calcReportNumber(item.Ves, locale, 3, true)}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
+                <tfoot>
+                  <tr className="calc-card-report-total-row">
+                    <td></td>
+                    <td>{t("Common.Total", "Итого")}</td>
+                    <td className="num">
+                      {calcReportNumber(totalBrutto, locale, 3, false)}
+                    </td>
+                    <td></td>
+                    <td className="num">
+                      {calcReportNumber(totalVes, locale, 3, false)}
+                    </td>
+                  </tr>
+                </tfoot>
               </table>
             ) : (
               <table
@@ -636,7 +783,7 @@ function CalcCardReportPage({
                     <th rowSpan="3">
                       {t("DishCalc.Report.ProductName", "Наименование продуктов")}
                     </th>
-                    <th colSpan={isExpanded ? 3 : 4}>
+                    <th colSpan={isExpanded ? 3 : 5}>
                       {t(
                         "DishCalc.Report.CalculationApproval",
                         "№ калькуляции и дата утверждения"
@@ -644,7 +791,7 @@ function CalcCardReportPage({
                     </th>
                   </tr>
                   <tr className="calc-card-approval-line">
-                    <th colSpan={isExpanded ? 3 : 4}>
+                    <th colSpan={isExpanded ? 3 : 5}>
                       № ______ &nbsp;&nbsp;&nbsp; "____" __________ 20___
                     </th>
                   </tr>
@@ -657,6 +804,12 @@ function CalcCardReportPage({
                       <th className="num">
                         {t("DishCalc.Report.Norm", "Норма")}<br />
                         {t("DishCalc.Report.Net", "Нетто")}
+                      </th>
+                    )}
+                    {!isExpanded && (
+                      <th className="num">
+                        {t("DishCalc.Report.Norm", "Норма")}<br />
+                        {t("DishCalc.Weight", "Вес")}
                       </th>
                     )}
                     <th className="num">{t("DishCalc.Report.Price", "Цена")}</th>
@@ -681,6 +834,11 @@ function CalcCardReportPage({
                           {calcReportNumber(item.Netto, locale, 3, false)}
                         </td>
                       )}
+                      {!isExpanded && (
+                        <td className="num">
+                          {calcReportNumber(item.Ves, locale, 3, false)}
+                        </td>
+                      )}
                       <td className="num">
                         {calcReportNumber(
                           isExpanded ? item.AvgPrice : item.PriceTov,
@@ -700,6 +858,23 @@ function CalcCardReportPage({
                     </tr>
                   ))}
                 </tbody>
+                {!isExpanded && (
+                  <tfoot>
+                    <tr className="calc-card-report-total-row">
+                      <td></td>
+                      <td>{t("Common.Total", "Итого")}</td>
+                      <td className="num">
+                        {calcReportNumber(totalBrutto, locale, 3, false)}
+                      </td>
+                      <td></td>
+                      <td className="num">
+                        {calcReportNumber(totalVes, locale, 3, false)}
+                      </td>
+                      <td></td>
+                      <td></td>
+                    </tr>
+                  </tfoot>
+                )}
               </table>
             )}
 
@@ -1127,6 +1302,7 @@ export default function DishCalcPage({
   const [rows, setRows] = useState([]);
   const [rem, setRem] = useState("");
   const [sebestDish, setSebestDish] = useState(0);
+  const [dishPrice, setDishPrice] = useState(0);
   const [dishName, setDishName] = useState("");
   const [dishHeader, setDishHeader] = useState(null);
   const [originalDishHeader, setOriginalDishHeader] = useState(null);
@@ -1172,10 +1348,40 @@ export default function DishCalcPage({
   const rawRows = rows.filter((row) => row.Kind === "raw");
   const dishRows = rows.filter((row) => row.Kind === "dish");
 
-  const totalSeb = rows.reduce(
+  const rawTotalSeb = rawRows.reduce(
     (sum, row) => sum + Number(row.SumSeb || 0),
     0
   );
+  const dishTotalSeb = dishRows.reduce(
+    (sum, row) => sum + Number(row.SumSeb || 0),
+    0
+  );
+  const rawTotalNetto = rawRows.reduce(
+    (sum, row) => sum + calcDecimalNumber(row.Netto),
+    0
+  );
+  const dishTotalNetto = dishRows.reduce(
+    (sum, row) => sum + calcDecimalNumber(row.Netto),
+    0
+  );
+  const rawTotalVes = rawRows.reduce(
+    (sum, row) => sum + calcDecimalNumber(row.Ves),
+    0
+  );
+  const totalNetto = rawTotalNetto + dishTotalNetto;
+  const totalVes = rawTotalVes + dishTotalNetto;
+  const totalSeb = rawTotalSeb + dishTotalSeb;
+
+  const displayedSebest = Number(
+    isNewDishMode ? totalSeb : sebestDish
+  );
+  const displayedDishPrice = Number(
+    isNewDishMode ? dishHeader?.Price || 0 : dishPrice
+  );
+  const dishCoefficient =
+    displayedSebest !== 0
+      ? displayedDishPrice / displayedSebest
+      : 0;
 
   const currentState = normalizeCalcState(calcDate, rem, rows, deletedIds);
 
@@ -1277,6 +1483,7 @@ export default function DishCalcPage({
         setDishName(initialHeader.Name1 ?? "");
         setRem("");
         setSebestDish(0);
+        setDishPrice(Number(initialHeader.Price || 0));
         setSourceDate(today);
         setCalcDate(today);
         setDeletedIds([]);
@@ -1284,19 +1491,35 @@ export default function DishCalcPage({
         return;
       }
 
-      const [calcResponse, rawResponse, dishResponse] = await Promise.all([
+      const dishesUrl = new URL(
+        "https://webback.bar-boss.com/wf_Dishes.php"
+      );
+      dishesUrl.searchParams.set("Sklad", String(currentSklad || 1));
+      dishesUrl.searchParams.set("Skr", "0");
+      dishesUrl.searchParams.set("Ceh", "%");
+      dishesUrl.searchParams.set("Group", "%");
+      dishesUrl.searchParams.set("Modif", "0");
+
+      const [
+        calcResponse,
+        rawResponse,
+        dishResponse,
+        dishesResponse
+      ] = await Promise.all([
         fetchWithAuth(
           `https://webback.bar-boss.com/wf_DishCalc.php?ID=${encodeURIComponent(dishId)}`
         ),
         fetchWithAuth("https://webback.bar-boss.com/wf_SpisokTovarovCalc.php"),
         fetchWithAuth(
           `https://webback.bar-boss.com/wf_DishPF.php?Sklad=${encodeURIComponent(currentSklad || 1)}`
-        )
+        ),
+        fetchWithAuth(dishesUrl.toString())
       ]);
 
       const calcDataRaw = await calcResponse.json();
       const rawData = await rawResponse.json();
       const dishData = await dishResponse.json();
+      const dishesData = await dishesResponse.json();
 
       console.log("wf_DishCalc dishId:", dishId);
       console.log("wf_DishCalc raw response:", calcDataRaw);
@@ -1319,8 +1542,9 @@ export default function DishCalcPage({
         ID: Number(row.ID || 0),
         CodeTov: Number(row.CodeTov || 0),
         CodeDish: Number(row.CodeDish || 0),
-        Kolvo: Number(row.Kolvo || 0),
-        Netto: Number(row.Netto || 0),
+        Kolvo: calcDecimalNumber(row.Kolvo),
+        Netto: calcDecimalNumber(row.Netto),
+        Ves: calcDecimalNumber(row.Ves),
         Price: Number(row.Price || 0),
         SumSeb: Number(row.SumSeb || 0),
         Date: normalizeDate(row.Date),
@@ -1341,9 +1565,25 @@ export default function DishCalcPage({
       setRows(readOnly ? visibleRows : ensureCalcDraftRows(visibleRows));
       setDishHeader(null);
       setOriginalDishHeader(null);
-      setDishName(calcData.Name ?? "");
+      const currentDish = (
+        Array.isArray(dishesData) ? dishesData : []
+      ).find(
+        (item) =>
+          Number(item?.CodeBl ?? item?.ID ?? 0) ===
+          Number(dishId || 0)
+      );
+
+      setDishName(calcData.Name ?? currentDish?.Name1 ?? "");
       setRem(calcData.Rem ?? "");
       setSebestDish(Number(calcData.SebestDish || 0));
+      setDishPrice(
+        Number(
+          currentDish?.Price ??
+            calcData.PriceDish ??
+            calcData.Price ??
+            0
+        )
+      );
 
       setSourceDate(loadedDate);
       setCalcDate(loadedDate);
@@ -1677,7 +1917,7 @@ export default function DishCalcPage({
             return row;
           }
 
-          const kolvo = Number(row.Kolvo || 0);
+          const kolvo = calcDecimalNumber(row.Kolvo);
 
           return {
             ...row,
@@ -1692,7 +1932,10 @@ export default function DishCalcPage({
   function handleRawKolvoChange(rowId, value) {
     if (readOnly) return;
 
-    const kolvo = Number(value || 0);
+    const inputValue = normalizeCalcDecimalText(value);
+    if (inputValue === null) return;
+
+    const kolvo = calcDecimalNumber(inputValue);
 
     setRows((prevRows) =>
       ensureCalcDraftRows(
@@ -1703,7 +1946,7 @@ export default function DishCalcPage({
 
           return {
             ...row,
-            Kolvo: kolvo,
+            Kolvo: inputValue,
             SumSeb: roundMoney(price * kolvo)
           };
         })
@@ -1716,7 +1959,7 @@ export default function DishCalcPage({
 
     const value = Number(codeDish || 0);
     const currentRow = rows.find((row) => row.ID === rowId);
-    const netto = Number(currentRow?.Netto || currentRow?.Kolvo || 0);
+    const netto = calcDecimalNumber(currentRow?.Netto || currentRow?.Kolvo);
 
     setRows((prevRows) =>
       ensureCalcDraftRows(
@@ -1761,7 +2004,10 @@ export default function DishCalcPage({
   async function handleDishNettoChange(rowId, value) {
     if (readOnly) return;
 
-    const netto = Number(value || 0);
+    const inputValue = normalizeCalcDecimalText(value);
+    if (inputValue === null) return;
+
+    const netto = calcDecimalNumber(inputValue);
     const currentRow = rows.find((row) => row.ID === rowId);
 
     if (!currentRow) return;
@@ -1774,8 +2020,8 @@ export default function DishCalcPage({
           row.ID === rowId
             ? {
                 ...row,
-                Netto: netto,
-                Kolvo: netto
+                Netto: inputValue,
+                Kolvo: inputValue
               }
             : row
         )
@@ -1791,7 +2037,7 @@ export default function DishCalcPage({
         prevRows.map((row) =>
           row.ID === rowId &&
           Number(row.CodeDish || 0) === codeDish &&
-          Number(row.Netto || 0) === netto
+          calcDecimalNumber(row.Netto) === netto
             ? {
                 ...row,
                 Price: sebData.Price,
@@ -1833,8 +2079,9 @@ export default function DishCalcPage({
           ID: Number(row.ID || 0),
           CodeTov: Number(row.CodeTov || 0),
           CodeDish: Number(row.CodeDish || 0),
-          Kolvo: Number(row.Kolvo || 0),
-          Netto: Number(row.Netto || 0)
+          Kolvo: calcDecimalNumber(row.Kolvo),
+          Netto: calcDecimalNumber(row.Netto),
+          Ves: calcDecimalNumber(row.Ves)
         })),
       deletedIds
     };
@@ -1849,14 +2096,14 @@ function escapeXml(value) {
 }
 
 function xmlNum(value) {
-  return String(Number(value || 0)).replace(",", ".");
+  return String(calcDecimalNumber(value));
 }
 
 function buildSaveXml(targetDishId = dishId) {
   const itemsXml = rows
     .filter((row) => Number(row.CodeTov || 0) > 0 || Number(row.CodeDish || 0) > 0)
     .map((row) => {
-      return `    <Item ID="${Number(row.ID || 0)}" CodeTov="${Number(row.CodeTov || 0)}" CodeDish="${Number(row.CodeDish || 0)}" Kolvo="${xmlNum(row.Kolvo)}" Netto="${xmlNum(row.Netto)}" />`;
+      return `    <Item ID="${Number(row.ID || 0)}" CodeTov="${Number(row.CodeTov || 0)}" CodeDish="${Number(row.CodeDish || 0)}" Kolvo="${xmlNum(row.Kolvo)}" Netto="${xmlNum(row.Netto)}" Ves="${xmlNum(row.Ves)}" />`;
     })
     .join("\n");
 
@@ -1866,7 +2113,7 @@ function buildSaveXml(targetDishId = dishId) {
     .join("\n");
 
   return `<Calc>
-  <Head IDinDish="${Number(targetDishId || 0)}" SourceDate="${escapeXml(sourceDate)}" Date="${escapeXml(calcDate)}" />
+  <Head IDinDish="${Number(targetDishId || 0)}" Sklad="${Number(currentSklad || 0)}" SourceDate="${escapeXml(sourceDate)}" Date="${escapeXml(calcDate)}" />
 
   <Items>
 ${itemsXml}
@@ -2071,7 +2318,17 @@ async function handleSave() {
       );
     }
 
-    return normalizeCalcCardReport(data);
+    const normalized = normalizeCalcCardReport(data);
+
+    return typ === 1
+      ? mergeCalcCardReportWeights(
+          normalized,
+          rawRows,
+          dishRows,
+          rawById,
+          dishById
+        )
+      : normalized;
   }
 
   async function handleTogglePrintMenu() {
@@ -2274,7 +2531,12 @@ async function handleSave() {
 
         <div className="calc-info">
           <span>{t("DishCalc.DishCost", "Себестоимость блюда:")}</span>
-          <strong>{formatMoney(isNewDishMode ? totalSeb : sebestDish)}</strong>
+          <strong>{formatMoney(displayedSebest)}</strong>
+        </div>
+
+        <div className="calc-info">
+          <span>{t("DishCalc.Coefficient", "Коэфф.:")}</span>
+          <strong>{formatMoney(dishCoefficient)}</strong>
         </div>
 
         <div className="dish-calc-save-status-cell">
@@ -2647,6 +2909,7 @@ async function handleSave() {
                 <col className="dish-calc-col-item" />
                 <col className="dish-calc-col-qty" />
                 <col className="dish-calc-col-netto" />
+                <col className="dish-calc-col-netto" />
                 <col className="dish-calc-col-price" />
                 <col className="dish-calc-col-amount" />
                 <col className="dish-calc-col-delete" />
@@ -2655,10 +2918,11 @@ async function handleSave() {
               <thead>
                 <tr>
                   <th>{t("DishCalc.RawMaterials", "Сырьё")}</th>
-                  <th>{t("DishCalc.Quantity", "Кол-во")}</th>
-                  <th>{t("DishCalc.Net", "Нетто")}</th>
+                  <th className="text-right">{t("DishCalc.Gross", "Брутто")}</th>
+                  <th className="text-right">{t("DishCalc.Net", "Нетто")}</th>
+                  <th className="text-right">{t("DishCalc.Weight", "Вес")}</th>
                   <th>{t("DishCalc.Price", "Цена")}</th>
-                  <th>{t("DishCalc.Amount", "Сумма")}</th>
+                  <th>{t("DishCalc.CostShort", "Себест.")}</th>
                   <th></th>
                 </tr>
               </thead>
@@ -2666,7 +2930,7 @@ async function handleSave() {
               <tbody>
                 {rawRows.length === 0 && (
                   <tr>
-                    <td className="dish-calc-empty-row" colSpan="6">
+                    <td className="dish-calc-empty-row" colSpan="7">
                       {t("DishCalc.RawEmpty", "Сырьё не добавлено.")}
                     </td>
                   </tr>
@@ -2708,10 +2972,11 @@ async function handleSave() {
                       />
                     </td>
 
-                    <td>
+                    <td className="text-right">
                       <input
-                        type="number"
-                        step="0.001"
+                        className="text-right"
+                        type="text"
+                        inputMode="decimal"
                         data-calc-field="qty"
                         value={row.Kolvo}
                         disabled={readOnly}
@@ -2726,18 +2991,46 @@ async function handleSave() {
                       />
                     </td>
 
-                    <td>
+                    <td className="text-right">
                       <input
-                        type="number"
-                        step="0.001"
+                        className="text-right"
+                        type="text"
+                        inputMode="decimal"
                         data-calc-field="netto"
                         value={row.Netto}
                         disabled={readOnly}
-                        onChange={(e) =>
+                        onChange={(e) => {
+                          const value = normalizeCalcDecimalText(e.target.value);
+                          if (value === null) return;
+
                           updateRow(row.ID, {
-                            Netto: Number(e.target.value || 0)
-                          })
+                            Netto: value
+                          });
+                        }}
+                        onKeyDown={(e) =>
+                          handleCalcEnter(e, () =>
+                            focusCalcRowField("raw", row.ID, "ves")
+                          )
                         }
+                      />
+                    </td>
+
+                    <td className="text-right">
+                      <input
+                        className="text-right"
+                        type="text"
+                        inputMode="decimal"
+                        data-calc-field="ves"
+                        value={row.Ves}
+                        disabled={readOnly}
+                        onChange={(e) => {
+                          const value = normalizeCalcDecimalText(e.target.value);
+                          if (value === null) return;
+
+                          updateRow(row.ID, {
+                            Ves: value
+                          });
+                        }}
                         onKeyDown={(e) =>
                           handleCalcEnter(e, () =>
                             focusNextCalcRowItem("raw", row.ID)
@@ -2770,6 +3063,49 @@ async function handleSave() {
                   </tr>
                 ))}
               </tbody>
+
+              <tfoot>
+                <tr>
+                  <td colSpan="2" className="text-right">
+                    <strong>{t("Common.Total", "Итого")}</strong>
+                  </td>
+                  <td className="text-right">
+                    <strong>{formatQty(rawTotalNetto)}</strong>
+                  </td>
+                  <td className="text-right">
+                    <strong>{formatQty(rawTotalVes)}</strong>
+                  </td>
+                  <td></td>
+                  <td className="text-right">
+                    <strong>{formatMoney(rawTotalSeb)}</strong>
+                  </td>
+                  <td></td>
+                </tr>
+                <tr>
+                  <td colSpan="2" className="text-right">
+                    <strong>{t("DishCalc.SemiFinishedShort", "ПФ")}</strong>
+                  </td>
+                  <td className="text-right">
+                    <strong>{formatQty(dishTotalNetto)}</strong>
+                  </td>
+                  <td className="text-right">
+                    <strong>{formatQty(dishTotalNetto)}</strong>
+                  </td>
+                  <td colSpan="3"></td>
+                </tr>
+                <tr>
+                  <td colSpan="2" className="text-right">
+                    <strong>{t("DishCalc.TotalWeight", "Итоговый вес")}</strong>
+                  </td>
+                  <td className="text-right">
+                    <strong>{formatQty(totalNetto)}</strong>
+                  </td>
+                  <td className="text-right">
+                    <strong>{formatQty(totalVes)}</strong>
+                  </td>
+                  <td colSpan="3"></td>
+                </tr>
+              </tfoot>
             </table>
           </div>
         </section>
@@ -2793,10 +3129,10 @@ async function handleSave() {
               <thead>
                 <tr>
                   <th>{t("DishCalc.DishSemiFinished", "Блюдо / ПФ")}</th>
-                  <th>{t("DishCalc.Quantity", "Кол-во")}</th>
-                  <th>{t("DishCalc.Net", "Нетто")}</th>
+                  <th className="text-right">{t("DishCalc.Net", "Нетто")}</th>
                   <th>{t("DishCalc.Price", "Цена")}</th>
-                  <th>{t("DishCalc.Amount", "Сумма")}</th>
+                  <th>{t("DishCalc.CostShort", "Себест.")}</th>
+                  <th className="text-right">{t("DishCalc.Quantity", "Кол-во")}</th>
                   <th></th>
                 </tr>
               </thead>
@@ -2828,7 +3164,7 @@ async function handleSave() {
                         placeholder={t("DishCalc.DishSearchPlaceholder", "Найти блюдо / ПФ...")}
                         onChange={(value) => handleDishSelect(row.ID, value)}
                         onEnterNext={() =>
-                          focusCalcRowField("dish", row.ID, "qty")
+                          focusCalcRowField("dish", row.ID, "netto")
                         }
                         disabled={readOnly}
                         popupPortal={isNewDishMode}
@@ -2836,30 +3172,11 @@ async function handleSave() {
                       />
                     </td>
 
-                    <td>
+                    <td className="text-right">
                       <input
-                        type="number"
-                        step="0.001"
-                        data-calc-field="qty"
-                        value={row.Kolvo}
-                        disabled={readOnly}
-                        onChange={(e) =>
-                          updateRow(row.ID, {
-                            Kolvo: Number(e.target.value || 0)
-                          })
-                        }
-                        onKeyDown={(e) =>
-                          handleCalcEnter(e, () =>
-                            focusCalcRowField("dish", row.ID, "netto")
-                          )
-                        }
-                      />
-                    </td>
-
-                    <td>
-                      <input
-                        type="number"
-                        step="0.001"
+                        className="text-right"
+                        type="text"
+                        inputMode="decimal"
                         data-calc-field="netto"
                         value={row.Netto}
                         disabled={readOnly}
@@ -2882,6 +3199,10 @@ async function handleSave() {
                       {formatMoney(row.SumSeb)}
                     </td>
 
+                    <td className="text-right">
+                      {formatQty(row.Kolvo)}
+                    </td>
+
                     <td>
                       {!readOnly && !isBlankCalcDraftRow(row) && (
                         <button
@@ -2898,6 +3219,23 @@ async function handleSave() {
                   </tr>
                 ))}
               </tbody>
+
+              <tfoot>
+                <tr>
+                  <td className="text-right">
+                    <strong>{t("Common.Total", "Итого")}</strong>
+                  </td>
+                  <td className="text-right">
+                    <strong>{formatQty(dishTotalNetto)}</strong>
+                  </td>
+                  <td></td>
+                  <td className="text-right">
+                    <strong>{formatMoney(dishTotalSeb)}</strong>
+                  </td>
+                  <td></td>
+                  <td></td>
+                </tr>
+              </tfoot>
             </table>
           </div>
         </section>

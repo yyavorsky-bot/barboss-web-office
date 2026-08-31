@@ -501,7 +501,25 @@ export default function DirectoryPage({
     }
 
     if (selectedOption.mode === "boolean-false") {
-      return rows.filter((row) => !normalizeBoolean(row?.[filter.field]));
+      return rows.filter((row) => {
+        if (normalizeBoolean(row?.[filter.field])) {
+          return false;
+        }
+
+        if (
+          selectedOption.excludeTrueField &&
+          normalizeBoolean(row?.[selectedOption.excludeTrueField])
+        ) {
+          return false;
+        }
+
+        return true;
+      });
+    }
+
+    if (selectedOption.mode === "boolean-true-field") {
+      const optionField = selectedOption.field || filter.field;
+      return rows.filter((row) => normalizeBoolean(row?.[optionField]));
     }
 
     return rows;
@@ -1488,6 +1506,8 @@ export default function DirectoryPage({
                             ref={shouldAssignFirstEditableRef ? firstEditableInputRef : undefined}
                             type="number"
                             step={column.step || "any"}
+                            min={column.min}
+                            max={column.max}
                             className={[
                               "table-input",
                               "table-input-num",
@@ -1521,6 +1541,8 @@ export default function DirectoryPage({
                             ref={shouldAssignFirstEditableRef ? firstEditableInputRef : undefined}
                             type="number"
                             step={column.step || "any"}
+                            min={column.min}
+                            max={column.max}
                             className={[
                               "table-input",
                               "table-input-num",

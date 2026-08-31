@@ -122,3 +122,14 @@ body,
 .dishes-menu-report-table td {
   color: #243b36 !important;
 }
+/* Убираем стрелки ↑↓ у числовых полей в рабочей области */
+.work-area input[type="number"] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.work-area input[type="number"]::-webkit-inner-spin-button,
+.work-area input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}

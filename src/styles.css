@@ -58,12 +58,27 @@ select {
   cursor: pointer;
 }
 
+.license-ok,
+.license-warn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  box-sizing: border-box;
+  border-radius: 7px;
+  white-space: nowrap;
+  font-weight: 700;
+}
+
 .license-ok {
   color: #bbf7d0;
 }
 
 .license-warn {
-  color: #fde68a;
+  padding: 3px 8px;
+  border: 1px solid rgba(253, 230, 138, 0.78);
+  background: #fde68a;
+  color: #5f4700;
+  box-shadow: 0 0 0 2px rgba(253, 230, 138, 0.12);
 }
 
 .app-body {
@@ -6343,7 +6358,7 @@ html body .app-shell > .top-bar {
   min-height: 320px;
   min-width: 0;
   box-sizing: border-box;
-  padding: 0 4% 10px;
+  padding: 0 8% 10px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -6479,6 +6494,11 @@ html body .app-shell > .top-bar {
 
 .cards-sirya-table .cards-sirya-col-name {
   width: auto;
+}
+
+/* Список карточек сырья — наименование читается как в «Список сырья». */
+.cards-sirya-table tbody td:first-child {
+  font-weight: 600;
 }
 
 .cards-sirya-table .cards-sirya-col-unit {
@@ -6802,7 +6822,7 @@ html body .app-shell > .top-bar {
 
 .spisok-tovarov-table {
   width: 100%;
-  min-width: 1280px;
+  min-width: 1348px;
   table-layout: fixed;
   border-collapse: separate;
   border-spacing: 0;
@@ -6945,6 +6965,15 @@ html body .app-shell > .top-bar {
   width: 260px;
 }
 
+.spisok-tovarov-table .spisok-tovarov-col-unit {
+  width: 68px;
+}
+
+.spisok-tovarov-unit-cell {
+  color: #647064;
+  font-weight: 600;
+}
+
 .spisok-tovarov-table .spisok-tovarov-col-price {
   width: 90px;
 }
@@ -7025,7 +7054,7 @@ html body .app-shell > .top-bar {
   }
 
   .spisok-tovarov-table {
-    min-width: 1190px;
+    min-width: 1258px;
   }
 
   .spisok-tovarov-table .spisok-tovarov-col-name {
@@ -13769,14 +13798,36 @@ html body .app-shell > .top-bar {
 }
 
 /* Персонал: возвращаем нормальные размеры основных текстовых полей. */
+/* 2026-08-29 — Personal: compact width, side margins and fixed table header. */
+.directory-page-personal .directory-toolbar,
+.directory-page-personal .directory-table-wrap {
+  width: 94%;
+  max-width: 94%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.directory-page-personal .directory-table-wrap {
+  max-height: calc(100dvh - 190px);
+  overflow: auto;
+}
+
+.directory-page-personal .directory-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 7;
+  background: #e7f3f0;
+}
+
 .directory-page-personal .directory-table {
-  min-width: 1420px;
+  min-width: 1120px;
   table-layout: fixed;
 }
 
 .directory-page-personal .directory-field-Name {
-  width: 210px;
-  min-width: 210px;
+  width: 170px;
+  min-width: 170px;
+  max-width: 170px;
 }
 
 .directory-page-personal .directory-field-Pass {
@@ -13799,6 +13850,32 @@ html body .app-shell > .top-bar {
   min-width: 185px;
 }
 
+.directory-page-personal .directory-field-ProcZP {
+  width: 64px !important;
+  min-width: 64px !important;
+  max-width: 64px !important;
+  text-align: right;
+}
+
+.directory-page-personal th.directory-field-ProcZP {
+  text-align: center;
+  white-space: normal;
+  line-height: 1.05;
+}
+
+.directory-page-personal td.directory-field-ProcZP {
+  padding-left: 3px !important;
+  padding-right: 3px !important;
+}
+
+.directory-page-personal .directory-field-ProcZP .directory-number-input {
+  width: 100%;
+  min-width: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+  text-align: right;
+}
+
 .directory-page-personal .directory-field-LoginMobile {
   width: 125px;
   min-width: 125px;
@@ -13816,8 +13893,9 @@ html body .app-shell > .top-bar {
 }
 
 .directory-page-clients .directory-field-NomCard {
-  width: 92px;
-  min-width: 92px;
+  width: 82px !important;
+  min-width: 82px !important;
+  max-width: 82px !important;
 }
 
 .directory-page-clients .directory-field-Discount {
@@ -14405,4 +14483,68 @@ html body .app-shell > .top-bar {
   color: #7a8b86;
   -webkit-text-fill-color: #7a8b86;
   opacity: 1;
+}
+
+/*
+ * =========================================================
+ * BarBo$$ Web Office — украинский акцент на кнопке «Главная»
+ * Только для языка UK; в Moldova mode класс не назначается.
+ * =========================================================
+ */
+.brand-home-button.brand-home-button-ukraine {
+  background: linear-gradient(
+    to bottom,
+    #0057b8 0%,
+    #0057b8 50%,
+    #ffd700 50%,
+    #ffd700 100%
+  );
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.78);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+
+.brand-home-button.brand-home-button-ukraine:hover {
+  background: linear-gradient(
+    to bottom,
+    #0057b8 0%,
+    #0057b8 50%,
+    #ffd700 50%,
+    #ffd700 100%
+  );
+  filter: brightness(1.04);
+}
+
+/*
+ * =========================================================
+ * DishCalc — рабочие наименования читаемее (semibold).
+ * Только названия сущностей; числовые и служебные поля не затрагиваются.
+ * =========================================================
+ */
+.dish-calc-new-dish-name-field input,
+.dish-calc-raw-table .dish-calc-search input,
+.dish-calc-pf-table .dish-calc-search input {
+  font-weight: 600;
+}
+
+/* =========================================================
+   Список блюд — основное наименование semibold
+   ========================================================= */
+.dishes-table .dish-name-input {
+  font-weight: 600;
+}
+
+
+@media (max-width: 1000px) {
+  .directory-page-personal .directory-toolbar,
+  .directory-page-personal .directory-table-wrap {
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
+@supports not (height: 100dvh) {
+  .directory-page-personal .directory-table-wrap {
+    max-height: calc(100vh - 190px);
+  }
 }

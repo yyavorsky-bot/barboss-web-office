@@ -15,3 +15,12 @@
 .orders-day-table tbody tr:not(.selected-row):nth-child(even):hover td {
   background: #f6f1db !important;
 }
+
+/* OrdersDayPage: keep button gradients on hover; global button hover must not whiten them. */
+.orders-day-main-toolbar .orders-day-date-nav-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #c2a76a 0%, #9a8146 100%) !important;
+}
+
+.orders-day-main-toolbar .orders-day-refresh-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #6faaa3 0%, #4d817b 100%) !important;
+}

@@ -240,6 +240,7 @@ export default function SpisanTovListPage({
                     setSelectedId(Number(row.ID));
                     event.currentTarget.focus({ preventScroll: true });
                   }}
+                  onDoubleClick={() => openRow(row)}
                 >
                   <td>{formatDate(row.DatP, locale)}</td>
                   <td>{row.Nakl}</td>

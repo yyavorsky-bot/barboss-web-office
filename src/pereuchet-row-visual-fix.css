@@ -1,4 +1,25 @@
 /*
+ * Переучет — рабочая область без лишних боковых отступов.
+ * Левый список должен вмещать свои три колонки: 132 + 62 + 44 = 238px.
+ */
+.pereuchet-page {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+.pereuchet-layout {
+  grid-template-columns: 265px minmax(0, 1fr) !important;
+}
+
+.pereuchet-list-panel,
+.pereuchet-list-wrap {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/*
  * Переучет — единая подсветка выбранной строки
  * для трех рабочих таблиц: список, переучет сырья, полуфабрикаты.
  */
@@ -40,4 +61,9 @@
 .pereuchet-edit-table tbody tr:not(.selected-row):not(.changed-row):nth-child(even):hover td,
 .pereuchet-pf-table tbody tr:not(.selected-row):not(.changed-row):nth-child(even):hover td {
   background: #f6f1db !important;
+}
+
+/* Наименование сырья — тот же semibold, что в «Список сырья». */
+.pereuchet-edit-table tbody td:first-child {
+  font-weight: 600;
 }

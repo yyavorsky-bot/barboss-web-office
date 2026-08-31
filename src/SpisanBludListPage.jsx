@@ -232,6 +232,7 @@ export default function SpisanBludListPage({
                     setSelectedId(Number(row.ID));
                     event.currentTarget.focus({ preventScroll: true });
                   }}
+                  onDoubleClick={() => openRow(row)}
                 >
                   <td>{formatDateTime(row.DateP, locale)}</td>
                   <td title={row.NazvSpisania ?? ""}>{row.NazvSpisania}</td>

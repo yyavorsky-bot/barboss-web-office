@@ -13,6 +13,8 @@ function roundPrice(value) {
   return Math.round(Number(value || 0) * 1000000) / 1000000;
 }
 
+const VAT_FACTOR = 1.2;
+
 function roundQuantity(value) {
   return Math.round(Number(value || 0) * 1000) / 1000;
 }
@@ -240,6 +242,98 @@ function ExpressionNumberInput({
   );
 }
 
+
+function InvoicePriceInput({
+  value,
+  cellIndex,
+  onCommit,
+  onEnterNext,
+  disabled = false
+}) {
+  const [text, setText] = useState(formatEditableNumber(value));
+  const [invalid, setInvalid] = useState(false);
+  const changedRef = useRef(false);
+  const skipNextBlurRef = useRef(false);
+
+  useEffect(() => {
+    setText(formatEditableNumber(value));
+    setInvalid(false);
+    changedRef.current = false;
+  }, [value]);
+
+  function commit() {
+    const normalizedText = String(text ?? "").trim().replaceAll(",", ".");
+    const number = Number(normalizedText || 0);
+
+    if (!Number.isFinite(number)) {
+      setInvalid(true);
+      return false;
+    }
+
+    const accepted = onCommit?.(number, { changed: changedRef.current });
+
+    if (accepted === false) {
+      setInvalid(true);
+      return false;
+    }
+
+    const committedValue =
+      typeof accepted === "number" && Number.isFinite(accepted)
+        ? accepted
+        : number;
+
+    setText(formatEditableNumber(committedValue));
+    setInvalid(false);
+    changedRef.current = false;
+    return true;
+  }
+
+  return (
+    <input
+      data-cell={cellIndex}
+      type="number"
+      step="0.000001"
+      value={text}
+      disabled={disabled}
+      aria-invalid={invalid}
+      style={invalid ? { borderColor: "#c62828", outlineColor: "#c62828" } : undefined}
+      onFocus={(event) => event.currentTarget.select()}
+      onChange={(event) => {
+        setText(event.target.value);
+        setInvalid(false);
+        changedRef.current = true;
+      }}
+      onBlur={() => {
+        if (skipNextBlurRef.current) {
+          skipNextBlurRef.current = false;
+          return;
+        }
+
+        commit();
+      }}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          setText(formatEditableNumber(value));
+          setInvalid(false);
+          changedRef.current = false;
+          return;
+        }
+
+        if (event.key !== "Enter") {
+          return;
+        }
+
+        event.preventDefault();
+
+        if (commit()) {
+          skipNextBlurRef.current = true;
+          setTimeout(() => onEnterNext?.(cellIndex), 0);
+        }
+      }}
+    />
+  );
+}
 
 function WeightCorrectionInput({
   cellIndex,
@@ -614,7 +708,8 @@ function normalizeRawList(data) {
       ...item,
       ID: Number(item.ID ?? item.Товар ?? item.Tovar ?? item.Tov ?? 0),
       Name: item.Name ?? item.name ?? "",
-      Price: Number(item.Price || 0)
+      Price: Number(item.Price || 0),
+      PriceLast: Number(item.PriceLast ?? item.priceLast ?? item.Price ?? 0)
     }))
     .filter((item) => Number(item.ID || 0) !== 0);
 }
@@ -1743,7 +1838,10 @@ const [
       Invoice: invoiceData.Invoice || "",
       DateP: normalizeDate(invoiceData.DateP),
       Rem: invoiceData.Rem || "",
-      VAT: Boolean(invoiceData.VAT),
+      VAT:
+        isNew && loadedKind === "prih" && Number(invoiceData.Moldova || 0) === 0
+          ? true
+          : Boolean(invoiceData.VAT),
       ProcVat: Number(invoiceData.ProcVat || 0),
       IdSklPer: Number(invoiceData.IdSklPer || 0),
       IdSkl: Number(invoiceData.IdSkl || 0),
@@ -1899,7 +1997,8 @@ const [
     const createdItem = {
       ID: Number(created?.ID || 0),
       Name: String(created?.Name ?? normalizedName),
-      Price: Number(created?.Price || 0)
+      Price: Number(created?.Price || 0),
+      PriceLast: Number(created?.PriceLast ?? created?.Price ?? 0)
     };
 
     if (!createdItem.ID) {
@@ -2038,6 +2137,64 @@ const [
     }));
   }
 
+  function handleVatIncludedChange(checked) {
+    if (
+      readOnly ||
+      !isNewMode ||
+      isMoveInvoice ||
+      isSpecialInvoice ||
+      isMoldova
+    ) {
+      return;
+    }
+
+    const nextChecked = Boolean(checked);
+    const previousChecked = Boolean(header?.VAT);
+
+    if (previousChecked === nextChecked) {
+      return;
+    }
+
+    setHeader((prev) => ({
+      ...prev,
+      VAT: nextChecked
+    }));
+
+    setRows((prevRows) => {
+      const convertedRows = prevRows.map((row) => {
+        if (isBlankInvoiceDraftRow(row) || Number(row.Price || 0) === 0) {
+          return {
+            ...row,
+            _priceNeedsVat: false
+          };
+        }
+
+        const priceNeedsVat = Boolean(row._priceNeedsVat);
+
+        if (nextChecked && priceNeedsVat) {
+          return {
+            ...row,
+            _priceNeedsVat: false
+          };
+        }
+
+        const factor = nextChecked ? 1 / VAT_FACTOR : VAT_FACTOR;
+        const nextPrice = roundPrice(Number(row.Price || 0) * factor);
+
+        return {
+          ...row,
+          Price: nextPrice,
+          Summ: roundMoney(Number(row.Postup || 0) * nextPrice),
+          _priceNeedsVat: false
+        };
+      });
+
+      return usesTrailingDraftRow
+        ? ensureTrailingInvoiceDraftRow(convertedRows)
+        : convertedRows;
+    });
+  }
+
   function updateRow(rowId, patch) {
     if (readOnly) return;
     setRows((prevRows) => {
@@ -2145,16 +2302,20 @@ const [
     }
   }
 
-  function focusNextCell(currentCell) {
-    const current = Number(currentCell || 0);
-    const next = document.querySelector(`[data-cell="${current + 1}"]`);
+  function focusCell(cellIndex) {
+    const target = document.querySelector(`[data-cell="${Number(cellIndex || 0)}"]`);
 
-    if (next) {
-      next.focus();
-      if (typeof next.select === "function") {
-        next.select();
+    if (target) {
+      target.focus();
+      if (typeof target.select === "function") {
+        target.select();
       }
     }
+  }
+
+  function focusNextCell(currentCell) {
+    const current = Number(currentCell || 0);
+    focusCell(current + 1);
   }
 
   function handleCellKeyDown(e) {
@@ -2869,6 +3030,16 @@ async function handleSave() {
 
     if (localNewInvoice) {
       if (savedInvoiceId <= 0) {
+        if (isSpecialInvoice) {
+          // Legacy SavePF / SaveZach can save successfully without returning
+          // the newly created ID. App will leave the local draft and reload
+          // the PF/Zach list so the saved document gets its real database ID.
+          setDeletedIds([]);
+          onDirtyChange?.(false);
+          onSaved?.();
+          return;
+        }
+
         throw new Error(
           t(
             "PrihInvoice.NewIdMissing",
@@ -3857,6 +4028,18 @@ async function handleSave() {
       </label>
     )}
 
+    {isNewMode && !isMoldova && (
+      <label className="checkbox-field">
+        <input
+          type="checkbox"
+          checked={Boolean(header.VAT)}
+          disabled={readOnly}
+          onChange={(e) => handleVatIncludedChange(e.target.checked)}
+        />
+        <span>{t("PrihInvoice.WithVat", "С НДС")}</span>
+      </label>
+    )}
+
     <label className="checkbox-field">
       <input
         type="checkbox"
@@ -4034,11 +4217,28 @@ async function handleSave() {
                           (item) => Number(item.ID) === Number(value)
                         );
 
+                        const lastReceiptPrice = Number(
+                          nextSelectedRaw?.PriceLast || 0
+                        );
+                        const incomingPrice =
+                          isNewMode && !isMoveInvoice && nextSelectedRaw
+                            ? roundPrice(lastReceiptPrice)
+                            : 0;
+
                         updateRow(row.ID, {
                           Tov: value,
                           ...(isMoveInvoice && nextSelectedRaw
-                            ? { Price: Number(nextSelectedRaw.Price || 0) }
-                            : {})
+                            ? {
+                                Price: Number(nextSelectedRaw.Price || 0),
+                                _priceNeedsVat: false
+                              }
+                            : isNewMode && nextSelectedRaw
+                              ? {
+                                  Price: incomingPrice,
+                                  _priceNeedsVat:
+                                    !isMoldova && !Boolean(header.VAT)
+                                }
+                              : {})
                         });
                       }}
                     />
@@ -4056,6 +4256,15 @@ async function handleSave() {
                     )}
                     disabled={readOnly}
                     onEnterNext={(currentCell) => {
+                      if (
+                        isNewMode &&
+                        !isMoveInvoice &&
+                        !isSpecialInvoice
+                      ) {
+                        focusCell(priceCellIndex);
+                        return;
+                      }
+
                       if (
                         usesTrailingDraftRow &&
                         (isMoveInvoice || Number(row.Price || 0) > 0)
@@ -4079,18 +4288,31 @@ async function handleSave() {
                 </td>
 
                 <td>
-                  <input
-                    data-cell={priceCellIndex}
-                    type="number"
-                    step="0.000001"
+                  <InvoicePriceInput
                     value={row.Price}
+                    cellIndex={priceCellIndex}
                     disabled={readOnly}
-                    onKeyDown={handleCellKeyDown}
-                    onChange={(e) =>
+                    onEnterNext={focusNextCell}
+                    onCommit={(value, meta) => {
+                      const shouldAddVat =
+                        isNewMode &&
+                        !isMoveInvoice &&
+                        !isSpecialInvoice &&
+                        !isMoldova &&
+                        !Boolean(header.VAT) &&
+                        (Boolean(row._priceNeedsVat) || Boolean(meta?.changed));
+
+                      const price = roundPrice(
+                        Number(value || 0) * (shouldAddVat ? VAT_FACTOR : 1)
+                      );
+
                       updateRow(row.ID, {
-                        Price: Number(e.target.value || 0)
-                      })
-                    }
+                        Price: price,
+                        _priceNeedsVat: false
+                      });
+
+                      return price;
+                    }}
                   />
                 </td>
 

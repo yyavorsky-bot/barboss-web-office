@@ -11,22 +11,22 @@ import {
 } from "./reportExport";
 
 const MAIN_COLUMNS = [
-  { field: "Waiter", label: "Официант", kind: "text" },
-  { field: "Summ", label: "Всего\nотпущено" },
-  { field: "Cash", label: "Наличные" },
-  { field: "SumDolg", label: "Долговые" },
-  { field: "SumKred", label: "Кредиты" },
-  { field: "SumDisc", label: "Сумма\nскидок" },
-  { field: "Sum1", label: "Кухня" },
-  { field: "Sum2", label: "Бар" },
-  { field: "Sum3", label: "Посуда" },
-  { field: "Sum4", label: "Кальян" },
-  { field: "Sum5", label: "Кухня III" },
-  { field: "Other", label: "Прочие" },
-  { field: "SumBon", label: "Бонусами" },
+  { field: "Waiter", textKey: "Revenue.Waiter", label: "Официант", kind: "text" },
+  { field: "Summ", textKey: "Revenue.ReleasedTotal", label: "Всего\nотпущено" },
+  { field: "Cash", textKey: "Revenue.Cash", label: "Наличные" },
+  { field: "SumDolg", textKey: "Revenue.Debt", label: "Долговые" },
+  { field: "SumKred", textKey: "Revenue.Credits", label: "Кредиты" },
+  { field: "SumDisc", textKey: "Revenue.DiscountAmount", label: "Сумма\nскидок" },
+  { field: "Sum1", textKey: "Revenue.Kitchen", label: "Кухня" },
+  { field: "Sum2", textKey: "Revenue.Bar", label: "Бар" },
+  { field: "Sum3", textKey: "Revenue.Tableware", label: "Посуда" },
+  { field: "Sum4", textKey: "Revenue.Hookah", label: "Кальян" },
+  { field: "Sum5", textKey: "Revenue.Kitchen3", label: "Кухня III" },
+  { field: "Other", textKey: "Revenue.Other", label: "Прочие" },
+  { field: "SumBon", textKey: "Revenue.Bonuses", label: "Бонусами" },
   { field: "SumBn", label: "Expirenza" },
-  { field: "SumAdv", label: "Закрыто\nавансов" },
-  { field: "SumObslTotal", label: "Обслужи-\nвание" }
+  { field: "SumAdv", textKey: "Revenue.AdvanceClosed", label: "Закрыто\nавансов" },
+  { field: "SumObslTotal", textKey: "Revenue.Service", label: "Обслужи-\nвание" }
 ];
 
 
@@ -44,12 +44,19 @@ const GRAPH_COLORS = [
 ];
 
 const CASH_BASE_COLUMNS = [
-  { field: "NameKass", label: "Название", kind: "text" },
-  { field: "Summ", label: "Наличные" },
-  { field: "SumKred", label: "Кредиты" },
-  { field: "SumCash", label: "Об.нал" },
-  { field: "SumBN", label: "Об.бн" }
+  { field: "NameKass", textKey: "Revenue.Name", label: "Название", kind: "text" },
+  { field: "Summ", textKey: "Revenue.Cash", label: "Наличные" },
+  { field: "SumKred", textKey: "Revenue.Credits", label: "Кредиты" },
+  { field: "SumCash", textKey: "Revenue.CashTurnover", label: "Об.нал" },
+  { field: "SumBN", textKey: "Revenue.CashlessTurnover", label: "Об.бн" }
 ];
+
+function localizeRevenueColumns(columns, t) {
+  return columns.map((column) => ({
+    ...column,
+    label: column.textKey ? t(column.textKey, column.label) : column.label
+  }));
+}
 
 function normalizeRows(value) {
   return Array.isArray(value) ? value : [];
@@ -132,13 +139,13 @@ function HeaderLabel({ text }) {
     ));
 }
 
-function RevenueMainTable({ rows, formatter }) {
+function RevenueMainTable({ rows, formatter, columns, t }) {
   return (
     <div className="report-table-scroll revenue-main-scroll">
       <table className="report-table revenue-main-table">
         <thead>
           <tr>
-            {MAIN_COLUMNS.map((column) => (
+            {columns.map((column) => (
               <th key={column.field} className={column.kind === "text" ? "report-text" : "report-money"}>
                 <HeaderLabel text={column.label} />
               </th>
@@ -148,7 +155,7 @@ function RevenueMainTable({ rows, formatter }) {
         <tbody>
           {rows.map((row, index) => (
             <tr key={row?.IdWt ?? `${row?.Waiter ?? "row"}-${index}`}>
-              {MAIN_COLUMNS.map((column) =>
+              {columns.map((column) =>
                 column.kind === "text" ? (
                   <td key={column.field} className="report-text revenue-waiter-cell">
                     {row?.[column.field] ?? ""}
@@ -167,8 +174,8 @@ function RevenueMainTable({ rows, formatter }) {
         {rows.length > 0 && (
           <tfoot>
             <tr>
-              <td className="report-text report-total-label">Итого</td>
-              {MAIN_COLUMNS.slice(1).map((column) => (
+              <td className="report-text report-total-label">{t("Common.Total", "Итого")}</td>
+              {columns.slice(1).map((column) => (
                 <MoneyCell
                   key={column.field}
                   value={sumField(rows, column.field)}
@@ -189,20 +196,20 @@ function getRevenueCashColumns(rows) {
 
   return [
     ...(cashCodeField
-      ? [{ field: cashCodeField, label: "Касса", kind: "text", isCode: true }]
+      ? [{ field: cashCodeField, textKey: "Revenue.CashRegister", label: "Касса", kind: "text", isCode: true }]
       : []),
     ...CASH_BASE_COLUMNS,
     ...(hasNonZeroValue(rows, "SumBon")
-      ? [{ field: "SumBon", label: "Бонусами" }]
+      ? [{ field: "SumBon", textKey: "Revenue.Bonuses", label: "Бонусами" }]
       : [])
   ];
 }
 
-function RevenueCashTable({ rows, formatter, columns }) {
+function RevenueCashTable({ rows, formatter, columns, t }) {
 
   return (
     <section className="revenue-cash-section">
-      <h3>Оплата по кассам:</h3>
+      <h3>{t("Revenue.PaymentByCashRegisters", "Оплата по кассам:")}</h3>
       <div className="report-table-scroll">
         <table className="report-table revenue-cash-table">
           <thead>
@@ -240,7 +247,7 @@ function RevenueCashTable({ rows, formatter, columns }) {
                   if (index === 0) {
                     return (
                       <td key={`${column.field}-total`} className="report-text report-total-label">
-                        Итого
+                        {t("Common.Total", "Итого")}
                       </td>
                     );
                   }
@@ -267,17 +274,17 @@ function RevenueCashTable({ rows, formatter, columns }) {
   );
 }
 
-function RevenueBonusSummary({ rows, formatter }) {
+function RevenueBonusSummary({ rows, formatter, t }) {
   const row = rows[0] ?? {};
 
   const items = [
-    { field: "SumBonus", label: "Пополнено бонусов:" },
-    { field: "SumAdvCash", label: "Получ. авансов нал:" },
-    { field: "SumAdvKred", label: "Получ. авансов кред:" }
+    { field: "SumBonus", label: t("Revenue.BonusReplenished", "Пополнено бонусов:") },
+    { field: "SumAdvCash", label: t("Revenue.AdvanceCashReceived", "Получ. авансов нал:") },
+    { field: "SumAdvKred", label: t("Revenue.AdvanceCreditReceived", "Получ. авансов кред:") }
   ];
 
   return (
-    <section className="revenue-bonus-section" aria-label="Бонусы и авансы">
+    <section className="revenue-bonus-section" aria-label={t("Revenue.BonusesAndAdvances", "Бонусы и авансы")}>
       {items.map((item) => (
         <div className="revenue-bonus-row" key={item.field}>
           <span>{item.label}</span>
@@ -288,14 +295,14 @@ function RevenueBonusSummary({ rows, formatter }) {
   );
 }
 
-function RevenueSummaryTable({ rows, formatter }) {
+function RevenueSummaryTable({ rows, formatter, columns, t }) {
   if (rows.length === 0) {
     return null;
   }
 
-  const summary = MAIN_COLUMNS.reduce((result, column) => {
+  const summary = columns.reduce((result, column) => {
     if (column.kind === "text") {
-      result[column.field] = "Итого";
+      result[column.field] = t("Common.Total", "Итого");
     } else {
       result[column.field] = sumField(rows, column.field);
     }
@@ -307,7 +314,7 @@ function RevenueSummaryTable({ rows, formatter }) {
       <table className="report-table revenue-summary-table">
         <thead>
           <tr>
-            {MAIN_COLUMNS.map((column) => (
+            {columns.map((column) => (
               <th key={column.field} className={column.kind === "text" ? "report-text" : "report-money"}>
                 <HeaderLabel text={column.label} />
               </th>
@@ -316,7 +323,7 @@ function RevenueSummaryTable({ rows, formatter }) {
         </thead>
         <tbody>
           <tr>
-            {MAIN_COLUMNS.map((column) =>
+            {columns.map((column) =>
               column.kind === "text" ? (
                 <td key={column.field} className="report-text report-total-label">
                   {summary[column.field]}
@@ -336,10 +343,10 @@ function RevenueSummaryTable({ rows, formatter }) {
   );
 }
 
-function RevenueDonutChart({ rows, formatter }) {
+function RevenueDonutChart({ rows, formatter, t }) {
   const chartRows = rows
     .map((row, index) => ({
-      name: String(row?.NamePodr ?? row?.name ?? `Подразделение ${index + 1}`),
+      name: String(row?.NamePodr ?? row?.name ?? `${t("RevenueGraph.Department", "Подразделение")} ${index + 1}`),
       value: numericValue(row?.Summ ?? row?.summ),
       color: GRAPH_COLORS[index % GRAPH_COLORS.length]
     }))
@@ -349,17 +356,17 @@ function RevenueDonutChart({ rows, formatter }) {
   let offset = 0;
 
   if (chartRows.length === 0 || total <= 0) {
-    return <div className="report-empty">Нет данных для графика по подразделениям.</div>;
+    return <div className="report-empty">{t("RevenueGraph.NoData", "Нет данных для графика по подразделениям.")}</div>;
   }
 
   return (
-    <section className="revenue-graph-section" aria-label="Структура выручки по подразделениям">
+    <section className="revenue-graph-section" aria-label={t("RevenueGraph.Structure", "Структура выручки по подразделениям")}>
       <div className="revenue-donut-wrap">
         <svg
           className="revenue-donut"
           viewBox="0 0 260 260"
           role="img"
-          aria-label="Кольцевой график выручки по подразделениям"
+          aria-label={t("RevenueGraph.ChartAria", "Кольцевой график выручки по подразделениям")}
         >
           <circle className="revenue-donut-track" cx="130" cy="130" r="82" />
           {chartRows.map((row) => {
@@ -381,7 +388,7 @@ function RevenueDonutChart({ rows, formatter }) {
             );
           })}
           <text className="revenue-donut-center-label" x="130" y="119" textAnchor="middle">
-            Выручка
+            {t("RevenueGraph.Revenue", "Выручка")}
           </text>
           <text className="revenue-donut-center-value" x="130" y="143" textAnchor="middle">
             {formatter.format(total)}
@@ -390,7 +397,7 @@ function RevenueDonutChart({ rows, formatter }) {
       </div>
 
       <div className="revenue-graph-legend">
-        <h3>Выручка по подразделениям</h3>
+        <h3>{t("RevenueGraph.Title", "Выручка по подразделениям")}</h3>
         {chartRows.map((row) => {
           const percent = (row.value / total) * 100;
           return (
@@ -403,7 +410,7 @@ function RevenueDonutChart({ rows, formatter }) {
           );
         })}
         <div className="revenue-graph-legend-total">
-          <span>Итого</span>
+          <span>{t("Common.Total", "Итого")}</span>
           <strong>{formatter.format(total)}</strong>
         </div>
       </div>
@@ -411,14 +418,15 @@ function RevenueDonutChart({ rows, formatter }) {
   );
 }
 
-function RevenueGraphReport({ data, dateFrom, dateTo, organizationName, locale, onReload }) {
+function RevenueGraphReport({ data, dateFrom, dateTo, organizationName, locale, t, onReload }) {
   const formatter = createMoneyFormatter(locale);
   const payload = data?.data ?? data?.Data ?? {};
   const mainRows = normalizeRows(payload?.Main ?? payload?.main);
   const graphRows = normalizeRows(payload?.Graph ?? payload?.graph);
+  const mainColumns = localizeRevenueColumns(MAIN_COLUMNS, t);
 
   const exportOptions = {
-    mainColumns: MAIN_COLUMNS,
+    mainColumns,
     mainRows,
     graphRows,
     dateFrom,
@@ -431,14 +439,14 @@ function RevenueGraphReport({ data, dateFrom, dateTo, organizationName, locale, 
     <div className="reports-page revenue-report-page revenue-graph-report-page">
       <div className="report-toolbar">
         <button type="button" className="report-run-button" onClick={onReload}>
-          Сформировать
+          {t("Common.Generate", "Сформировать")}
         </button>
         <button
           type="button"
           className="report-action-button report-print-button"
           onClick={() => printRevenueGraphReport(exportOptions)}
         >
-          Печать
+          {t("Common.Print", "Печать")}
         </button>
         <button
           type="button"
@@ -459,33 +467,34 @@ function RevenueGraphReport({ data, dateFrom, dateTo, organizationName, locale, 
       <article className="revenue-report-sheet revenue-graph-report-sheet">
         <header className="revenue-report-heading">
           <h3>
-            Выручка по подразделениям с {formatReportDate(dateFrom)} по {formatReportDate(dateTo)}
+            {t("RevenueGraph.Title", "Выручка по подразделениям")} {t("Common.From", "с")} {formatReportDate(dateFrom)} {t("Common.To", "по")} {formatReportDate(dateTo)}
           </h3>
-          <div className="revenue-report-org">*** {organizationName || "Все"}</div>
+          <div className="revenue-report-org">*** {organizationName || t("Common.All", "Все")}</div>
         </header>
 
         {mainRows.length > 0 ? (
-          <RevenueSummaryTable rows={mainRows} formatter={formatter} />
+          <RevenueSummaryTable rows={mainRows} formatter={formatter} columns={mainColumns} t={t} />
         ) : (
-          <div className="report-empty">За выбранный период данных нет.</div>
+          <div className="report-empty">{t("Reports.NoDataForPeriod", "За выбранный период данных нет.")}</div>
         )}
 
-        <RevenueDonutChart rows={graphRows} formatter={formatter} />
+        <RevenueDonutChart rows={graphRows} formatter={formatter} t={t} />
       </article>
     </div>
   );
 }
 
-function RevenueReport({ data, dateFrom, dateTo, organizationName, locale, onReload }) {
+function RevenueReport({ data, dateFrom, dateTo, organizationName, locale, t, onReload }) {
   const formatter = createMoneyFormatter(locale);
   const payload = data?.data ?? data?.Data ?? {};
   const mainRows = normalizeRows(payload?.Main ?? payload?.main);
   const cashRows = normalizeRows(payload?.PoKassam ?? payload?.poKassam ?? payload?.pokassam);
   const bonusRows = normalizeRows(payload?.Bonuses ?? payload?.bonuses);
-  const cashColumns = getRevenueCashColumns(cashRows);
+  const mainColumns = localizeRevenueColumns(MAIN_COLUMNS, t);
+  const cashColumns = localizeRevenueColumns(getRevenueCashColumns(cashRows), t);
 
   const exportOptions = {
-    mainColumns: MAIN_COLUMNS,
+    mainColumns,
     cashColumns,
     mainRows,
     cashRows,
@@ -500,14 +509,14 @@ function RevenueReport({ data, dateFrom, dateTo, organizationName, locale, onRel
     <div className="reports-page revenue-report-page">
       <div className="report-toolbar">
         <button type="button" className="report-run-button" onClick={onReload}>
-          Сформировать
+          {t("Common.Generate", "Сформировать")}
         </button>
         <button
           type="button"
           className="report-action-button report-print-button"
           onClick={() => printRevenueReport(exportOptions)}
         >
-          Печать
+          {t("Common.Print", "Печать")}
         </button>
         <button
           type="button"
@@ -528,27 +537,27 @@ function RevenueReport({ data, dateFrom, dateTo, organizationName, locale, onRel
       <article className="revenue-report-sheet">
         <header className="revenue-report-heading">
           <h3>
-            Оплата по официантам с {formatReportDate(dateFrom)} по {formatReportDate(dateTo)}
+            {t("Revenue.Title", "Оплата по официантам")} {t("Common.From", "с")} {formatReportDate(dateFrom)} {t("Common.To", "по")} {formatReportDate(dateTo)}
           </h3>
-          <div className="revenue-report-org">*** {organizationName || "Все"}</div>
+          <div className="revenue-report-org">*** {organizationName || t("Common.All", "Все")}</div>
         </header>
 
         {mainRows.length > 0 ? (
-          <RevenueMainTable rows={mainRows} formatter={formatter} />
+          <RevenueMainTable rows={mainRows} formatter={formatter} columns={mainColumns} t={t} />
         ) : (
-          <div className="report-empty">За выбранный период данных нет.</div>
+          <div className="report-empty">{t("Reports.NoDataForPeriod", "За выбранный период данных нет.")}</div>
         )}
 
         {(cashRows.length > 0 || bonusRows.length > 0) && (
           <div className="revenue-bottom-grid">
             {cashRows.length > 0 ? (
-              <RevenueCashTable rows={cashRows} formatter={formatter} columns={cashColumns} />
+              <RevenueCashTable rows={cashRows} formatter={formatter} columns={cashColumns} t={t} />
             ) : (
               <div />
             )}
 
             {bonusRows.length > 0 && (
-              <RevenueBonusSummary rows={bonusRows} formatter={formatter} />
+              <RevenueBonusSummary rows={bonusRows} formatter={formatter} t={t} />
             )}
           </div>
         )}
@@ -558,11 +567,43 @@ function RevenueReport({ data, dateFrom, dateTo, organizationName, locale, onRel
 }
 
 
+function revenueDatesSortValue(value) {
+  const text = String(value ?? "").trim();
+
+  const iso = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) {
+    return Date.UTC(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
+  }
+
+  const local = text.match(/^(\d{2})\.(\d{2})\.(\d{4})/);
+  if (local) {
+    return Date.UTC(Number(local[3]), Number(local[2]) - 1, Number(local[1]));
+  }
+
+  return NaN;
+}
+
+function sortRevenueDatesRows(rows) {
+  return [...normalizeRows(rows)].sort((left, right) => {
+    const leftDate = revenueDatesSortValue(left?.Dat);
+    const rightDate = revenueDatesSortValue(right?.Dat);
+
+    if (Number.isFinite(leftDate) && Number.isFinite(rightDate)) {
+      return leftDate - rightDate;
+    }
+
+    if (Number.isFinite(leftDate)) return -1;
+    if (Number.isFinite(rightDate)) return 1;
+
+    return String(left?.Dat ?? "").localeCompare(String(right?.Dat ?? ""));
+  });
+}
+
 function getRevenueDatesRows(data) {
   const payload = data?.data ?? data?.Data ?? data;
 
   if (Array.isArray(payload)) {
-    return payload;
+    return sortRevenueDatesRows(payload);
   }
 
   const candidates = [
@@ -576,7 +617,9 @@ function getRevenueDatesRows(data) {
     payload?.dates
   ];
 
-  return normalizeRows(candidates.find((value) => Array.isArray(value)));
+  return sortRevenueDatesRows(
+    candidates.find((value) => Array.isArray(value))
+  );
 }
 
 function revenueDatesAverageCheck(row) {
@@ -807,7 +850,7 @@ function buildRevenueDatesPrintHtml({
     })
     .join("");
 
-  const orientation = Number(all) !== 0 ? "landscape" : "portrait";
+  const orientation = "portrait";
   const title = t("RevenueDates.Title", "Выручка по дням");
 
   return `<!doctype html>
@@ -891,7 +934,7 @@ function buildRevenueDatesExportModel({
   return {
     title: `${t("RevenueDates.Title", "Выручка по дням")} ${formatReportDate(dateFrom)} — ${formatReportDate(dateTo)}`,
     fileName: `RevenueDates_${safeRevenueDatesFilePart(dateFrom)}_${safeRevenueDatesFilePart(dateTo)}_${safeRevenueDatesFilePart(scopeName || "report")}`,
-    orientation: Number(all) !== 0 ? "landscape" : "portrait",
+    orientation: "portrait",
     locale,
     meta: [
       {
@@ -2398,7 +2441,7 @@ function buildRevenueDohodPrintHtml({
   return `<!doctype html>
 <html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title>
 <style>
-@page { size: A4 landscape; margin: 9mm; }
+@page { size: A4 portrait; margin: 9mm; }
 * { box-sizing: border-box; }
 body { margin: 0; font-family: Arial, sans-serif; color: #111; font-size: 9pt; }
 .header { display: flex; justify-content: space-between; align-items: flex-end; gap: 8mm; margin-bottom: 4mm; }
@@ -2489,7 +2532,7 @@ function buildRevenueDohodExportModel({
   return {
     title: `${t("RevenueDohod.Title", "Валовый доход за период")} ${formatReportDate(dateFrom)} — ${formatReportDate(dateTo)}`,
     fileName: `RevenueDohod_${safeRevenueDohodFilePart(dateFrom)}_${safeRevenueDohodFilePart(dateTo)}_${safeRevenueDohodFilePart(organizationName || "report")}`,
-    orientation: "landscape",
+    orientation: "portrait",
     locale,
     meta: [
       {
@@ -3233,7 +3276,7 @@ function buildReestrBillPrintHtml({
   return `<!doctype html>
 <html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title>
 <style>
-@page { size: A4 landscape; margin: 8mm; }
+@page { size: A4 portrait; margin: 8mm; }
 * { box-sizing: border-box; }
 body { margin: 0; font-family: Arial, sans-serif; color: #111; font-size: 8.5pt; }
 .header { display: flex; justify-content: space-between; align-items: flex-end; gap: 8mm; margin-bottom: 4mm; }
@@ -3367,7 +3410,7 @@ function buildReestrBillExportModel({
   return {
     title: `${t("ReestrBill.Title", "Реестр счетов")} ${formatReportDate(dateFrom)} — ${formatReportDate(dateTo)}`,
     fileName: `ReestrBill_${safeReestrBillFilePart(dateFrom)}_${safeReestrBillFilePart(dateTo)}_${safeReestrBillFilePart(organizationName || "report")}`,
-    orientation: "landscape",
+    orientation: "portrait",
     locale,
     meta: [
       {
@@ -4031,7 +4074,7 @@ ${datesHtml}
   return `<!doctype html>
 <html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title>
 <style>
-@page { size: A4 landscape; margin: 8mm; }
+@page { size: A4 portrait; margin: 8mm; }
 * { box-sizing: border-box; }
 body { margin: 0; font-family: Arial, sans-serif; color: #111; font-size: 8.5pt; }
 .header { display: flex; justify-content: space-between; align-items: flex-end; gap: 8mm; margin-bottom: 4mm; }
@@ -4168,7 +4211,7 @@ function buildReestrReturnExportModel({
   return {
     title: `${t("ReestrReturn.Title", "Счета с возвратами")} ${formatReportDate(dateFrom)} — ${formatReportDate(dateTo)}`,
     fileName: `ReestrReturn_${safeReestrReturnFilePart(dateFrom)}_${safeReestrReturnFilePart(dateTo)}_${safeReestrReturnFilePart(organizationName || "report")}`,
-    orientation: "landscape",
+    orientation: "portrait",
     locale,
     meta: [
       {
@@ -4832,7 +4875,7 @@ function buildReestrAnulPrintHtml({
   return `<!doctype html>
 <html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title>
 <style>
-@page { size: A4 landscape; margin: 8mm; }
+@page { size: A4 portrait; margin: 8mm; }
 * { box-sizing: border-box; }
 body { margin: 0; font-family: Arial, sans-serif; color: #111; font-size: 8.5pt; }
 .header { display: flex; justify-content: space-between; align-items: flex-end; gap: 8mm; margin-bottom: 4mm; }
@@ -4974,7 +5017,7 @@ function buildReestrAnulExportModel({
   return {
     title: `${t("ReestrAnul.Title", "Счета с ануляциями")} ${formatReportDate(dateFrom)} — ${formatReportDate(dateTo)}`,
     fileName: `ReestrAnul_${safeReestrAnulFilePart(dateFrom)}_${safeReestrAnulFilePart(dateTo)}_${safeReestrAnulFilePart(organizationName || "report")}`,
-    orientation: "landscape",
+    orientation: "portrait",
     locale,
     meta: [
       {
@@ -5535,7 +5578,7 @@ function buildReestrExcisePrintHtml({
 <meta charset="utf-8">
 <title>${escapeHtml(title)}</title>
 <style>
-@page { size: A4 landscape; margin: 8mm; }
+@page { size: A4 portrait; margin: 8mm; }
 * { box-sizing: border-box; }
 body { margin: 0; font-family: Arial, sans-serif; color: #111; font-size: 8.2pt; }
 .header { display: flex; justify-content: space-between; align-items: flex-end; gap: 8mm; margin-bottom: 4mm; }
@@ -5685,7 +5728,7 @@ function buildReestrExciseExportModel({
   return {
     title: `${t("ReestrExcise.Title", "Реестр счетов с акцизными марками")} ${formatReportDate(dateFrom)} — ${formatReportDate(dateTo)}`,
     fileName: `ReestrExcise_${safeReestrExciseFilePart(dateFrom)}_${safeReestrExciseFilePart(dateTo)}_${safeReestrExciseFilePart(organizationName || "report")}`,
-    orientation: "landscape",
+    orientation: "portrait",
     locale,
     meta: [
       {
@@ -6575,7 +6618,7 @@ function buildAdvancePrintHtml({
 <meta charset="utf-8">
 <title>${escapeHtml(title)}</title>
 <style>
-@page { size: A4 landscape; margin: 7mm; }
+@page { size: A4 portrait; margin: 7mm; }
 * { box-sizing: border-box; }
 body { margin: 0; font-family: Arial, sans-serif; color: #111; font-size: 7.8pt; }
 .header { display: flex; justify-content: space-between; align-items: flex-end; gap: 8mm; margin-bottom: 4mm; }
@@ -6775,7 +6818,7 @@ function buildAdvanceExportModel({
   return {
     title: `${t("Advance.Title", "Авансы")} ${formatReportDate(dateFrom)} — ${formatReportDate(dateTo)}`,
     fileName: `Advance_${safeAdvanceFilePart(dateFrom)}_${safeAdvanceFilePart(dateTo)}_${safeAdvanceFilePart(organizationName || "report")}`,
-    orientation: "landscape",
+    orientation: "portrait",
     locale,
     meta: [
       {
@@ -7183,15 +7226,29 @@ function RemainReportTable({
 }) {
   const groups = groupRemainRows(rows);
   const totalSum = remainGroupSum(rows);
+  const groupColumns = [[], []];
+
+  groups.forEach((group, index) => {
+    groupColumns[index % 2].push({
+      group,
+      order: index
+    });
+  });
 
   return (
     <div className="remain-groups">
       <div className="remain-groups-grid">
-        {groups.map((group) => (
-          <section
-            className="remain-group"
-            key={group.name}
+        {groupColumns.map((column, columnIndex) => (
+          <div
+            className="remain-group-column"
+            key={`remain-column-${columnIndex}`}
           >
+            {column.map(({ group, order }) => (
+              <section
+                className="remain-group"
+                key={group.name}
+                style={{ "--remain-group-order": order }}
+              >
           <div className="remain-group-title">
             {group.name}
           </div>
@@ -7271,7 +7328,9 @@ function RemainReportTable({
               </tfoot>
             </table>
           </div>
-          </section>
+              </section>
+            ))}
+          </div>
         ))}
       </div>
 
@@ -11917,7 +11976,7 @@ function buildOstatSvodPrintHtml({
 <meta charset="utf-8">
 <title>${escapeHtml(title)}</title>
 <style>
-@page { size: A4 landscape; margin: 7mm; }
+@page { size: A4 portrait; margin: 7mm; }
 * { box-sizing: border-box; }
 html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 body { margin: 0; font-family: Arial, sans-serif; color: #111; font-size: 6.8pt; }
@@ -12046,7 +12105,7 @@ function buildOstatSvodExportModel({
     )}_${safeOstatSvodFilePart(
       departmentName || "warehouse"
     )}`,
-    orientation: "landscape",
+    orientation: "portrait",
     locale,
     meta: [
       {
@@ -21030,7 +21089,7 @@ function buildSupplierCardPrintHtml({
 <meta charset="utf-8">
 <title>${escapeHtml(title)}</title>
 <style>
-@page { size: A4 ${expanded ? "landscape" : "portrait"}; margin: 9mm; }
+@page { size: A4 portrait; margin: 9mm; }
 * { box-sizing: border-box; }
 body { margin: 0; font-family: Arial, sans-serif; color: #111; font-size: 7.4pt; }
 h1 { margin: 0; font-size: 12pt; font-style: italic; }
@@ -21378,9 +21437,7 @@ function buildSupplierCardExportModel({
       t
     }),
     fileName: `${expanded ? "PostRazv" : "PostKratro"}_${String(cardData.saldo?.IdPost ?? "")}`,
-    orientation: expanded
-      ? "landscape"
-      : "portrait",
+    orientation: "portrait",
     meta: [
       {
         label: t(
@@ -22660,7 +22717,7 @@ function getClientSimpleDefinition(key, t) {
       "ClientMovements.DebtSummary",
       "Свод по долговым"
     ),
-    orientation: "landscape",
+    orientation: "portrait",
     columns: [
       {
         field: "NameKl",
@@ -22816,7 +22873,8 @@ function ClientSimpleTable({
   rows,
   columns,
   formatter,
-  t
+  t,
+  onClientDoubleClick = null
 }) {
   return (
     <div className="report-table-scroll client-report-scroll">
@@ -22843,26 +22901,50 @@ function ClientSimpleTable({
             <tr
               key={`${index}-${row?.ID ?? row?.IdKl ?? row?.NameKl ?? row?.NameKli ?? row?.["Фамилия"] ?? "row"}`}
             >
-              {columns.map((column) => (
-                <td
-                  key={column.field}
-                  className={
-                    column.kind === "text"
-                      ? "report-text"
-                      : "report-money"
-                  }
-                >
-                  {clientFormatCell(
-                    clientSimpleCellValue(
-                      row,
-                      column
-                    ),
-                    column,
-                    formatter,
-                    t
-                  )}
-                </td>
-              ))}
+              {columns.map((column, columnIndex) => {
+                const canOpenClient =
+                  columnIndex === 0 &&
+                  typeof onClientDoubleClick === "function";
+
+                return (
+                  <td
+                    key={column.field}
+                    className={
+                      column.kind === "text"
+                        ? "report-text"
+                        : "report-money"
+                    }
+                    onDoubleClick={
+                      canOpenClient
+                        ? () => onClientDoubleClick(row)
+                        : undefined
+                    }
+                    title={
+                      canOpenClient
+                        ? t(
+                            "ClientMovements.CardButton",
+                            "Карточка Клиента"
+                          )
+                        : undefined
+                    }
+                    style={
+                      canOpenClient
+                        ? { cursor: "pointer" }
+                        : undefined
+                    }
+                  >
+                    {clientFormatCell(
+                      clientSimpleCellValue(
+                        row,
+                        column
+                      ),
+                      column,
+                      formatter,
+                      t
+                    )}
+                  </td>
+                );
+              })}
             </tr>
           ))}
         </tbody>
@@ -23198,6 +23280,93 @@ function clientBillKey(row, index) {
 
   return `row-${index}`;
 }
+
+function clientReportRowClientId(row) {
+  const candidates = [
+    row?.IdKl,
+    row?.IdKli,
+    row?.IDKl,
+    row?.IDKli,
+    row?.IdClient,
+    row?.IDClient,
+    row?.ClientID,
+    row?.ID
+  ];
+
+  for (const value of candidates) {
+    const id = Number(value);
+
+    if (Number.isFinite(id) && id > 0) {
+      return id;
+    }
+  }
+
+  return 0;
+}
+
+function clientReportRowClientName(row) {
+  return String(
+    row?.NameKli ??
+    row?.["Фамилия"] ??
+    row?.NameKl ??
+    row?.Name ??
+    ""
+  ).trim();
+}
+
+function groupClientExpandedRows(rows) {
+  const groups = [];
+  const byKey = new Map();
+
+  rows.forEach((row, index) => {
+    const key = clientBillKey(row, index);
+    let group = byKey.get(key);
+
+    if (!group) {
+      group = {
+        key,
+        rows: [],
+        number: String(row?.Number ?? "").trim(),
+        date: row?.Oplacheno ?? row?.DateOplat ?? "",
+        table: String(row?.Table ?? "").trim()
+      };
+      byKey.set(key, group);
+      groups.push(group);
+    }
+
+    group.rows.push(row);
+  });
+
+  return groups.map((group) => ({
+    ...group,
+    totals: {
+      quantity: sumField(group.rows, "Kolvo"),
+      amount: sumField(group.rows, "Summ"),
+      debt: sumField(group.rows, "SummDolg")
+    }
+  }));
+}
+
+function clientBillSubtotalLabel(group, t) {
+  const total = t(
+    "Common.Total",
+    "Итого"
+  );
+  const bill = t(
+    "ClientMovements.Bill",
+    "Счет"
+  );
+
+  return group?.number
+    ? `${total} — ${bill} №${group.number}`
+    : total;
+}
+
+const CLIENT_BILL_SUBTOTAL_CELL_STYLE = {
+  borderTop: "1px solid #aeb8aa",
+  background: "#f3f6f2",
+  fontWeight: 700
+};
 
 function clientExpandedStats(rows) {
   const bills = new Map();
@@ -23555,6 +23724,8 @@ function ClientIssuedExpandedTable({
 }) {
   const stats =
     clientExpandedStats(rows);
+  const billGroups =
+    groupClientExpandedRows(rows);
 
   return (
     <section className="client-card-section">
@@ -23633,69 +23804,124 @@ function ClientIssuedExpandedTable({
           </thead>
 
           <tbody>
-            {rows.map(
-              (row, index) => (
-                <tr
-                  key={`${clientBillKey(
-                    row,
-                    index
-                  )}-${row?.NameDish ?? index}`}
-                >
-                  <td className="report-text">
-                    {formatReportDate(
-                      row?.Oplacheno
+            {billGroups.map((group) => (
+              <Fragment key={group.key}>
+                {group.rows.map(
+                  (row, rowIndex) => (
+                    <tr
+                      key={`${group.key}-${row?.NameDish ?? rowIndex}-${rowIndex}`}
+                    >
+                      <td className="report-text">
+                        {rowIndex === 0
+                          ? formatReportDate(
+                              row?.Oplacheno
+                            )
+                          : ""}
+                      </td>
+                      <td className="report-text">
+                        {rowIndex === 0
+                          ? row?.Number ?? ""
+                          : ""}
+                      </td>
+                      <td className="report-text">
+                        {rowIndex === 0
+                          ? row?.Table ?? ""
+                          : ""}
+                      </td>
+                      <td className="report-text">
+                        {row?.NameDish ?? ""}
+                      </td>
+                      <td className="report-money">
+                        {supplierDisplayMoney(
+                          row?.Kolvo,
+                          formatter,
+                          true
+                        )}
+                      </td>
+                      <td className="report-money">
+                        {supplierDisplayMoney(
+                          row?.Price,
+                          formatter,
+                          true
+                        )}
+                      </td>
+                      <td className="report-money">
+                        {supplierDisplayMoney(
+                          row?.Summ,
+                          formatter,
+                          true
+                        )}
+                      </td>
+                      <td className="report-money">
+                        {supplierDisplayMoney(
+                          row?.SummDolg,
+                          formatter,
+                          true
+                        )}
+                      </td>
+                      <td className="report-money">
+                        {supplierDisplayMoney(
+                          row?.Discount,
+                          formatter,
+                          true
+                        )}
+                      </td>
+                      <td className="report-text">
+                        {row?.Waiter ?? ""}
+                      </td>
+                    </tr>
+                  )
+                )}
+
+                <tr className="client-bill-subtotal-row">
+                  <td
+                    colSpan="4"
+                    className="report-text report-total-label"
+                    style={CLIENT_BILL_SUBTOTAL_CELL_STYLE}
+                  >
+                    {clientBillSubtotalLabel(
+                      group,
+                      t
                     )}
                   </td>
-                  <td className="report-text">
-                    {row?.Number ?? ""}
-                  </td>
-                  <td className="report-text">
-                    {row?.Table ?? ""}
-                  </td>
-                  <td className="report-text">
-                    {row?.NameDish ?? ""}
-                  </td>
-                  <td className="report-money">
+                  <td
+                    className="report-money"
+                    style={CLIENT_BILL_SUBTOTAL_CELL_STYLE}
+                  >
                     {supplierDisplayMoney(
-                      row?.Kolvo,
+                      group.totals.quantity,
                       formatter,
                       true
                     )}
                   </td>
-                  <td className="report-money">
-                    {supplierDisplayMoney(
-                      row?.Price,
-                      formatter,
-                      true
+                  <td
+                    style={CLIENT_BILL_SUBTOTAL_CELL_STYLE}
+                  />
+                  <td
+                    className="report-money"
+                    style={CLIENT_BILL_SUBTOTAL_CELL_STYLE}
+                  >
+                    {formatter.format(
+                      group.totals.amount
                     )}
                   </td>
-                  <td className="report-money">
-                    {supplierDisplayMoney(
-                      row?.Summ,
-                      formatter,
-                      true
+                  <td
+                    className="report-money"
+                    style={CLIENT_BILL_SUBTOTAL_CELL_STYLE}
+                  >
+                    {formatter.format(
+                      group.totals.debt
                     )}
                   </td>
-                  <td className="report-money">
-                    {supplierDisplayMoney(
-                      row?.SummDolg,
-                      formatter,
-                      true
-                    )}
-                  </td>
-                  <td className="report-money">
-                    {supplierDisplayMoney(
-                      row?.Discount,
-                      formatter,
-                      true
-                    )}
-                  </td>
-                  <td className="report-text">
-                    {row?.Waiter ?? ""}
-                  </td>
+                  <td
+                    style={CLIENT_BILL_SUBTOTAL_CELL_STYLE}
+                  />
+                  <td
+                    style={CLIENT_BILL_SUBTOTAL_CELL_STYLE}
+                  />
                 </tr>
-              )
-            )}
+              </Fragment>
+            ))}
           </tbody>
         </table>
       </div>
@@ -23770,66 +23996,108 @@ function ClientIssuedExpandedTable({
 function clientCardPrintIssuedRows({
   rows,
   expanded,
-  formatter
+  formatter,
+  t
 }) {
   if (expanded) {
-    return rows
-      .map(
-        (row, index) => `<tr>
+    return groupClientExpandedRows(rows)
+      .map((group) => {
+        const detailRows = group.rows
+          .map(
+            (row, rowIndex) => `<tr>
 <td class="text">${escapeHtml(
-          formatReportDate(
-            row?.Oplacheno
-          )
-        )}</td>
+              rowIndex === 0
+                ? formatReportDate(
+                    row?.Oplacheno
+                  )
+                : ""
+            )}</td>
 <td class="text">${escapeHtml(
-          row?.Number ?? ""
-        )}</td>
+              rowIndex === 0
+                ? row?.Number ?? ""
+                : ""
+            )}</td>
 <td class="text">${escapeHtml(
-          row?.Table ?? ""
-        )}</td>
+              rowIndex === 0
+                ? row?.Table ?? ""
+                : ""
+            )}</td>
 <td class="text">${escapeHtml(
-          row?.NameDish ?? ""
-        )}</td>
+              row?.NameDish ?? ""
+            )}</td>
 <td class="number">${escapeHtml(
-          supplierDisplayMoney(
-            row?.Kolvo,
-            formatter,
-            true
-          )
-        )}</td>
+              supplierDisplayMoney(
+                row?.Kolvo,
+                formatter,
+                true
+              )
+            )}</td>
 <td class="number">${escapeHtml(
-          supplierDisplayMoney(
-            row?.Price,
-            formatter,
-            true
-          )
-        )}</td>
+              supplierDisplayMoney(
+                row?.Price,
+                formatter,
+                true
+              )
+            )}</td>
 <td class="number">${escapeHtml(
-          supplierDisplayMoney(
-            row?.Summ,
-            formatter,
-            true
-          )
-        )}</td>
+              supplierDisplayMoney(
+                row?.Summ,
+                formatter,
+                true
+              )
+            )}</td>
 <td class="number">${escapeHtml(
-          supplierDisplayMoney(
-            row?.SummDolg,
-            formatter,
-            true
-          )
-        )}</td>
+              supplierDisplayMoney(
+                row?.SummDolg,
+                formatter,
+                true
+              )
+            )}</td>
 <td class="number">${escapeHtml(
-          supplierDisplayMoney(
-            row?.Discount,
-            formatter,
-            true
-          )
-        )}</td>
+              supplierDisplayMoney(
+                row?.Discount,
+                formatter,
+                true
+              )
+            )}</td>
 <td class="text">${escapeHtml(
-          row?.Waiter ?? ""
-        )}</td>
+              row?.Waiter ?? ""
+            )}</td>
 </tr>`
-      )
+          )
+          .join("");
+
+        const subtotal = `<tr class="bill-total">
+<td class="text" colspan="4">${escapeHtml(
+          clientBillSubtotalLabel(
+            group,
+            t
+          )
+        )}</td>
+<td class="number">${escapeHtml(
+          supplierDisplayMoney(
+            group.totals.quantity,
+            formatter,
+            true
+          )
+        )}</td>
+<td class="number"></td>
+<td class="number">${escapeHtml(
+          formatter.format(
+            group.totals.amount
+          )
+        )}</td>
+<td class="number">${escapeHtml(
+          formatter.format(
+            group.totals.debt
+          )
+        )}</td>
+<td class="number"></td>
+<td class="text"></td>
+</tr>`;
+
+        return detailRows + subtotal;
+      })
       .join("");
   }
 
@@ -23989,6 +24257,7 @@ th, td { padding: 0.7mm 0.7mm; border-bottom: 0.1mm solid #c9cfcc; }
 th { background: #edf3f1; font-size: 6.3pt; }
 .text { text-align: left; overflow-wrap: anywhere; }
 .number { text-align: right; white-space: nowrap; }
+.bill-total td { border-top: 0.2mm solid #9fa9a1; background: #f3f6f2; font-weight: 700; }
 .stats { margin: 2mm 0 3mm auto; width: 70mm; }
 .stats div { display: flex; justify-content: space-between; gap: 4mm; padding: 0.6mm 0; }
 .final { display: flex; justify-content: space-between; gap: 8mm; margin-top: 4mm; padding: 2mm 3mm; border: 0.3mm solid #9eaa9a; background: #edf3e9; font-size: 9pt; font-weight: 700; }
@@ -24028,7 +24297,8 @@ th { background: #edf3f1; font-size: 6.3pt; }
 <tbody>${clientCardPrintIssuedRows({
     rows: cardData.otpuscheno,
     expanded,
-    formatter
+    formatter,
+    t
   })}</tbody>
 </table>
 
@@ -24092,38 +24362,73 @@ function buildClientCardExportModel({
     Note: ""
   });
 
-  cardData.otpuscheno.forEach(
-    (row) => {
+  const pushIssuedRow = (row) => {
+    rows.push({
+      Section: t(
+        "ClientMovements.Issued",
+        "Отпущено"
+      ),
+      Date: formatReportDate(
+        expanded
+          ? row?.Oplacheno
+          : row?.DateOplat
+      ),
+      Bill: row?.Number ?? "",
+      Table: row?.Table ?? "",
+      Description: expanded
+        ? row?.NameDish ?? ""
+        : row?.NameKl ?? "",
+      Quantity: expanded
+        ? row?.Kolvo ?? ""
+        : "",
+      Price: expanded
+        ? row?.Price ?? ""
+        : "",
+      Amount: row?.Summ ?? "",
+      Debt: row?.SummDolg ?? "",
+      Discount: expanded
+        ? row?.Discount ?? ""
+        : "",
+      Note: row?.Rem ?? ""
+    });
+  };
+
+  if (expanded) {
+    groupClientExpandedRows(
+      cardData.otpuscheno
+    ).forEach((group) => {
+      group.rows.forEach(
+        pushIssuedRow
+      );
+
       rows.push({
-        Section: t(
-          "ClientMovements.Issued",
-          "Отпущено"
-        ),
+        Section:
+          clientBillSubtotalLabel(
+            group,
+            t
+          ),
         Date: formatReportDate(
-          expanded
-            ? row?.Oplacheno
-            : row?.DateOplat
+          group.date
         ),
-        Bill: row?.Number ?? "",
-        Table: row?.Table ?? "",
-        Description: expanded
-          ? row?.NameDish ?? ""
-          : row?.NameKl ?? "",
-        Quantity: expanded
-          ? row?.Kolvo ?? ""
-          : "",
-        Price: expanded
-          ? row?.Price ?? ""
-          : "",
-        Amount: row?.Summ ?? "",
-        Debt: row?.SummDolg ?? "",
-        Discount: expanded
-          ? row?.Discount ?? ""
-          : "",
-        Note: row?.Rem ?? ""
+        Bill: group.number,
+        Table: group.table,
+        Description: "",
+        Quantity:
+          group.totals.quantity,
+        Price: "",
+        Amount:
+          group.totals.amount,
+        Debt:
+          group.totals.debt,
+        Discount: "",
+        Note: ""
       });
-    }
-  );
+    });
+  } else {
+    cardData.otpuscheno.forEach(
+      pushIssuedRow
+    );
+  }
 
   if (stats) {
     rows.push({
@@ -24485,6 +24790,7 @@ function ClientSimpleReportView({
   fetchWithAuth,
   t,
   contextName = "",
+  onClientDoubleClick = null,
   onBack,
   onReload
 }) {
@@ -24575,6 +24881,9 @@ function ClientSimpleReportView({
           }
           formatter={formatter}
           t={t}
+          onClientDoubleClick={
+            onClientDoubleClick
+          }
         />
       </article>
     </div>
@@ -24821,7 +25130,9 @@ function ClientReportsNavigator({
   ]);
 
   async function loadClientReport(
-    reportKey
+    reportKey,
+    clientOverride = null,
+    backReport = null
   ) {
     const isClientSelectedReport =
       reportKey === "card" ||
@@ -24837,9 +25148,13 @@ function ClientReportsNavigator({
       return;
     }
 
+    const targetClient =
+      clientOverride ??
+      selectedClient;
+
     const idKli = isClientSelectedReport
       ? Number(
-          selectedClient?.ID ?? 0
+          targetClient?.ID ?? 0
         )
       : 0;
 
@@ -24933,7 +25248,8 @@ function ClientReportsNavigator({
         apiAction:
           definition.apiAction,
         idKli,
-        data: result
+        data: result,
+        backReport
       });
     } catch (error) {
       setReportError(
@@ -24948,10 +25264,81 @@ function ClientReportsNavigator({
     }
   }
 
+  function resolveClientFromReportRow(row) {
+    const id =
+      clientReportRowClientId(row);
+    const name =
+      clientReportRowClientName(row);
+
+    if (id > 0) {
+      return (
+        clients.find(
+          (client) =>
+            Number(client?.ID) === id
+        ) ?? {
+          ID: id,
+          Name: name
+        }
+      );
+    }
+
+    if (!name) {
+      return null;
+    }
+
+    const normalizedName =
+      name.toLocaleLowerCase();
+    const matches = clients.filter(
+      (client) =>
+        String(client?.Name ?? "")
+          .trim()
+          .toLocaleLowerCase() ===
+        normalizedName
+    );
+
+    return matches.length === 1
+      ? matches[0]
+      : null;
+  }
+
+  function openClientCardFromReportRow(
+    row,
+    returnReport
+  ) {
+    const client =
+      resolveClientFromReportRow(row);
+
+    if (!client) {
+      return;
+    }
+
+    setSelectedClient(client);
+    setQuery(
+      String(
+        client?.Name ??
+        clientReportRowClientName(
+          row
+        ) ??
+        ""
+      )
+    );
+
+    void loadClientReport(
+      "card",
+      client,
+      returnReport
+    );
+  }
+
   if (activeReport) {
     const reload = () =>
       loadClientReport(
-        activeReport.key
+        activeReport.key,
+        activeReport.idKli
+          ? selectedClient
+          : null,
+        activeReport.backReport ??
+          null
       );
 
     if (
@@ -24974,7 +25361,10 @@ function ClientReportsNavigator({
           }
           t={t}
           onBack={() => {
-            setActiveReport(null);
+            setActiveReport(
+              activeReport.backReport ??
+                null
+            );
             setReportError("");
           }}
           onReload={reload}
@@ -24998,6 +25388,16 @@ function ClientReportsNavigator({
           "bonusClient"
             ? selectedClient?.Name ?? ""
             : ""
+        }
+        onClientDoubleClick={
+          activeReport.key === "dolgi" ||
+          activeReport.key === "skidki"
+            ? (row) =>
+                openClientCardFromReportRow(
+                  row,
+                  activeReport
+                )
+            : null
         }
         onBack={() => {
           setActiveReport(null);
@@ -30189,6 +30589,589 @@ function PribilReport({
   );
 }
 
+
+
+function normalizeSalaryCalcPayload(data) {
+  const payload = data?.data ?? data?.Data ?? data ?? {};
+
+  return {
+    waiters: normalizeRows(
+      payload?.Waiters ??
+      payload?.waiters
+    ),
+    other: normalizeRows(
+      payload?.Other ??
+      payload?.other
+    )
+  };
+}
+
+function salaryCalcNullableNumber(value, formatter) {
+  if (value === null || value === undefined || value === "") {
+    return "—";
+  }
+
+  const number = Number(value);
+  return Number.isFinite(number)
+    ? formatter.format(number)
+    : "—";
+}
+
+function salaryCalcPercent(value, locale) {
+  if (value === null || value === undefined || value === "") {
+    return "—";
+  }
+
+  const number = Number(value);
+
+  if (!Number.isFinite(number)) {
+    return "—";
+  }
+
+  try {
+    return new Intl.NumberFormat(locale || "ru-RU", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2
+    }).format(number);
+  } catch {
+    return String(number);
+  }
+}
+
+function SalaryCalcWaitersTable({ rows, locale, formatter, t }) {
+  return (
+    <div className="report-table-scroll">
+      <table className="report-table salary-calc-table salary-calc-waiters-table">
+        <thead>
+          <tr>
+            <th className="report-text">
+              {t("SalaryCalc.Waiter", "Официант")}
+            </th>
+            <th className="report-money salary-calc-percent-col">
+              {t("SalaryCalc.SalaryPercent", "% ЗП")}
+            </th>
+            <th className="report-money">
+              {t("SalaryCalc.Salary", "Зарплата")}
+            </th>
+            <th className="report-money">
+              {t("SalaryCalc.Released", "Отпущено")}
+            </th>
+            <th className="report-money">
+              {t("SalaryCalc.WithoutAdvances", "Без авансов")}
+            </th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {rows.map((row, index) => (
+            <tr key={`${row?.IdW ?? "waiter"}-${index}`}>
+              <td className="report-text">
+                {row?.Waiter || "—"}
+              </td>
+              <td className="report-money salary-calc-percent-cell">
+                {salaryCalcPercent(row?.ProcZP, locale)}
+              </td>
+              <td className="report-money">
+                {salaryCalcNullableNumber(row?.SummaZP, formatter)}
+              </td>
+              <td className="report-money">
+                {salaryCalcNullableNumber(row?.Otpuscheno, formatter)}
+              </td>
+              <td className="report-money">
+                {salaryCalcNullableNumber(row?.BezAvansov, formatter)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+
+        <tfoot>
+          <tr>
+            <td className="report-total-label">
+              {t("Common.Total", "Итого")}
+            </td>
+            <td />
+            <td className="report-money">
+              {formatter.format(sumField(rows, "SummaZP"))}
+            </td>
+            <td className="report-money">
+              {formatter.format(sumField(rows, "Otpuscheno"))}
+            </td>
+            <td className="report-money">
+              {formatter.format(sumField(rows, "BezAvansov"))}
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  );
+}
+
+function SalaryCalcOtherTable({ rows, locale, formatter, t }) {
+  return (
+    <div className="report-table-scroll">
+      <table className="report-table salary-calc-table salary-calc-other-table">
+        <thead>
+          <tr>
+            <th className="report-text">
+              {t("SalaryCalc.Name", "Наименование")}
+            </th>
+            <th className="report-money salary-calc-percent-col">
+              {t("SalaryCalc.SalaryPercent", "% ЗП")}
+            </th>
+            <th className="report-money">
+              {t("SalaryCalc.Salary", "Зарплата")}
+            </th>
+            <th className="report-money">
+              {t("SalaryCalc.Released", "Отпущено")}
+            </th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {rows.map((row, index) => (
+            <tr key={`${row?.Name ?? "other"}-${index}`}>
+              <td className="report-text">
+                {row?.Name || "—"}
+              </td>
+              <td className="report-money salary-calc-percent-cell">
+                {salaryCalcPercent(row?.ProcZP, locale)}
+              </td>
+              <td className="report-money">
+                {salaryCalcNullableNumber(row?.SummaZP, formatter)}
+              </td>
+              <td className="report-money">
+                {salaryCalcNullableNumber(row?.Otpuscheno, formatter)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+
+        <tfoot>
+          <tr>
+            <td className="report-total-label">
+              {t("Common.Total", "Итого")}
+            </td>
+            <td />
+            <td className="report-money">
+              {formatter.format(sumField(rows, "SummaZP"))}
+            </td>
+            <td className="report-money">
+              {formatter.format(sumField(rows, "Otpuscheno"))}
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  );
+}
+
+function buildSalaryCalcPrintHtml({
+  waiters,
+  other,
+  dateFrom,
+  dateTo,
+  organizationName,
+  locale,
+  t
+}) {
+  const formatter = createMoneyFormatter(locale);
+
+  const waitersBody = waiters
+    .map(
+      (row) => `<tr>
+<td class="text">${escapeHtml(row?.Waiter || "—")}</td>
+<td class="number">${escapeHtml(salaryCalcPercent(row?.ProcZP, locale))}</td>
+<td class="number">${escapeHtml(salaryCalcNullableNumber(row?.SummaZP, formatter))}</td>
+<td class="number">${escapeHtml(salaryCalcNullableNumber(row?.Otpuscheno, formatter))}</td>
+<td class="number">${escapeHtml(salaryCalcNullableNumber(row?.BezAvansov, formatter))}</td>
+</tr>`
+    )
+    .join("");
+
+  const otherBody = other
+    .map(
+      (row) => `<tr>
+<td class="text">${escapeHtml(row?.Name || "—")}</td>
+<td class="number">${escapeHtml(salaryCalcPercent(row?.ProcZP, locale))}</td>
+<td class="number">${escapeHtml(salaryCalcNullableNumber(row?.SummaZP, formatter))}</td>
+<td class="number">${escapeHtml(salaryCalcNullableNumber(row?.Otpuscheno, formatter))}</td>
+</tr>`
+    )
+    .join("");
+
+  const waitersSection = waiters.length > 0
+    ? `<section class="section">
+<h2>${escapeHtml(t("SalaryCalc.Waiters", "Официанты"))}</h2>
+<table>
+<thead><tr>
+<th class="text">${escapeHtml(t("SalaryCalc.Waiter", "Официант"))}</th>
+<th class="number percent">${escapeHtml(t("SalaryCalc.SalaryPercent", "% ЗП"))}</th>
+<th class="number">${escapeHtml(t("SalaryCalc.Salary", "Зарплата"))}</th>
+<th class="number">${escapeHtml(t("SalaryCalc.Released", "Отпущено"))}</th>
+<th class="number">${escapeHtml(t("SalaryCalc.WithoutAdvances", "Без авансов"))}</th>
+</tr></thead>
+<tbody>${waitersBody}</tbody>
+<tfoot><tr>
+<td>${escapeHtml(t("Common.Total", "Итого"))}</td>
+<td></td>
+<td class="number">${escapeHtml(formatter.format(sumField(waiters, "SummaZP")))}</td>
+<td class="number">${escapeHtml(formatter.format(sumField(waiters, "Otpuscheno")))}</td>
+<td class="number">${escapeHtml(formatter.format(sumField(waiters, "BezAvansov")))}</td>
+</tr></tfoot>
+</table>
+</section>`
+    : "";
+
+  const otherSection = other.length > 0
+    ? `<section class="section">
+<h2>${escapeHtml(t("SalaryCalc.Other", "Прочий персонал"))}</h2>
+<table>
+<thead><tr>
+<th class="text">${escapeHtml(t("SalaryCalc.Name", "Наименование"))}</th>
+<th class="number percent">${escapeHtml(t("SalaryCalc.SalaryPercent", "% ЗП"))}</th>
+<th class="number">${escapeHtml(t("SalaryCalc.Salary", "Зарплата"))}</th>
+<th class="number">${escapeHtml(t("SalaryCalc.Released", "Отпущено"))}</th>
+</tr></thead>
+<tbody>${otherBody}</tbody>
+<tfoot><tr>
+<td>${escapeHtml(t("Common.Total", "Итого"))}</td>
+<td></td>
+<td class="number">${escapeHtml(formatter.format(sumField(other, "SummaZP")))}</td>
+<td class="number">${escapeHtml(formatter.format(sumField(other, "Otpuscheno")))}</td>
+</tr></tfoot>
+</table>
+</section>`
+    : "";
+
+  const title = t("SalaryCalc.Title", "Расчет зарплаты");
+
+  return `<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>${escapeHtml(title)}</title>
+<style>
+@page { size: A4 portrait; margin: 10mm; }
+* { box-sizing: border-box; }
+body { margin: 0; font-family: Arial, sans-serif; color: #111; font-size: 8.5pt; }
+.header { display: flex; justify-content: space-between; align-items: flex-end; gap: 6mm; margin-bottom: 5mm; }
+h1 { margin: 0; font-size: 13pt; font-style: italic; font-weight: 700; }
+.org { max-width: 38%; font-size: 8pt; font-weight: 700; text-align: right; text-decoration: underline; }
+.section { margin-top: 5mm; }
+.section:first-of-type { margin-top: 0; }
+h2 { margin: 0 0 1.5mm; padding-bottom: 1mm; border-bottom: 0.3mm solid #647571; font-size: 9.5pt; }
+table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+thead { display: table-header-group; }
+tr { break-inside: avoid; page-break-inside: avoid; }
+th { padding: 1.1mm 1.2mm; border-bottom: 0.25mm solid #666; background: #f4f6f5; font-size: 7.7pt; }
+td { padding: 1.1mm 1.2mm; border-bottom: 0.15mm dotted #c7cecb; }
+.text { text-align: left; }
+.number { text-align: right; white-space: nowrap; }
+.percent { width: 12%; }
+tfoot td { border-top: 0.25mm solid #555; border-bottom: 0; background: #f3f6f5; font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>${escapeHtml(title)} ${escapeHtml(t("Common.From", "с"))} ${escapeHtml(formatReportDate(dateFrom))} ${escapeHtml(t("Common.To", "по"))} ${escapeHtml(formatReportDate(dateTo))}</h1>
+  <div class="org">${escapeHtml(organizationName || "")}</div>
+</div>
+${waitersSection}
+${otherSection}
+</body>
+</html>`;
+}
+
+function printSalaryCalcReport(options) {
+  const printWindow = window.open(
+    "",
+    "_blank",
+    "width=1050,height=900"
+  );
+
+  if (!printWindow) {
+    window.alert(
+      options.t(
+        "Reports.PrintPopupBlocked",
+        "Браузер заблокировал окно печати. Разрешите всплывающие окна для Web Office."
+      )
+    );
+    return;
+  }
+
+  printWindow.document.open();
+  printWindow.document.write(
+    buildSalaryCalcPrintHtml(options)
+  );
+  printWindow.document.close();
+  printWindow.focus();
+  closePrintWindowAfterPrint(printWindow);
+
+  window.setTimeout(() => {
+    printWindow.print();
+  }, 150);
+}
+
+function safeSalaryCalcFilePart(value) {
+  return String(value ?? "")
+    .trim()
+    .replace(/[\\/:*?"<>|]+/g, "_")
+    .replace(/\s+/g, "_")
+    .slice(0, 60);
+}
+
+function buildSalaryCalcExportModel({
+  waiters,
+  other,
+  dateFrom,
+  dateTo,
+  organizationName,
+  locale,
+  t
+}) {
+  const rows = [];
+
+  for (const row of waiters) {
+    rows.push({
+      Section: t("SalaryCalc.Waiters", "Официанты"),
+      Employee: row?.Waiter || "",
+      ProcZP: row?.ProcZP ?? "",
+      SummaZP: row?.SummaZP ?? "",
+      Otpuscheno: row?.Otpuscheno ?? "",
+      BezAvansov: row?.BezAvansov ?? ""
+    });
+  }
+
+  if (waiters.length > 0) {
+    rows.push({
+      Section: `${t("SalaryCalc.Waiters", "Официанты")} — ${t("Common.Total", "Итого")}`,
+      Employee: "",
+      ProcZP: "",
+      SummaZP: sumField(waiters, "SummaZP"),
+      Otpuscheno: sumField(waiters, "Otpuscheno"),
+      BezAvansov: sumField(waiters, "BezAvansov")
+    });
+  }
+
+  for (const row of other) {
+    rows.push({
+      Section: t("SalaryCalc.Other", "Прочий персонал"),
+      Employee: row?.Name || "",
+      ProcZP: row?.ProcZP ?? "",
+      SummaZP: row?.SummaZP ?? "",
+      Otpuscheno: row?.Otpuscheno ?? "",
+      BezAvansov: ""
+    });
+  }
+
+  if (other.length > 0) {
+    rows.push({
+      Section: `${t("SalaryCalc.Other", "Прочий персонал")} — ${t("Common.Total", "Итого")}`,
+      Employee: "",
+      ProcZP: "",
+      SummaZP: sumField(other, "SummaZP"),
+      Otpuscheno: sumField(other, "Otpuscheno"),
+      BezAvansov: ""
+    });
+  }
+
+  return {
+    title: `${t("SalaryCalc.Title", "Расчет зарплаты")} ${formatReportDate(dateFrom)} — ${formatReportDate(dateTo)}`,
+    fileName: `Salary_${safeSalaryCalcFilePart(dateFrom)}_${safeSalaryCalcFilePart(dateTo)}_${safeSalaryCalcFilePart(organizationName || "report")}`,
+    orientation: "portrait",
+    locale,
+    meta: organizationName
+      ? [
+          {
+            label: t("SalaryCalc.Organization", "Организация"),
+            value: organizationName
+          }
+        ]
+      : [],
+    columns: [
+      {
+        key: "Section",
+        title: t("SalaryCalc.Section", "Раздел"),
+        type: "text",
+        width: 20
+      },
+      {
+        key: "Employee",
+        title: t("SalaryCalc.Employee", "Сотрудник / наименование"),
+        type: "text",
+        width: 30
+      },
+      {
+        key: "ProcZP",
+        title: t("SalaryCalc.SalaryPercent", "% ЗП"),
+        type: "number",
+        decimals: 2,
+        width: 10
+      },
+      {
+        key: "SummaZP",
+        title: t("SalaryCalc.Salary", "Зарплата"),
+        type: "number",
+        decimals: 2,
+        width: 15
+      },
+      {
+        key: "Otpuscheno",
+        title: t("SalaryCalc.Released", "Отпущено"),
+        type: "number",
+        decimals: 2,
+        width: 17
+      },
+      {
+        key: "BezAvansov",
+        title: t("SalaryCalc.WithoutAdvances", "Без авансов"),
+        type: "number",
+        decimals: 2,
+        width: 17
+      }
+    ],
+    rows
+  };
+}
+
+function SalaryCalcReport({
+  data,
+  dateFrom,
+  dateTo,
+  organizationName,
+  locale,
+  fetchWithAuth,
+  t,
+  onReload
+}) {
+  const { waiters, other } = normalizeSalaryCalcPayload(data);
+  const formatter = createMoneyFormatter(locale);
+  const hasData = waiters.length > 0 || other.length > 0;
+
+  const commonOptions = {
+    waiters,
+    other,
+    dateFrom,
+    dateTo,
+    organizationName,
+    locale,
+    t
+  };
+
+  async function handleExport(format) {
+    try {
+      await exportReportFile({
+        fetchWithAuth,
+        reportModel: buildSalaryCalcExportModel(
+          commonOptions
+        ),
+        format,
+        errorMessage: t(
+          "Report.ExportError",
+          "Ошибка экспорта отчёта."
+        )
+      });
+    } catch (error) {
+      window.alert(
+        error?.message ||
+          t(
+            "Report.ExportError",
+            "Ошибка экспорта отчёта."
+          )
+      );
+    }
+  }
+
+  return (
+    <div className="reports-page salary-calc-report-page">
+      <div className="report-toolbar">
+        <button
+          type="button"
+          className="report-run-button"
+          onClick={onReload}
+        >
+          {t("Common.Generate", "Сформировать")}
+        </button>
+
+        <button
+          type="button"
+          className="report-action-button report-print-button"
+          onClick={() => printSalaryCalcReport(commonOptions)}
+        >
+          {t("Common.Print", "Печать")}
+        </button>
+
+        <button
+          type="button"
+          className="report-action-button report-excel-button"
+          onClick={() => handleExport("xlsx")}
+        >
+          {t("Common.Excel", "Excel")}
+        </button>
+
+        <button
+          type="button"
+          className="report-action-button report-word-button"
+          onClick={() => handleExport("docx")}
+        >
+          {t("Common.Word", "Word")}
+        </button>
+      </div>
+
+      <article className="revenue-report-sheet salary-calc-report-sheet">
+        <header className="revenue-report-heading salary-calc-report-heading">
+          <h3>
+            {t("SalaryCalc.Title", "Расчет зарплаты")} {t("Common.From", "с")} {formatReportDate(dateFrom)} {t("Common.To", "по")} {formatReportDate(dateTo)}
+          </h3>
+
+          <div className="revenue-report-org">
+            {organizationName || ""}
+          </div>
+        </header>
+
+        {hasData ? (
+          <div className="salary-calc-sections">
+            {waiters.length > 0 && (
+              <section className="salary-calc-section">
+                <div className="salary-calc-section-title">
+                  {t("SalaryCalc.Waiters", "Официанты")}
+                </div>
+                <SalaryCalcWaitersTable
+                  rows={waiters}
+                  locale={locale}
+                  formatter={formatter}
+                  t={t}
+                />
+              </section>
+            )}
+
+            {other.length > 0 && (
+              <section className="salary-calc-section">
+                <div className="salary-calc-section-title">
+                  {t("SalaryCalc.Other", "Прочий персонал")}
+                </div>
+                <SalaryCalcOtherTable
+                  rows={other}
+                  locale={locale}
+                  formatter={formatter}
+                  t={t}
+                />
+              </section>
+            )}
+          </div>
+        ) : (
+          <div className="report-empty">
+            {t(
+              "Reports.NoDataForPeriod",
+              "За выбранный период данных нет."
+            )}
+          </div>
+        )}
+      </article>
+    </div>
+  );
+}
+
 export default function ReportsPage({
   code,
   apiAction,
@@ -30311,6 +31294,24 @@ export default function ReportsPage({
         data={data}
         dateFrom={dateFrom}
         dateTo={dateTo}
+        locale={locale}
+        fetchWithAuth={fetchWithAuth}
+        t={t}
+        onReload={onReload}
+      />
+    );
+  }
+
+  if (
+    normalizedCode === "05.11" ||
+    normalizedAction === "printzp"
+  ) {
+    return (
+      <SalaryCalcReport
+        data={data}
+        dateFrom={dateFrom}
+        dateTo={dateTo}
+        organizationName={reportOrganizationName}
         locale={locale}
         fetchWithAuth={fetchWithAuth}
         t={t}
@@ -30895,6 +31896,7 @@ export default function ReportsPage({
         dateTo={dateTo}
         organizationName={reportOrganizationName}
         locale={locale}
+        t={t}
         onReload={onReload}
       />
     );
@@ -30908,6 +31910,7 @@ export default function ReportsPage({
         dateTo={dateTo}
         organizationName={reportOrganizationName}
         locale={locale}
+        t={t}
         onReload={onReload}
       />
     );
@@ -30917,7 +31920,7 @@ export default function ReportsPage({
     <div className="reports-page">
       <div className="report-toolbar">
         <button type="button" className="report-run-button" onClick={onReload}>
-          Сформировать
+          {t("Common.Generate", "Сформировать")}
         </button>
       </div>
       <pre className="json-view">{JSON.stringify(data, null, 2)}</pre>

@@ -2000,6 +2000,7 @@ export default function PereuchetPage({
         Realiz: Number(row.Realiz || 0),
         Spisano: Number(row.Spisano || 0),
         InPF: Number(row.InPF || 0),
+        Ostatok: Number(row.Ostatok || 0),
         OnFact: Number(row.OnFact || 0),
         OnFactInput: numberToInput(row.OnFact),
         _changed: false
@@ -2505,6 +2506,7 @@ export default function PereuchetPage({
                   <col className="pereuchet-edit-col-number" />
                   <col className="pereuchet-edit-col-number" />
                   <col className="pereuchet-edit-col-number" />
+                  <col className="pereuchet-edit-col-number" />
                   <col className="pereuchet-edit-col-fact" />
                 </colgroup>
 
@@ -2519,6 +2521,7 @@ export default function PereuchetPage({
                     <th>{t("Pereuchet.SoldShort", "Реализ.")}</th>
                     <th>{t("Pereuchet.WrittenOff", "Списано")}</th>
                     <th>{t("Pereuchet.InSemiFinished", "В ПФ")}</th>
+                    <th>{t("Pereuchet.Report.Balance", "Остаток")}</th>
                     <th>{t("Pereuchet.Actual", "Факт")}</th>
                   </tr>
                 </thead>
@@ -2546,6 +2549,7 @@ export default function PereuchetPage({
                       <td className="text-right">{formatNumber(row.Realiz, 3, locale)}</td>
                       <td className="text-right">{formatNumber(row.Spisano, 3, locale)}</td>
                       <td className="text-right">{formatNumber(row.InPF, 3, locale)}</td>
+                      <td className="text-right">{formatNumber(row.Ostatok, 3, locale)}</td>
                       <td>
                         <input
                           ref={(input) => {
@@ -2568,7 +2572,7 @@ export default function PereuchetPage({
 
                   {perRows.length === 0 && (
                     <tr>
-                      <td colSpan="10" className="empty-cell pereuchet-empty-row">
+                      <td colSpan="11" className="empty-cell pereuchet-empty-row">
                         {t("Pereuchet.NoStocktakeData", "Данных переучета нет")}
                       </td>
                     </tr>

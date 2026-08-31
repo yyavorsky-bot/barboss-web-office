@@ -1491,6 +1491,13 @@
   gap: 14px;
 }
 
+.remain-group-column {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
 .remain-group {
   min-width: 0;
   break-inside: avoid;
@@ -1570,6 +1577,14 @@
 
   .remain-groups-grid {
     grid-template-columns: 1fr;
+  }
+
+  .remain-group-column {
+    display: contents;
+  }
+
+  .remain-group {
+    order: var(--remain-group-order);
   }
 
   .remain-table {
@@ -4173,5 +4188,77 @@
 
   .money-pribil-metric-value {
     min-width: 120px;
+  }
+}
+
+/* =========================================================
+   05.11 — Расчет зарплаты
+   ========================================================= */
+
+.salary-calc-report-sheet {
+  max-width: 1080px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.salary-calc-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.salary-calc-section + .salary-calc-section {
+  padding-top: 16px;
+  border-top: 2px solid #596864;
+}
+
+.salary-calc-section-title {
+  margin-bottom: 8px;
+  color: #334944;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.salary-calc-table {
+  min-width: 720px;
+  table-layout: fixed;
+}
+
+.salary-calc-waiters-table th:nth-child(1) {
+  width: 30%;
+}
+
+.salary-calc-waiters-table th:nth-child(2) {
+  width: 10%;
+}
+
+.salary-calc-waiters-table th:nth-child(3),
+.salary-calc-waiters-table th:nth-child(4),
+.salary-calc-waiters-table th:nth-child(5) {
+  width: 20%;
+}
+
+.salary-calc-other-table th:nth-child(1) {
+  width: 40%;
+}
+
+.salary-calc-other-table th:nth-child(2) {
+  width: 12%;
+}
+
+.salary-calc-other-table th:nth-child(3),
+.salary-calc-other-table th:nth-child(4) {
+  width: 24%;
+}
+
+.salary-calc-percent-col,
+.salary-calc-percent-cell {
+  text-align: right !important;
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .salary-calc-report-sheet {
+    max-width: none;
   }
 }

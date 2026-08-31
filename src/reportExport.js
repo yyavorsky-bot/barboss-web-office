@@ -734,7 +734,7 @@ export function buildRevenueDocxBytes({
   locale
 }) {
   const formatter = createMoneyFormatter(locale);
-  const mainWidths = mainColumns.map((column) => column.kind === "text" ? 2100 : 780);
+  const mainWidths = mainColumns.map((column) => column.kind === "text" ? 2100 : 900);
   const cashWidths = cashColumns.map((column) => column.kind === "text" ? 1900 : 1500);
   const bonus = bonusRows[0] ?? {};
 

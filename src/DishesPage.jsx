@@ -2011,6 +2011,7 @@ function buildDishesXml(sourceRows) {
               <tr>
                 <th>{t("Dishes.Barcode", "Штрихкод")}</th>
                 <th className="dishes-name-column">{t("Dishes.Name", "Название")}</th>
+                <th>{t("Dishes.Group", "Группа")}</th>
                 {extraNameMode === "eng" && (
                   <th>{t("Dishes.EnglishName", "Eng")}</th>
                 )}
@@ -2022,7 +2023,6 @@ function buildDishesXml(sourceRows) {
                 <th>{t("Dishes.Unit", "Ед.")}</th>
                 <th>{t("Dishes.NonProduct", "НеП.")}</th>
                 <th>{t("Dishes.HiddenShort", "Скр.")}</th>
-                <th>{t("Dishes.Group", "Группа")}</th>
                 <th>{t("Dishes.Workshop", "Цех")}</th>
                 <th>{t("Dishes.Organization", "Предпр.")}</th>
                 <th>{t("Dishes.Type", "Тип")}</th>
@@ -2053,6 +2053,10 @@ function buildDishesXml(sourceRows) {
                   ].join(" ")}
                   data-dish-id={dish.CodeBl}
                   onClick={() => selectDish(dish.CodeBl)}
+                  onDoubleClick={() => {
+                    selectDish(dish.CodeBl);
+                    handleOpenCalc(dish.CodeBl);
+                  }}
                   onKeyDown={handleDishRowKeyDown}
                 >
                   <td>
@@ -2075,6 +2079,17 @@ function buildDishesXml(sourceRows) {
                       disabled={readOnly}
                       onChange={(e) =>
                         updateField(dish.CodeBl, "Name1", e.target.value)
+                      }
+                    />
+                  </td>
+
+                  <td>
+                    <LookupSelect
+                      value={dish.Grupp}
+                      items={groups}
+                      disabled={readOnly}
+                      onChange={(value) =>
+                        updateField(dish.CodeBl, "Grupp", Number(value))
                       }
                     />
                   </td>
@@ -2163,17 +2178,6 @@ function buildDishesXml(sourceRows) {
                       disabled={readOnly}
                       onChange={(e) =>
                         updateField(dish.CodeBl, "Skr", e.target.checked)
-                      }
-                    />
-                  </td>
-
-                  <td>
-                    <LookupSelect
-                      value={dish.Grupp}
-                      items={groups}
-                      disabled={readOnly}
-                      onChange={(value) =>
-                        updateField(dish.CodeBl, "Grupp", Number(value))
                       }
                     />
                   </td>
