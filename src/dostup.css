@@ -1,0 +1,187 @@
+.dostup-page {
+  width: 100%;
+  min-width: 0;
+}
+
+.dostup-toolbar {
+  align-items: flex-end;
+}
+
+.dostup-toolbar-left {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.dostup-user-field,
+.dostup-login-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 210px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.dostup-user-field select,
+.dostup-login-field input {
+  height: 32px;
+  padding: 4px 8px;
+  border: 1px solid #aebbb7;
+  border-radius: 7px;
+  background: #fff;
+  color: #1f2926;
+  font: inherit;
+  box-sizing: border-box;
+}
+
+.dostup-user-field select {
+  min-width: 240px;
+}
+
+.dostup-login-field input {
+  min-width: 220px;
+}
+
+.dostup-message {
+  color: #24634f;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.dostup-inline-error {
+  max-width: 420px;
+  color: #a32626;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.dostup-card {
+  max-width: 920px;
+  border: 1px solid #c9d6d2;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+.dostup-card-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-height: 42px;
+  padding: 8px 14px;
+  border-bottom: 1px solid #cbd6d3;
+  background: #edf5f3;
+  color: #31423e;
+}
+
+.dostup-card-heading strong {
+  font-size: 14px;
+}
+
+.dostup-card-heading span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.dostup-tree {
+  max-height: calc(100vh - 230px);
+  overflow: auto;
+  padding: 8px 0 14px;
+}
+
+.dostup-group {
+  border-bottom: 1px solid #e4eae8;
+}
+
+.dostup-group:last-child {
+  border-bottom: 0;
+}
+
+.dostup-subgroup {
+  min-width: 0;
+}
+
+.dostup-right-row {
+  min-height: 31px;
+  box-sizing: border-box;
+}
+
+.dostup-right-row.level-1 {
+  background: #f1f6f4;
+  font-weight: 800;
+}
+
+.dostup-right-row.level-2 {
+  background: #fbfcfc;
+  font-weight: 650;
+}
+
+.dostup-right-row.level-3 {
+  background: #fff;
+  font-weight: 500;
+}
+
+.dostup-right-row:hover {
+  background: #eef8f6;
+}
+
+.dostup-right-label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 31px;
+  margin: 0;
+  padding: 4px 12px;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.dostup-right-row.level-2 .dostup-right-label {
+  padding-left: 34px;
+}
+
+.dostup-right-row.level-3 .dostup-right-label {
+  padding-left: 58px;
+}
+
+.dostup-right-label input[type="checkbox"] {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: #2f7f68;
+}
+
+.dostup-right-label span {
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.dostup-right-label:has(input:disabled) {
+  cursor: default;
+}
+
+@media (max-width: 760px) {
+  .dostup-card {
+    max-width: none;
+  }
+
+  .dostup-user-field,
+  .dostup-login-field,
+  .dostup-user-field select,
+  .dostup-login-field input {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .dostup-tree {
+    max-height: none;
+  }
+}

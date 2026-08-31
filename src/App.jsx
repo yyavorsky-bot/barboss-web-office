@@ -44,6 +44,7 @@ import SystemParametersPage from "./SystemParametersPage";
 import UsersPage from "./UsersPage";
 import SalaryParametersPage from "./SalaryParametersPage";
 import TablesPage from "./TablesPage";
+import DostupPage from "./DostupPage";
 import "./styles.css";
 import "./prih-invoice-report.css";
 import "./side-menu-collapse.css";
@@ -4643,6 +4644,15 @@ async function addDish({ sklad, group }) {
     }
 
     if (
+      menuCode === "09.08" ||
+      actionName.toLowerCase() === "dostup"
+    ) {
+      const dostupData = await loadDirectoryData("Dostup");
+      setWorkData(dostupData);
+      return;
+    }
+
+    if (
       actionName.toLowerCase() === "wbr_reports" &&
       menuCode === "05.12"
     ) {
@@ -5630,6 +5640,48 @@ async function saveDishes(xml) {
   {!workLoading &&
     !workError &&
     Array.isArray(workData) &&
+    normalizeMenuCode(selectedMenuCode) === "09.08" &&
+    String(selectedAction || "").toLowerCase() === "dostup" && (
+      <DostupPage
+        data={workData}
+        readOnly={Boolean(user?.readOnly)}
+        onDirtyChange={setHasUnsavedChanges}
+        onSave={async (xml) => {
+          const response = await saveRefItem("Dostup", xml);
+          const text = await response.text();
+          let result = null;
+
+          if (text.trim()) {
+            try {
+              result = JSON.parse(text);
+            } catch {
+              if (!response.ok) {
+                throw new Error(
+                  `Сохранение прав доступа вернуло не JSON: ${text.substring(0, 300)}`
+                );
+              }
+            }
+          }
+
+          if (!response.ok || result?.status === "error") {
+            throw new Error(
+              result?.error ||
+                result?.message ||
+                t("Dostup.SaveError", "Ошибка сохранения прав доступа")
+            );
+          }
+
+          const reloadedData = await loadDirectoryData("Dostup");
+          setWorkData(reloadedData);
+          return reloadedData;
+        }}
+        t={t}
+      />
+    )}
+
+  {!workLoading &&
+    !workError &&
+    Array.isArray(workData) &&
     normalizeMenuCode(selectedMenuCode) === "09.01" && (
       <NeraschPage
         data={workData}
@@ -6301,7 +6353,9 @@ onChangePost={async (nextPost) => {
   normalizeMenuCode(selectedMenuCode) !== "09.03" &&
   normalizeMenuCode(selectedMenuCode) !== "09.06" &&
   normalizeMenuCode(selectedMenuCode) !== "09.07" &&
+  normalizeMenuCode(selectedMenuCode) !== "09.08" &&
   selectedAction.toLowerCase() !== "tables" &&
+  selectedAction.toLowerCase() !== "dostup" &&
   selectedAction.toLowerCase() !== "wbo_directory" &&
   selectedAction.toLowerCase() !== "wbr_reports" && (
     <pre className="json-view">
@@ -6315,7 +6369,9 @@ onChangePost={async (nextPost) => {
     selectedAction &&
     selectedAction !== "order-new" &&
     normalizeMenuCode(selectedMenuCode) !== "09.07" &&
-    selectedAction.toLowerCase() !== "tables" && (
+    normalizeMenuCode(selectedMenuCode) !== "09.08" &&
+    selectedAction.toLowerCase() !== "tables" &&
+    selectedAction.toLowerCase() !== "dostup" && (
       <p>{t("App.NoData", "Для выбранного раздела пока нет данных.")}</p>
     )}
 </main>

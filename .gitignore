@@ -34,3 +34,4 @@ dist-ssr
 # Old nested project copy
 barboss-web-office/
 httpd.conf
+db-analysis/
